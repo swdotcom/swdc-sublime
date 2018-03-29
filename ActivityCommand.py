@@ -9,9 +9,9 @@ import json
 
 import sublime_plugin, sublime
 
-VERSION = 0.1
+VERSION = '0.1.0'
 PM_URL = 'localhost:19234'
-USER_AGENT = 'Software.com Sublime Plugin v' + str(VERSION)
+USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
 DEFAULT_DURATION = 60
 was_message_shown = False
@@ -81,6 +81,7 @@ class PluginData():
         self.send_timer = None
         self.project = project
         self.pluginId = 1
+        self.version = VERSION
 
     def json(self):
 
@@ -315,7 +316,7 @@ class EventListener(sublime_plugin.EventListener):
 
 
 def plugin_loaded():
-    log('Software.com: Loaded v{}'.format(VERSION))
+    log('Software.com: Loaded v%s' % VERSION)
 
 
 def plugin_unloaded():
