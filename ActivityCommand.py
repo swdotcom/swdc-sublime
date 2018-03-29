@@ -66,7 +66,7 @@ class BackgroundWorker():
 
 
 class PluginData():
-    __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId')
+    __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
     json_ignore = ('send_timer',)
     background_worker = BackgroundWorker(1, post_json)
