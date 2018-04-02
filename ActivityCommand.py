@@ -44,7 +44,7 @@ def post_json(json_data):
     except (http.client.HTTPException, ConnectionError) as ex:
         log('Software.com: Network error: %s' % ex)
         if (not was_message_shown):
-            sublime.message_dialog('Software.com: We are having trouble sending data to Software.com. Please make sure the Plugin Manager is on and logged in.')
+            sublime.message_dialog('We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged in.')
             was_message_shown = True
 
 
@@ -73,7 +73,7 @@ class PluginData():
     active_datas = dict()
 
     def __init__(self, project):
-        self.source = []
+        self.source = dict()
         self.type = 'Events'
         self.data = 0
         self.start = datetime.utcnow()
@@ -91,18 +91,9 @@ class PluginData():
         dict_data = {key: getattr(self, key, None)
                      for key in self.__slots__ if key not in self.json_ignore}
 
-        dict_data['source'] = list(dict_data['source'])
-        dict_data['data'] = str(dict_data['data'])
-
         for key in self.convert_to_seconds:
             dict_data[key] = int(round(dict_data[key]
                                        .replace(tzinfo=timezone.utc).timestamp()))
-        orig_source_list = dict_data['source']
-        new_source_list = []
-        for item in orig_source_list:
-            new_source_list.append(json.dumps(item))
-
-        dict_data['source'] = new_source_list
 
         return json.dumps(dict_data)
 
@@ -112,19 +103,14 @@ class PluginData():
 
     # check if we have data
     def hasData(self):
-        if self.data > 0 and len(self.source) > 0:
-            return True
-        else:
-            if len(self.source) > 0:
-                for fileInfo in self.source:
-                    if fileInfo is not None:
-                        for fileName in fileInfo:
-                            if (fileInfo[fileName]['close'] > 0 or
-                                fileInfo[fileName]['open'] > 0 or
-                                fileInfo[fileName]['paste'] > 0 or
-                                fileInfo[fileName]['delete'] > 0 or
-                                fileInfo[fileName]['keys'] > 0):
-                                return True
+        for fileName in self.source:
+            fileInfo = self.source[fileName]
+            if (fileInfo['close'] > 0 or
+                fileInfo['open'] > 0 or
+                fileInfo['paste'] > 0 or
+                fileInfo['delete'] > 0 or
+                fileInfo['keys'] > 0):
+                return True
         return False
 
     @staticmethod
@@ -132,7 +118,7 @@ class PluginData():
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             if keystrokeCountObj is not None:
-                keystrokeCountObj.source = []
+                keystrokeCountObj.source = dict()
                 keystrokeCountObj.data = 0
                 keystrokeCountObj.start = datetime.utcnow()
                 keystrokeCountObj.end = keystrokeCountObj.start + timedelta(0, DEFAULT_DURATION)
@@ -202,10 +188,8 @@ class PluginData():
             if keystrokeCountObj is not None:
                 hasExistingKeystrokeObj = True
                 # we have a keystroke count object, get the fileInfo
-                for fileInfoMap in keystrokeCountObj.source:
-                    if fileInfoMap is not None and fileName in fileInfoMap is not None:
-                        # found the fileInfo with this fileName, return it
-                        return fileInfoMap[fileName]
+                if keystrokeCountObj.source is not None and fileName in keystrokeCountObj.source:
+                    return keystrokeCountObj.source[fileName]
 
         return None
 
@@ -223,17 +207,17 @@ class PluginData():
             fileName is 'None'
         
         # create the new FileInfo, which will contain a dictionary
-        # of fileName and it's metrics.
-        fileInfo = dict()
-        fileInfoData = dict()
-        fileInfoData['keys'] = 0
-        fileInfoData['paste'] = 0
-        fileInfoData['open'] = 0
-        fileInfoData['close'] = 0
-        fileInfoData['length'] = 0
-        fileInfoData['delete'] = 0
-        fileInfo[fileName] = fileInfoData
-        keystrokeCount.source.append(fileInfo)
+        # of fileName and it's metrics
+        fileInfoData = PluginData.get_existing_file_info(fileName);
+        if fileInfoData is None:
+            fileInfoData = dict()
+            fileInfoData['keys'] = 0
+            fileInfoData['paste'] = 0
+            fileInfoData['open'] = 0
+            fileInfoData['close'] = 0
+            fileInfoData['length'] = 0
+            fileInfoData['delete'] = 0
+            keystrokeCount.source[fileName] = fileInfoData
 
     @staticmethod
     def get_file_info_and_initialize_if_none(keystrokeCount, fileName):
