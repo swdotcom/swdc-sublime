@@ -77,7 +77,7 @@ class PluginData():
         self.type = 'Events'
         self.data = 0
         self.start = datetime.utcnow()
-        self.end = self.start + timedelta(0, DEFAULT_DURATION)
+        self.end = self.start + 60
         self.send_timer = None
         self.project = project
         self.pluginId = 1
@@ -121,7 +121,7 @@ class PluginData():
                 keystrokeCountObj.source = dict()
                 keystrokeCountObj.data = 0
                 keystrokeCountObj.start = datetime.utcnow()
-                keystrokeCountObj.end = keystrokeCountObj.start + timedelta(0, DEFAULT_DURATION)
+                keystrokeCountObj.end = keystrokeCountObj.start + 60
 
     @staticmethod
     def get_active_data(view):
