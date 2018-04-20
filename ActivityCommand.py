@@ -64,7 +64,7 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
-
+#...
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
@@ -77,7 +77,7 @@ class PluginData():
         self.type = 'Events'
         self.data = 0
         self.start = datetime.utcnow()
-        self.end = self.start + 60
+        self.end = self.start + timedelta(seconds=60)
         self.send_timer = None
         self.project = project
         self.pluginId = 1
@@ -121,7 +121,7 @@ class PluginData():
                 keystrokeCountObj.source = dict()
                 keystrokeCountObj.data = 0
                 keystrokeCountObj.start = datetime.utcnow()
-                keystrokeCountObj.end = keystrokeCountObj.start + 60
+                keystrokeCountObj.end = keystrokeCountObj.start + timedelta(seconds=60)
 
     @staticmethod
     def get_active_data(view):
