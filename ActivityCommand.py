@@ -6,7 +6,9 @@ from queue import Queue
 import math
 import http
 import json
-
+import os
+import urllib
+import subprocess
 import sublime_plugin, sublime
 
 VERSION = '0.1.0'
@@ -15,6 +17,12 @@ USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
 DEFAULT_DURATION = 60
 was_message_shown = False
+was_pm_message_shown = False
+downloadingPM = False
+PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
+PM_NAME = "software-plugin-manager"
+NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugin Manager may not be installed. Would you like to download it now?"
+PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
 
 # log the message
 def log(message):
@@ -23,9 +31,64 @@ def log(message):
 
     print(message)
 
+# get the url + PM name to download the PM
+def getFileUrl():
+    fileUrl = PM_BUCKET + PM_NAME
+    if (os.name == 'nt'):
+        fileUrl += ".exe"
+    elif (os.name == 'posix'):
+        fileUrl += ".dmg"
+    else:
+        fileUrl += ".deb"
+
+    return fileUrl
+
+def getDownloadPath():
+    downloadPath = os.environ['HOME']
+    if (os.name == 'nt'):
+        downloadPath += "\\Desktop\\"
+    else:
+        downloadPath += "/Desktop/"
+
+    return downloadPath
+
+
+# get the filename we're going to use for the PM download.
+def getDownloadFilePathName():
+    downloadFilePathName = getDownloadPath()
+    if (os.name == 'nt'):
+        downloadFilePathName += PM_NAME + ".exe"
+    elif (os.name == 'posix'):
+        downloadFilePathName += PM_NAME + ".dmg"
+    else:
+        downloadFilePathName += PM_NAME + ".deb"
+
+    return downloadFilePathName
+     
+# get the directory path where the PM should be installed
+def getPmInstallDirectoryPath():
+    if (os.name == 'nt'):
+        return os.environ['HOME'] + "\\AppData\\Programs"
+    elif (os.name == 'posix'):
+        return "/Applications"
+    else:
+        return "/user/lib"
+
+# check if the PM was installed or not
+def hasPluginInstalled():
+    installDir = getPmInstallDirectoryPath()
+
+    for file in os.listdir(installDir):
+        pathname = os.path.join(installDir, file)
+        if (os.path.isfile(pathname) and file.lower().startswith("software")):
+            return True
+
+    return False
+
 # post the json data
 def post_json(json_data):
     global was_message_shown
+    global was_pm_message_shown
     try:
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
         connection = http.client.HTTPConnection(PM_URL)
@@ -42,9 +105,18 @@ def post_json(json_data):
         was_message_shown = False
         return response
     except (http.client.HTTPException, ConnectionError) as ex:
+        if (not was_pm_message_shown and not hasPluginInstalled()):
+            was_pm_message_shown = True
+            # ask to download the plugin manager
+            clickAction = sublime.ok_cancel_dialog(NO_PM_FOUND_MSG, "Download")
+            if (clickAction == True):
+                thread = DownloadPM()
+                thread.start()
+            return
+
         log('Software.com: Network error: %s' % ex)
-        if (not was_message_shown):
-            sublime.message_dialog('We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged in.')
+        if (not downloadingPM and not was_message_shown):
+            sublime.message_dialog(PLUGIN_TO_PM_ERROR_MSG)
             was_message_shown = True
 
 
@@ -64,7 +136,25 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
-#...
+#
+class DownloadPM(Thread):
+
+    # download the PM and install it
+    def run(self):
+        downloadingPM = True
+        saveAs = getDownloadFilePathName()
+        url = getFileUrl()
+        downloadPath = getDownloadPath()
+
+        sublime.status_message("Downlaoding Plugin Manager");
+
+        try:
+            urllib.urlretrieve(url, saveAs)
+        except AttributeError:
+            urllib.request.urlretrieve(url, saveAs)
+
+        sublime.status_message("Finished downloading the Plugin Manager.")
+
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
@@ -208,7 +298,8 @@ class PluginData():
         
         # create the new FileInfo, which will contain a dictionary
         # of fileName and it's metrics
-        fileInfoData = PluginData.get_existing_file_info(fileName);
+        fileInfoData = PluginData.get_existing_file_info(fileName)
+
         if fileInfoData is None:
             fileInfoData = dict()
             fileInfoData['keys'] = 0
