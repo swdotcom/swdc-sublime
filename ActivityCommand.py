@@ -18,13 +18,16 @@ LOGGING = True
 DEFAULT_DURATION = 60
 was_message_shown = False
 was_pm_message_shown = False
+was_new_version_shown = False
 downloadingPM = False
 PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
+PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
 PM_NAME = "software-plugin-manager"
 NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugin Manager may not be installed. Would you like to download it now?"
 PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
+PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of Software (%s) is available. You may download the new version at Software.com."
 
-# log the message
+# log the message.
 def log(message):
     if LOGGING is False:
         return
@@ -89,6 +92,8 @@ def hasPluginInstalled():
 def post_json(json_data):
     global was_message_shown
     global was_pm_message_shown
+    global was_new_version_shown
+
     try:
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
         connection = http.client.HTTPConnection(PM_URL)
@@ -98,14 +103,15 @@ def post_json(json_data):
 
         response = connection.getresponse()
 
-        # reset the source data
+        # reset the source data.
         PluginData.reset_source_data()
 
         # log('Software.com: Response (%d): %s' % (response.status, response.read().decode('utf-8')))
         was_message_shown = False
         return response
     except (http.client.HTTPException, ConnectionError) as ex:
-        if (not was_pm_message_shown and not hasPluginInstalled()):
+        foundPmBinary = hasPluginInstalled()
+        if (not was_pm_message_shown and not foundPmBinary):
             was_pm_message_shown = True
             # ask to download the plugin manager
             clickAction = sublime.ok_cancel_dialog(NO_PM_FOUND_MSG, "Download")
@@ -115,9 +121,15 @@ def post_json(json_data):
             return
 
         log('Software.com: Network error: %s' % ex)
-        if (not downloadingPM and not was_message_shown):
+
+        if (foundPmBinary and not downloadingPM and not was_message_shown):
             sublime.message_dialog(PLUGIN_TO_PM_ERROR_MSG)
             was_message_shown = True
+
+    # check to see if there's a new plugin version or now
+    if (not downloadingPM and not was_new_version_shown):
+        updateThread = CheckForUpdates()
+        updateThread.start()
 
 
 class BackgroundWorker():
@@ -136,17 +148,17 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
-#
+
 class DownloadPM(Thread):
 
-    # download the PM and install it
+    # download the PM and install it....
     def run(self):
         downloadingPM = True
         saveAs = getDownloadFilePathName()
         url = getFileUrl()
         downloadPath = getDownloadPath()
 
-        sublime.status_message("Downlaoding Plugin Manager");
+        sublime.status_message("Downlaoding Plugin Manager")
 
         try:
             urllib.urlretrieve(url, saveAs)
@@ -154,6 +166,36 @@ class DownloadPM(Thread):
             urllib.request.urlretrieve(url, saveAs)
 
         sublime.status_message("Finished downloading the Plugin Manager.")
+
+        if (os.name == 'posix'):
+            # open the .dmg
+            subprocess.Popen(['open', saveAs], stdout=subprocess.PIPE)
+        else:
+            # open the .deb or .exe
+            subprocess.Popen([saveAs], stdout=subprocess.PIPE)
+
+# fetch the plugins.yml to find out if there's a new plugin version to download.
+class CheckForUpdates(Thread):
+
+    def run(self):
+        with urllib.request.urlopen(PLUGIN_YML_URL) as response:
+            ymldata = response.read().decode("utf-8")
+
+            if (ymldata is not None):
+                ymllines = ymldata.splitlines()
+                # look for "sublime-version"
+                if (ymllines and len(ymllines) > 0):
+                    for versionline in ymllines:
+                        if (versionline.startswith("sublime-version")):
+                            versionparts = versionline.split()
+                            availableversion = versionparts[1].strip()
+                            if (len(versionparts) == 2 and VERSION != availableversion):
+                                # alert the user that there's a new version
+                                was_new_version_shown = True
+                                sublime.message_dialog(PLUGIN_UPDATE_AVAILABLE_MSG % availableversion)
+                            # break out, we found the sublime version line
+                            break
+
 
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
