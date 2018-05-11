@@ -27,7 +27,7 @@ NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugi
 PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of Software (%s) is available. You may download the new version at Software.com."
 
-# log the message.
+# log the message
 def log(message):
     if LOGGING is False:
         return
@@ -36,14 +36,7 @@ def log(message):
 
 # get the url + PM name to download the PM
 def getFileUrl():
-    fileUrl = PM_BUCKET + PM_NAME
-    if (os.name == 'nt'):
-        fileUrl += ".exe"
-    elif (os.name == 'posix'):
-        fileUrl += ".dmg"
-    else:
-        fileUrl += ".deb"
-
+    fileUrl = PM_BUCKET + PM_NAME + getPmExtension()
     return fileUrl
 
 def getDownloadPath():
@@ -55,20 +48,20 @@ def getDownloadPath():
 
     return downloadPath
 
+def getPmExtension():
+    if (os.name == 'nt'):
+        return ".exe"
+    elif (os.name == 'posix'):
+        return ".dmg"
+    else:
+        return ".deb"
 
 # get the filename we're going to use for the PM download.
 def getDownloadFilePathName():
-    downloadFilePathName = getDownloadPath()
-    if (os.name == 'nt'):
-        downloadFilePathName += PM_NAME + ".exe"
-    elif (os.name == 'posix'):
-        downloadFilePathName += PM_NAME + ".dmg"
-    else:
-        downloadFilePathName += PM_NAME + ".deb"
-
+    downloadFilePathName = getDownloadPath() + PM_NAME + getPmExtension()
     return downloadFilePathName
      
-# get the directory path where the PM should be installed
+# get the directory path where the PM should be installed.
 def getPmInstallDirectoryPath():
     if (os.name == 'nt'):
         return os.environ['HOME'] + "\\AppData\\Programs"
@@ -83,7 +76,9 @@ def hasPluginInstalled():
 
     for file in os.listdir(installDir):
         pathname = os.path.join(installDir, file)
-        if (os.path.isfile(pathname) and file.lower().startswith("software")):
+        lcfile = file.lower()
+        # file found: Software.com Plugin Manager.app
+        if (lcfile.startswith("software")):
             return True
 
     return False
@@ -93,6 +88,8 @@ def post_json(json_data):
     global was_message_shown
     global was_pm_message_shown
     global was_new_version_shown
+
+    error_message_shown = False
 
     try:
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
@@ -111,8 +108,10 @@ def post_json(json_data):
         return response
     except (http.client.HTTPException, ConnectionError) as ex:
         foundPmBinary = hasPluginInstalled()
+        hasError = True
         if (not was_pm_message_shown and not foundPmBinary):
             was_pm_message_shown = True
+            error_message_shown = True
             # ask to download the plugin manager
             clickAction = sublime.ok_cancel_dialog(NO_PM_FOUND_MSG, "Download")
             if (clickAction == True):
@@ -125,9 +124,10 @@ def post_json(json_data):
         if (foundPmBinary and not downloadingPM and not was_message_shown):
             sublime.message_dialog(PLUGIN_TO_PM_ERROR_MSG)
             was_message_shown = True
+            error_message_shown = True
 
     # check to see if there's a new plugin version or now
-    if (not downloadingPM and not was_new_version_shown):
+    if (not error_message_shown and not downloadingPM and not was_new_version_shown):
         updateThread = CheckForUpdates()
         updateThread.start()
 
@@ -178,6 +178,8 @@ class DownloadPM(Thread):
 class CheckForUpdates(Thread):
 
     def run(self):
+        global was_new_version_shown
+        
         with urllib.request.urlopen(PLUGIN_YML_URL) as response:
             ymldata = response.read().decode("utf-8")
 
