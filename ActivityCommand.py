@@ -11,7 +11,7 @@ import urllib
 import subprocess
 import sublime_plugin, sublime
 
-VERSION = '0.1.0'
+VERSION = '0.1.1'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
