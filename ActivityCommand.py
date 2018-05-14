@@ -9,7 +9,10 @@ import json
 import os
 import urllib
 import subprocess
+import zipfile
+import re
 import sublime_plugin, sublime
+
 
 VERSION = '0.1.1'
 PM_URL = 'localhost:19234'
@@ -19,13 +22,17 @@ DEFAULT_DURATION = 60
 was_message_shown = False
 was_pm_message_shown = False
 was_new_version_shown = False
+updates_running = False
 downloadingPM = False
 PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
 PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
 PM_NAME = "software-plugin-manager"
 NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugin Manager may not be installed. Would you like to download it now?"
 PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
-PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of Software (%s) is available. You may download the new version at Software.com."
+PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
+PLUGIN_ZIP_NAME = "swdc-sublime.zip"
+PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
+
 
 # log the message
 def log(message):
@@ -34,11 +41,12 @@ def log(message):
 
     print(message)
 
-# get the url + PM name to download the PM
+# get the url + PM name to download the PM.
 def getFileUrl():
     fileUrl = PM_BUCKET + PM_NAME + getPmExtension()
     return fileUrl
 
+# get the path to download the PM to
 def getDownloadPath():
     downloadPath = os.environ['HOME']
     if (os.name == 'nt'):
@@ -56,12 +64,35 @@ def getPmExtension():
     else:
         return ".deb"
 
-# get the filename we're going to use for the PM download.
+def getPluginPathWithSlash():
+    pluginPathWithExtension = sublime.packages_path()
+
+    if (os.name == 'nt'):
+        return pluginPathWithExtension + "\\"
+    else:
+        return pluginPathWithExtension + "/"
+
+    return pluginPathWithExtension
+
+# For Sublime 3, the locations are the following
+# Windows: %APPDATA%\Sublime Text 3\Packages
+# OS X: ~/Library/Application Support/Sublime Text 3/Packages
+# Linux: ~/.config/sublime-text-3/packages
+def getPluginDataPathFileName():
+    # i.e. sublime path: /Users/xavierluiz/Library/Application Support/Sublime Text 3/Packages
+    pluginPathFileName = sublime.packages_path()
+
+    if (os.name == 'nt'):
+        return pluginPathFileName + "\\" + PLUGIN_ZIP_NAME
+    else:
+        return pluginPathFileName + "/" + PLUGIN_ZIP_NAME
+
+# get the filename we're going to use for the PM download
 def getDownloadFilePathName():
     downloadFilePathName = getDownloadPath() + PM_NAME + getPmExtension()
     return downloadFilePathName
      
-# get the directory path where the PM should be installed.
+# get the directory path where the PM should be installed
 def getPmInstallDirectoryPath():
     if (os.name == 'nt'):
         return os.environ['HOME'] + "\\AppData\\Programs"
@@ -88,8 +119,14 @@ def post_json(json_data):
     global was_message_shown
     global was_pm_message_shown
     global was_new_version_shown
+    global updates_running
 
     error_message_shown = False
+
+    # check to see if there's a new plugin version or now.
+    if (not was_new_version_shown):
+        updateThread = CheckForUpdates()
+        updateThread.start()
 
     try:
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
@@ -121,15 +158,10 @@ def post_json(json_data):
 
         log('Software.com: Network error: %s' % ex)
 
-        if (foundPmBinary and not downloadingPM and not was_message_shown):
+        if (not updates_running and foundPmBinary and not downloadingPM and not was_message_shown):
             sublime.message_dialog(PLUGIN_TO_PM_ERROR_MSG)
             was_message_shown = True
             error_message_shown = True
-
-    # check to see if there's a new plugin version or now
-    if (not error_message_shown and not downloadingPM and not was_new_version_shown):
-        updateThread = CheckForUpdates()
-        updateThread.start()
 
 
 class BackgroundWorker():
@@ -158,15 +190,16 @@ class DownloadPM(Thread):
         url = getFileUrl()
         downloadPath = getDownloadPath()
 
-        sublime.status_message("Downlaoding Plugin Manager")
+        sublime.status_message("Downlaoding Plugin Manager...")
 
         try:
             urllib.urlretrieve(url, saveAs)
         except AttributeError:
             urllib.request.urlretrieve(url, saveAs)
 
-        sublime.status_message("Finished downloading the Plugin Manager.")
+        sublime.status_message("Finished downloading the Plugin Manager")
 
+        sublime.status_message("Installing Plugin Manager...")
         if (os.name == 'posix'):
             # open the .dmg
             subprocess.Popen(['open', saveAs], stdout=subprocess.PIPE)
@@ -174,11 +207,49 @@ class DownloadPM(Thread):
             # open the .deb or .exe
             subprocess.Popen([saveAs], stdout=subprocess.PIPE)
 
-# fetch the plugins.yml to find out if there's a new plugin version to download.
+# download the plugin and unzip it to the packages folder.
+class DownloadPlugin(Thread):
+    def run(self):
+        # delete existing zip files
+        packagesDir = sublime.packages_path()
+        for file in os.listdir(packagesDir):
+            if (file.startswith("swdc") and file.find(".zip") != -1):
+                zipToRemove = os.path.join(getPluginPathWithSlash(), file)
+                os.remove(zipToRemove)
+
+        sublime.status_message("Downloading Software Plugin...")
+
+        saveAs = getPluginDataPathFileName()
+
+        log("will save as %s and downloading from url %s" % (saveAs, PLUGIN_ZIP_URL))
+
+        try:
+            urllib.urlretrieve(PLUGIN_ZIP_URL, saveAs)
+        except AttributeError:
+            urllib.request.urlretrieve(PLUGIN_ZIP_URL, saveAs)
+
+        # unzip it now
+        sublime.status_message("Extracting Software Plugin...")
+
+        with zipfile.ZipFile(saveAs, "r") as zip_ref:
+            zip_ref.extractall(sublime.packages_path())
+
+        sublime.status_message("Completed plugin installation")
+
+        try:
+            os.remove(saveAs)
+        except:
+            pass
+
+
+# fetch the plugins.yml to find out if there's a new plugin version to download
 class CheckForUpdates(Thread):
 
     def run(self):
         global was_new_version_shown
+        global updates_running
+
+        updates_running = True
         
         with urllib.request.urlopen(PLUGIN_YML_URL) as response:
             ymldata = response.read().decode("utf-8")
@@ -194,10 +265,19 @@ class CheckForUpdates(Thread):
                             if (len(versionparts) == 2 and VERSION != availableversion):
                                 # alert the user that there's a new version
                                 was_new_version_shown = True
-                                sublime.message_dialog(PLUGIN_UPDATE_AVAILABLE_MSG % availableversion)
+
+                                version_available_msg = PLUGIN_UPDATE_AVAILABLE_MSG % availableversion
+
+                                clickAction = sublime.ok_cancel_dialog(version_available_msg, "Download")
+                                if (clickAction == True):
+                                    thread = DownloadPlugin()
+                                    thread.start()
+                                return
+                                
                             # break out, we found the sublime version line
                             break
 
+        updates_running = False
 
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
