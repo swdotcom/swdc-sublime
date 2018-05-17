@@ -26,7 +26,7 @@ updates_running = False
 downloadingPM = False
 PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
 PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
-PM_NAME = "software-plugin-manager"
+PM_NAME = "software"
 NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugin Manager may not be installed. Would you like to download it now?"
 PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
@@ -95,7 +95,7 @@ def getDownloadFilePathName():
 # get the directory path where the PM should be installed
 def getPmInstallDirectoryPath():
     if (os.name == 'nt'):
-        return os.environ['HOME'] + "\\AppData\\Programs"
+        return os.environ['HOME'] + "\\AppData\\Local\\Programs"
     elif (os.name == 'posix'):
         return "/Applications"
     else:
@@ -190,16 +190,16 @@ class DownloadPM(Thread):
         url = getFileUrl()
         downloadPath = getDownloadPath()
 
-        sublime.status_message("Downlaoding Plugin Manager...")
+        sublime.status_message("Downlaoding Software plugin manager...")
 
         try:
             urllib.urlretrieve(url, saveAs)
         except AttributeError:
             urllib.request.urlretrieve(url, saveAs)
 
-        sublime.status_message("Finished downloading the Plugin Manager")
+        sublime.status_message("Completed downloading Software plugin manager")
 
-        sublime.status_message("Installing Plugin Manager...")
+        sublime.status_message("Installing Software plugin manager...")
         if (os.name == 'posix'):
             # open the .dmg
             subprocess.Popen(['open', saveAs], stdout=subprocess.PIPE)
