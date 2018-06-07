@@ -717,6 +717,31 @@ def fetchDailyKpmSessionInfo():
     api = '/sessions?from=' + secondsNow() + '&summary=true'
     response = requestIt("GET", api, None)
     log("fetchDailyKpmSessionInfo: sessions response: %s" % response)
+    if (response is not None):
+        # const sessions = response.data;
+        # let avgKpm = sessions.kpm ? parseInt(sessions.kpm, 10) : 0;
+        # let totalMin = sessions.minutesTotal;
+        # let sessionTime = "";
+        # if (totalMin === 60) {
+        #     sessionTime = "1 hr";
+        # } else if (totalMin > 60) {
+        #     sessionTime = Math.floor(totalMin / 60).toFixed(0) + " hrs";
+        # } else if (totalMin === 1) {
+        #     sessionTime = "1 min";
+        # } else {
+        #     sessionTime = totalMin + " min";
+        # }
+        # // const avgKpm = totalKpm > 0 ? totalKpm / sessionLen : 0;
+        # kpmInfo["kpmAvg"] =
+        #     avgKpm > 0 ? avgKpm.toFixed(0) : avgKpm.toFixed(2);
+        # kpmInfo["sessionTime"] = sessionTime;
+        # if (avgKpm > 0 || totalMin > 0) {
+        #     showStatus(
+        #         `${kpmInfo["kpmAvg"]} KPM, ${kpmInfo["sessionTime"]}`
+        #     );
+        # } else {
+        #     showStatus("Software.com");
+        # }
     t = Timer(60, fetchDailyKpmSessionInfo)
     t.start()
 
