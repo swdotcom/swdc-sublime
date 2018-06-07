@@ -74,7 +74,7 @@ def post_json(json_data):
     response = requestIt("POST", "/api/v1/data", json_data)
     if (response is None):
         # save the data to the offline data file
-        storePayload(json_data);
+        storePayload(json_data)
 
     PluginData.reset_source_data()
 
@@ -455,11 +455,8 @@ class EventListener(sublime_plugin.EventListener):
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
 
-    # start the kpm fetch (this will happen every minute)
-    t = PerpetualTimer(60, fetchDailyKpmSessionInfo)
+    t = Timer(10, fetchDailyKpmSessionInfo)
     t.start()
-    time.sleep(10)
-    fetchDailyKpmSessionInfo()
 
 def plugin_unloaded():
     PluginData.send_all_datas()
@@ -576,17 +573,17 @@ def getSoftwareSessionFile():
 def getSoftwareDataStoreFile():
     file = getSoftwareDir()
     if (isWindows()):
-        file += "\\data.json";
+        file += "\\data.json"
     else:
-        file += "/data.json";
-    return file;
+        file += "/data.json"
+    return file
 
 def storePayload(payload):
     # append payload to software data store file
     dataStoreFile = getSoftwareDataStoreFile()
 
     with open(dataStoreFile, "a") as dsFile:
-        dsFile.write(payload)
+        dsFile.write(payload + "\n")
 
 def setItem(key, value):
     jsonObj = getSoftwareSessionAsJson()
@@ -637,13 +634,18 @@ def isPastTimeThreshold():
     return True
 
 def isAuthenticated():
+    log("isAuthenticated: checking if the user is authenticated or not")
     tokenVal = getItem("token")
     jwtVal = getItem("jwt")
 
+    log("isAuthenticated: token val: %s" % tokenVal)
+
     if (tokenVal is None or jwtVal is None):
+        log("isAuthenticated: no token val or jwt, the user is not authenticated")
         return False
 
     response = requestIt("GET", "/users/ping", None)
+    log("isAuthenticated: ping response: %s" % response)
     if (response is not None):
         return True
     else:
@@ -663,10 +665,11 @@ def chekUserAuthenticationStatus():
     pastThresholdTime = isPastTimeThreshold()
     existingJwt = getItem("jwt")
 
+    log("serverAvailable, isAuthenticated, pastThresholdTime %s %s %s" % (serverAvailable, isAuthenticated, pastThresholdTime))
+
     if (serverAvailable is not None and
             isAuthenticated is None and
-            pastThresholdTime is not None and
-            confirmWindowOpen is not None):
+            pastThresholdTime is not None):
 
         # set the last update time so we don't try to ask too frequently
         setItem("submlime_lastUpdateTime", secondsNow())
@@ -683,6 +686,7 @@ def chekUserAuthenticationStatus():
             setItem("token", tokenVal)
             launchWebUrl(TEST_URL + "/login?token=" + tokenVal)
 
+
 def checkTokenAvailability():
     api = '/users/plugin/confirm?token=' + tokenVal
     response = requestIt("GET", api, None)
@@ -696,20 +700,29 @@ def checkTokenAvailability():
         tokenAvailTimer = Timer(60, checkTokenAvailability)
         tokenAvailTimer.start()
 
+
 def launchWebUrl(url):
+    log("launchWebUrl: launching " + url)
     # launch the browser with the specifie URL
     webbrowser.open(url)
 
+
 def fetchDailyKpmSessionInfo():
     if (isAuthenticated() is False):
-        log("Software.com: not authenticated, trying again later")
+        log("Software.com: not authenticated to fetch daily kpm session info, trying again later")
+        t = Timer(60, fetchDailyKpmSessionInfo)
+        t.start()
         return
 
     api = '/sessions?from=' + secondsNow() + '&summary=true'
     response = requestIt("GET", api, None)
+    log("fetchDailyKpmSessionInfo: sessions response: %s" % response)
+    t = Timer(60, fetchDailyKpmSessionInfo)
+    t.start()
 
 def createToken():
     return os.urandom(16).encode('hex')
+
 
 def handleKpmClickedEvent():
     # check if we've successfully logged in as this user yet
@@ -724,10 +737,11 @@ def handleKpmClickedEvent():
 
     launchWebUrl(webUrl)
 
+
 def requestIt(method, api, payload):
     log("Software.com: Sending to " + api + " : %s" % payload)
     try:
-        connection = http.client.HTTPConnection(PROD_API_ENDPOINT)
+        connection = http.client.HTTPConnection(TEST_API_ENDPOINT)
         connection.putheader("User-Agent", USER_AGENT)
         connection.putheader("Content-type", 'application/json')
 
