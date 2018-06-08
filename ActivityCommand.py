@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 from threading import Thread, Timer, Event
 from queue import Queue
 import webbrowser
+import uuid
 import time
 import math
 import http
@@ -15,7 +16,6 @@ import zipfile
 import re
 import sublime_plugin, sublime
 
-
 VERSION = '0.1.1'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
@@ -26,14 +26,16 @@ was_pm_message_shown = False
 was_new_version_shown = False
 updates_running = False
 downloadingPM = False
+
 PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
 PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
 PM_NAME = "software"
-NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Plugin Manager may not be installed. Would you like to download it now?"
-PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Plugin Manager is running and logged on."
+NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Software Desktop may not be installed. Would you like to download it now?"
+PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Software Desktop is running and logged on."
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
 PLUGIN_ZIP_NAME = "swdc-sublime.zip"
 PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
+LOGIN_LABEL = "Login";
 
 MILLIS_PER_DAY = 1000 * 60 * 60 * 24
 MILLIS_PER_HOUR = 1000 * 60 * 60
@@ -42,9 +44,10 @@ SECONDS_PER_HALF_HOUR = 60 * 30
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 1
 PROD_API_ENDPOINT = "api.software.com"
-PROD_URL = "alpha.software.com"
+PROD_URL = "https://alpha.software.com"
 TEST_API_ENDPOINT = "localhost:5000"
-TEST_URL = "localhost:3000"
+TEST_URL = "http://localhost:3000"
+
 
 
 # log the message
@@ -56,6 +59,9 @@ def log(message):
 
 def secondsNow():
     return datetime.utcnow()
+
+def trueSecondsNow():
+    return time.mktime(secondsNow().timetuple())
 
 # post the json data
 def post_json(json_data):
@@ -71,10 +77,11 @@ def post_json(json_data):
         updateThread = CheckForUpdates()
         updateThread.start()
 
-    response = requestIt("POST", "/api/v1/data", json_data)
+    response = requestIt("POST", "/data", json_data)
     if (response is None):
         # save the data to the offline data file
         storePayload(json_data)
+        chekUserAuthenticationStatus()
 
     PluginData.reset_source_data()
 
@@ -455,8 +462,11 @@ class EventListener(sublime_plugin.EventListener):
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
 
-    t = Timer(10, fetchDailyKpmSessionInfo)
-    t.start()
+    authStatusTimer = Timer(10, chekUserAuthenticationStatus)
+    authStatusTimer.start()
+
+    kpmFetchTimer = Timer(30, fetchDailyKpmSessionInfo)
+    kpmFetchTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()
@@ -600,7 +610,12 @@ def setItem(key, value):
 def getItem(key):
     jsonObj = getSoftwareSessionAsJson()
 
-    return jsonObj[key]
+
+
+    # return a default of None if key isn't found
+    val = jsonObj.get(key, None)
+
+    return val
 
 def getSoftwareSessionAsJson():
     data = None
@@ -608,40 +623,46 @@ def getSoftwareSessionAsJson():
     sessionFile = getSoftwareSessionFile()
     if (os.path.isfile(sessionFile)):
         content = open(sessionFile).read()
-        if (content):
+
+        if (content is not None):
             # json parse the content
             data = json.loads(content)
 
     if (data is not None):
+        log("getSoftwareSessionAsJson: %s" % data)
         return data
     return dict()
 
 def isPastTimeThreshold():
     existingJwt = getItem("jwt")
 
-
     thresholdHoursBeforeCheckingAgain = LONG_THRESHOLD_HOURS
     if (existingJwt is None):
         thresholdHoursBeforeCheckingAgain = SHORT_THRESHOLD_HOURS
 
-    lastUpdateTime = getItem("sublime_lastUpdateTime")
-    timeDiffSinceUpdate = datetime.now() - lastUpdateTime
+    lastUpdateTime = getItem("submlime_lastUpdateTime")
+    log("----- lastUpdateTime found: %s" % lastUpdateTime)
+    if (lastUpdateTime is None):
+        lastUpdateTime = 0
+
+    timeDiffSinceUpdate = trueSecondsNow() - lastUpdateTime
+    log("----- time diff since update: %s" % timeDiffSinceUpdate)
+
     threshold = SECONDS_PER_HOUR * thresholdHoursBeforeCheckingAgain
 
-    if (lastUpdateTime and timeDiffSinceUpdate < threshold):
+    log("----- threshold: %s" % threshold)
+
+    if (timeDiffSinceUpdate < threshold):
         return False
 
     return True
 
 def isAuthenticated():
-    log("isAuthenticated: checking if the user is authenticated or not")
-    tokenVal = getItem("token")
-    jwtVal = getItem("jwt")
-
-    log("isAuthenticated: token val: %s" % tokenVal)
+    tokenVal = getItem('token')
+    jwtVal = getItem('jwt')
 
     if (tokenVal is None or jwtVal is None):
-        log("isAuthenticated: no token val or jwt, the user is not authenticated")
+        log("No authentication token or session key found in cache.")
         return False
 
     response = requestIt("GET", "/users/ping", None)
@@ -660,19 +681,20 @@ def checkOnline():
         return False
 
 def chekUserAuthenticationStatus():
-    serverAvailable = serverIsAvailable()
-    isAuthenticated = isAuthenticated()
+    log("------chekUserAuthenticationStatus called-----")
+    serverAvailable = checkOnline()
+    authenticated = isAuthenticated()
     pastThresholdTime = isPastTimeThreshold()
-    existingJwt = getItem("jwt")
+    existingJwt = getItem('jwt')
 
-    log("serverAvailable, isAuthenticated, pastThresholdTime %s %s %s" % (serverAvailable, isAuthenticated, pastThresholdTime))
+    log("serverAvailable, authenticated, pastThresholdTime %s %s %s" % (serverAvailable, authenticated, pastThresholdTime))
 
-    if (serverAvailable is not None and
-            isAuthenticated is None and
-            pastThresholdTime is not None):
+    if (serverAvailable is True and
+            authenticated is False and
+            pastThresholdTime is True):
 
         # set the last update time so we don't try to ask too frequently
-        setItem("submlime_lastUpdateTime", secondsNow())
+        setItem("submlime_lastUpdateTime", trueSecondsNow())
         confirmWindowOpen = True
         infoMsg = "To see insights into how you code, please sign in to Software.com."
         if (existingJwt):
@@ -684,109 +706,119 @@ def chekUserAuthenticationStatus():
             # launch the login view
             tokenVal = createToken()
             setItem("token", tokenVal)
-            launchWebUrl(TEST_URL + "/login?token=" + tokenVal)
-
+            log("Creating token to launch login view: %s" % tokenVal)
+            launchLoginUrl(TEST_URL + "/login?token=" + tokenVal)
 
 def checkTokenAvailability():
-    api = '/users/plugin/confirm?token=' + tokenVal
-    response = requestIt("GET", api, None)
 
-    if (response is not None):
-        setItem("jwt", response.data.jwt)
-        setItem("user", response.data.user)
-        setItem("vscode_lastUpdateTime", secondsNow())
-    else:
-        # check again in a minute
-        tokenAvailTimer = Timer(60, checkTokenAvailability)
-        tokenAvailTimer.start()
+    tokenVal = getItem("token")
 
+    log("checkTokenAvailability: checking for an authenticated user using token: %s" % tokenVal)
 
-def launchWebUrl(url):
-    log("launchWebUrl: launching " + url)
-    # launch the browser with the specifie URL
-    webbrowser.open(url)
+    if (tokenVal is not None):
+        api = '/users/plugin/confirm?token=' + tokenVal
+        response = requestIt("GET", api, None)
 
+        if (response is not None):
+
+            string = response.read().decode('utf-8')
+            json_obj = json.loads(string)
+
+            setItem("jwt", json_obj.jwt)
+            setItem("user", json_obj.user)
+            setItem("sublime_lastUpdateTime", trueSecondsNow())
 
 def fetchDailyKpmSessionInfo():
+    log("------fetchDailyKpmSessionInfo called-----")
     if (isAuthenticated() is False):
         log("Software.com: not authenticated to fetch daily kpm session info, trying again later")
-        t = Timer(60, fetchDailyKpmSessionInfo)
-        t.start()
         return
 
-    api = '/sessions?from=' + secondsNow() + '&summary=true'
+    api = '/sessions?from=' + trueSecondsNow() + '&summary=true'
     response = requestIt("GET", api, None)
+
     log("fetchDailyKpmSessionInfo: sessions response: %s" % response)
-    if (response is not None):
-        # const sessions = response.data;
-        # let avgKpm = sessions.kpm ? parseInt(sessions.kpm, 10) : 0;
-        # let totalMin = sessions.minutesTotal;
-        # let sessionTime = "";
-        # if (totalMin === 60) {
-        #     sessionTime = "1 hr";
-        # } else if (totalMin > 60) {
-        #     sessionTime = Math.floor(totalMin / 60).toFixed(0) + " hrs";
-        # } else if (totalMin === 1) {
-        #     sessionTime = "1 min";
-        # } else {
-        #     sessionTime = totalMin + " min";
-        # }
-        # // const avgKpm = totalKpm > 0 ? totalKpm / sessionLen : 0;
-        # kpmInfo["kpmAvg"] =
-        #     avgKpm > 0 ? avgKpm.toFixed(0) : avgKpm.toFixed(2);
-        # kpmInfo["sessionTime"] = sessionTime;
-        # if (avgKpm > 0 || totalMin > 0) {
-        #     showStatus(
-        #         `${kpmInfo["kpmAvg"]} KPM, ${kpmInfo["sessionTime"]}`
-        #     );
-        # } else {
-        #     showStatus("Software.com");
-        # }
-    t = Timer(60, fetchDailyKpmSessionInfo)
-    t.start()
+
+    if (resonse is not None):
+        string = response.read().decode('utf-8')
+        sessions = json.loads(string)
+
+        avgKpm = sessions.kpm
+        totalMin = sessions.minutesTotal
+
+        log("fetchDailyKpmSessionInfo: avgKpm, totalMin: %s %s" % (avgKpm, totalMin))
+
+    # const sessions = response.data;
+    # let avgKpm = sessions.kpm ? parseInt(sessions.kpm, 10) : 0;
+    # let totalMin = sessions.minutesTotal;
+    # let sessionTime = "";
+    # if (totalMin === 60) {
+    #     sessionTime = "1 hr";
+    # } else if (totalMin > 60) {
+    #     sessionTime = Math.floor(totalMin / 60).toFixed(0) + " hrs";
+    # } else if (totalMin === 1) {
+    #     sessionTime = "1 min";
+    # } else {
+    #     sessionTime = totalMin + " min";
+    # }
+    # // const avgKpm = totalKpm > 0 ? totalKpm / sessionLen : 0;
+    # kpmInfo["kpmAvg"] =
+    #     avgKpm > 0 ? avgKpm.toFixed(0) : avgKpm.toFixed(2);
+    # kpmInfo["sessionTime"] = sessionTime;
+    # if (avgKpm > 0 || totalMin > 0) {
+    #     showStatus(
+    #         `${kpmInfo["kpmAvg"]} KPM, ${kpmInfo["sessionTime"]}`
+    #     );
+    # } else {
+    #     showStatus("Software.com");
+    # }
 
 def createToken():
-    return os.urandom(16).encode('hex')
+    # return os.urandom(16).encode('hex')
+    uid = uuid.uuid4()
+    return uid.hex
 
+# def handleKpmClickedEvent():
+#     # check if we've successfully logged in as this user yet
+#     existingJwt = getItem('jwt')
 
-def handleKpmClickedEvent():
-    # check if we've successfully logged in as this user yet
-    existingJwt = getItem("jwt")
+#     webUrl = TEST_URL
+#     if (existingJwt is None):
+#         tokenVal = createToken()
+#         # update the .software data with the token we've just created
+#         setItem("token", tokenVal)
+#         webUrl = TEST_URL + "/login?token=" + tokenVal
 
-    webUrl = TEST_URL
-    if (existingJwt is None):
-        tokenVal = createToken()
-        # update the .software data with the token we've just created
-        setItem("token", tokenVal)
-        webUrl = TEST_URL + "/login?token=" + tokenVal
-
-    launchWebUrl(webUrl)
-
+#     launchLoginUrl(webUrl)
 
 def requestIt(method, api, payload):
-    log("Software.com: Sending to " + api + " : %s" % payload)
+    log("Software.com: Sending -- [" + method + ": " + TEST_API_ENDPOINT + "" + api + "] : %s" % payload)
     try:
         connection = http.client.HTTPConnection(TEST_API_ENDPOINT)
-        connection.putheader("User-Agent", USER_AGENT)
-        connection.putheader("Content-type", 'application/json')
 
-        jwt = getItem("jwt")
+        headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
+
+        jwt = getItem('jwt')
         if (jwt is not None):
-            connection.putheader("Authorization", jwt)
+            headers['Authorization'] = jwt
 
-        if (payload is not None):
-            connection.request(method, api, payload)
+        # make the request
+        if (payload is None):
+            payload = {}
 
-        if (connection is None):
-            log("Software.com: major error, connection was not initialized for api " + api)
-            return None
+        connection.request(method, api, payload, headers)
+        log("Making http connection request: %s" % connection);
 
         response = connection.getresponse()
         log("Software.com: " + api + " Response (%d): %s" % (response.status, response.read().decode('utf-8')))
         return response
-    except (http.client.HTTPException, ConnectionError) as ex:
+    except (http.client.HTTPException, http.client.CannotSendHeader, ConnectionError, Exception) as ex:
         log("Software.com: " + api + " Network error: %s" % ex)
         return None
+
+def launchLoginUrl(url):
+    # launch the browser with the specifie URL
+    webbrowser.open(url)
 
 
 
