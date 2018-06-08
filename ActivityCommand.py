@@ -689,11 +689,7 @@ def sendOfflineData():
         response = requestIt("POST", "/data/batch", json.dumps(payloads))
 
         if (response is not None):
-            json_obj = json.loads(response.read().decode('utf-8'))
-            message = json_obj.get("message", None)
-            if (message is None):
-                deleteFile(dataStoreFile)
-                log("Software.com: deleted data store file after successfully sending the offline data")
+            deleteFile(dataStoreFile)
 
 def deleteFile(file):
     os.remove(file)
