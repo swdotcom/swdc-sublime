@@ -12,6 +12,7 @@
 2. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
 3. Place the Sublime plugin in the **Packages** directory
 4. **Restart** Sublime Text
+5. **Authenticate** your account by clicking the IDE prompt (only required for the first plugin you install)
 
 ### Uninstall
 

@@ -33,7 +33,7 @@ PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Pl
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
 PLUGIN_ZIP_NAME = "swdc-sublime.zip"
 PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
-LOGIN_LABEL = "Login"
+LOGIN_LABEL = "Authenticate"
 
 MILLIS_PER_DAY = 1000 * 60 * 60 * 24
 MILLIS_PER_HOUR = 1000 * 60 * 60
@@ -707,7 +707,7 @@ def chekUserAuthenticationStatus():
         # set the last update time so we don't try to ask too frequently
         setItem("submlime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
-        infoMsg = "To see insights into how you code, please sign in to Software.com."
+        infoMsg = "To see your coding data in Software.com, please authenticate your account."
         if (existingJwt):
             # they have an existing jwt, show the re-login message
             infoMsg = "We are having trouble sending data to Software.com, please sign in to see insights into how you code."
