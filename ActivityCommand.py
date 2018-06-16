@@ -805,7 +805,11 @@ def requestIt(method, api, payload):
     log("Software.com: Sending request -- [" + method + ": " + api_endpoint + "" + api + "] payload: %s" % payload)
     
     try:
-        connection = http.client.HTTPConnection(api_endpoint)
+        connection = None
+        if (api_endpoint is TEST_API_ENDPOINT):
+            connection = http.client.HTTPConnection(api_endpoint)
+        else:
+            connection = http.client.HTTPSConnection(api_endpoint)
 
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
 
