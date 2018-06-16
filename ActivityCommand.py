@@ -52,7 +52,6 @@ api_endpoint = PROD_API_ENDPOINT
 # set the launch url to use
 launch_url = PROD_URL
 
-
 # log the message
 def log(message):
     if not LOGGING:
