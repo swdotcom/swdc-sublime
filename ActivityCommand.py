@@ -24,16 +24,17 @@ DEFAULT_DURATION = 60
 was_new_version_shown = False
 updates_running = False
 downloadingPM = False
+fetchingUserFromToken = False
 
 PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
 PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
 PM_NAME = "software"
 NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Software Desktop may not be installed. Would you like to download it now?"
-PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Software Desktop is running and logged on."
+PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Software Desktop is running and signed on."
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
 PLUGIN_ZIP_NAME = "swdc-sublime.zip"
 PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
-LOGIN_LABEL = "Login"
+LOGIN_LABEL = "Sign in"
 
 MILLIS_PER_DAY = 1000 * 60 * 60 * 24
 MILLIS_PER_HOUR = 1000 * 60 * 60
@@ -54,7 +55,7 @@ launch_url = PROD_URL
 
 # log the message
 def log(message):
-    if LOGGING is False:
+    if not LOGGING:
         return
 
     print(message)
@@ -98,24 +99,6 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
-class PerpetualTimer():
-
-    def __init__(self, t, hFunction):
-        self.t = t
-        self.hFunction = hFunction
-        self.thread = Timer(self.t, self.handle_function)
-
-    def handle_function(self):
-        self.hFunction()
-        self.thread = Timer(self.t, self.handle_function)
-        self.thread.start()
-
-    def start(self):
-        self.thread.start()
-
-    def cancel(self):
-        self.thread.cancel()
-
 class DownloadPM(Thread):
 
     # download the PM and install it....
@@ -125,16 +108,16 @@ class DownloadPM(Thread):
         url = getFileUrl()
         downloadPath = getDownloadPath()
 
-        sublime.status_message("Downlaoding Software Desktop")
+        showStatus("Downlaoding Software Desktop")
 
         try:
             urllib.urlretrieve(url, saveAs)
         except AttributeError:
             urllib.request.urlretrieve(url, saveAs)
 
-        sublime.status_message("Completed downloading Software Desktop")
+        showStatus("Completed downloading Software Desktop")
 
-        sublime.status_message("Installing Software Desktop")
+        showStatus("Installing Software Desktop")
         if (isMac()):
             # open the .dmg
             subprocess.Popen(['open', saveAs], stdout=subprocess.PIPE)
@@ -152,7 +135,7 @@ class DownloadPlugin(Thread):
                 zipToRemove = os.path.join(getPluginPathWithSlash(), file)
                 os.remove(zipToRemove)
 
-        sublime.status_message("Downloading Software Plugin...")
+        showStatus("Downloading Software package")
 
         saveAs = getPluginDataPathFileName()
 
@@ -162,12 +145,12 @@ class DownloadPlugin(Thread):
             urllib.request.urlretrieve(PLUGIN_ZIP_URL, saveAs)
 
         # unzip it now
-        sublime.status_message("Extracting Software Plugin...")
+        showStatus("Extracting Software package")
 
         with zipfile.ZipFile(saveAs, "r") as zip_ref:
             zip_ref.extractall(sublime.packages_path())
 
-        sublime.status_message("Completed plugin installation")
+        showStatus("Completed package installation")
 
         try:
             os.remove(saveAs)
@@ -380,7 +363,11 @@ class PluginData():
 
         return fileInfoData
 
-# Runs once instance per view (i.e. tab, or single file window)window..
+class DashboardView(sublime_plugin.TextCommand):
+    def run(self, edit, **kwargs):
+        launchDashboard()
+
+# Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
     def on_load(self, view):
         fileName = view.file_name()
@@ -455,7 +442,7 @@ class EventListener(sublime_plugin.EventListener):
 #
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
-    sublime.status_message("Software.com v%s" % VERSION)
+    showStatus("v%s" % VERSION)
 
     authStatusTimer = Timer(10, chekUserAuthenticationStatus)
     authStatusTimer.start()
@@ -700,32 +687,42 @@ def chekUserAuthenticationStatus():
     pastThresholdTime = isPastTimeThreshold()
     existingJwt = getItem("jwt")
 
-    if (serverAvailable is True and
-            authenticated is False and
-            pastThresholdTime is True):
+    initiateCheckTokenAvailability = True
+
+    if (serverAvailable and
+            not authenticated and
+            pastThresholdTime):
 
         # set the last update time so we don't try to ask too frequently
         setItem("submlime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
         infoMsg = "To see insights into how you code, please sign in to Software.com."
         if (existingJwt):
-            # they have an existing jwt, show the re-login message
-            infoMsg = "We are having trouble sending data to Software.com, please sign in to see insights into how you code."
-
-        clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
-        if (clickAction == True):
-            # launch the login view
-            launchDashboard()
-
-            # start the token availability timer
-            tokenAvailabilityTimer = Timer(20, checkTokenAvailability)
-            tokenAvailabilityTimer.start()
-    else:
+            # show the Software.com message
+            showStatus("sign in [shift+ctrl+o]")
+        else:
+            clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
+            if (clickAction):
+                # launch the login view
+                launchDashboard()
+    elif (not authenticated):
+        # show the Software.com message
+        showStatus("sign in [shift+ctrl+o]")
         log("Software.com: user auth check status [online: %s, authenticated: %s, pastThresholdTime: %s]" % (serverAvailable, authenticated, pastThresholdTime))
+    else:
+        initiateCheckTokenAvailability = False
 
+
+    if (initiateCheckTokenAvailability):
+        # start the token availability timer
+        tokenAvailabilityTimer = Timer(30, checkTokenAvailability)
+        tokenAvailabilityTimer.start()
 
 def checkTokenAvailability():
+    global fetchingUserFromToken
+
     tokenVal = getItem("token")
+    fetchingUserFromToken = True
 
     foundJwt = False
     if (tokenVal is not None):
@@ -742,6 +739,7 @@ def checkTokenAvailability():
                 setItem("jwt", jwt)
                 setItem("user", user)
                 setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
+                fetchingUserFromToken = False
                 foundJwt = True
             else:
                 # check if there's a message
@@ -749,14 +747,15 @@ def checkTokenAvailability():
                 if (message is not None):
                     log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
 
-    if (foundJwt is False):
+    if (not foundJwt):
         # start the token availability timer
         tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
         tokenAvailabilityTimer.start()
+        showStatus("sign in [shift+ctrl+o]")
 
 
 def fetchDailyKpmSessionInfo():
-    if (isAuthenticated() is True):
+    if (isAuthenticated()):
         api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
         response = requestIt("GET", api, None)
 
@@ -781,14 +780,13 @@ def fetchDailyKpmSessionInfo():
             else:
                 sessionTime = str(totalMin) + " min"
 
-            statusMsg = "Software.com"
-            if (avgKpm > 0 or totalMin > 0):
-                statusMsg = avgKpm + " KPM, " + sessionTime
+            statusMsg = avgKpm + " KPM, " + sessionTime
 
             # set the status bar message
-            sublime.status_message(statusMsg)
+            showStatus(statusMsg)
     else:
         log("Software.com: Currently not authenticated to fetch daily kpm session info")
+        showStatus("sign in [shift+ctrl+o]")
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
@@ -839,6 +837,16 @@ def launchDashboard():
         webUrl += "/login?token=" + tokenVal
 
     webbrowser.open(webUrl)
+
+def showStatus(msg):
+    """Updates the status bar"""
+    try:
+        active_window = sublime.active_window()
+        if active_window:
+            for view in active_window.views():
+                view.set_status('software.com', "(Software.com: " + msg + ")")
+    except RuntimeError:
+        log(msg)
 
 
 

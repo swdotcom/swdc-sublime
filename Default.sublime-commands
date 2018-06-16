@@ -1,2 +1,4 @@
-[
-]
+[{
+  "caption": "Dashboard::View",
+  "command": "dashboard_view"
+}]
