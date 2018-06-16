@@ -696,7 +696,7 @@ def chekUserAuthenticationStatus():
         # set the last update time so we don't try to ask too frequently
         setItem("submlime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
-        infoMsg = "To see insights into how you code, please sign in to Software.com."
+        infoMsg = "To see your coding data in Software.com, please authenticate your account."
         if (existingJwt):
             # show the Software.com message
             showStatus("sign in [shift+ctrl+o]")
