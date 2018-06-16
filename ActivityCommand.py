@@ -42,6 +42,7 @@ SECONDS_PER_HOUR = 60 * 60
 SECONDS_PER_HALF_HOUR = 60 * 30
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 1
+LOGIN_KEYMAP_MSG = "sign in [ctrl+alt+o]"
 PROD_API_ENDPOINT = "api.software.com"
 PROD_URL = "https://alpha.software.com"
 TEST_API_ENDPOINT = "localhost:5000"
@@ -698,7 +699,7 @@ def chekUserAuthenticationStatus():
         infoMsg = "To see your coding data in Software.com, please authenticate your account."
         if (existingJwt):
             # show the Software.com message
-            showStatus("sign in [shift+ctrl+o]")
+            showStatus(LOGIN_KEYMAP_MSG)
         else:
             clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
             if (clickAction):
@@ -706,7 +707,7 @@ def chekUserAuthenticationStatus():
                 launchDashboard()
     elif (not authenticated):
         # show the Software.com message
-        showStatus("sign in [shift+ctrl+o]")
+        showStatus(LOGIN_KEYMAP_MSG)
         log("Software.com: user auth check status [online: %s, authenticated: %s, pastThresholdTime: %s]" % (serverAvailable, authenticated, pastThresholdTime))
     else:
         initiateCheckTokenAvailability = False
@@ -750,7 +751,7 @@ def checkTokenAvailability():
         # start the token availability timer
         tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
         tokenAvailabilityTimer.start()
-        showStatus("sign in [shift+ctrl+o]")
+        showStatus(LOGIN_KEYMAP_MSG)
 
 
 def fetchDailyKpmSessionInfo():
@@ -785,7 +786,7 @@ def fetchDailyKpmSessionInfo():
             showStatus(statusMsg)
     else:
         log("Software.com: Currently not authenticated to fetch daily kpm session info")
-        showStatus("sign in [shift+ctrl+o]")
+        showStatus(LOGIN_KEYMAP_MSG)
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
