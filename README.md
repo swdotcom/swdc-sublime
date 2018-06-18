@@ -8,16 +8,16 @@
 
 ### Install
 
-1. [**Download**](https://s3-us-west-1.amazonaws.com/swdc-plugins/swdc-sublime.zip) and **unzip** the Sublime Text plugin
+1. [**Download**](https://github.com/swdotcom/swdc-sublime/archive/master.zip) and **unzip** the Sublime Text plugin
 2. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
 3. Place the Sublime plugin in the **Packages** directory
 4. **Restart** Sublime Text
-5. **Authenticate** your account by clicking the IDE prompt (only required for the first plugin you install)
+5. **Sign in** to authenticate your account by clicking the IDE prompt (only required for the first plugin you install)
 
 ### Uninstall
 
 1. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
-2. **Delete** the folder "swdc-sublime-plugin"
+2. **Delete** the folder with the *Software* plugin
 
 ## Privacy
 
