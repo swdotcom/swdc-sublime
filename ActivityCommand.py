@@ -42,7 +42,7 @@ SECONDS_PER_HOUR = 60 * 60
 SECONDS_PER_HALF_HOUR = 60 * 30
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 1
-LOGIN_KEYMAP_MSG = "sign in [ctrl+alt+o]"
+DASHBOARD_KEYMAP_MSG = "Software.com [ctrl+alt+o]"
 PROD_API_ENDPOINT = "api.software.com"
 PROD_URL = "https://alpha.software.com"
 TEST_API_ENDPOINT = "localhost:5000"
@@ -239,7 +239,7 @@ class PluginData():
                 fileInfo['open'] > 0 or
                 fileInfo['paste'] > 0 or
                 fileInfo['delete'] > 0 or
-                fileInfo['keys'] > 0):
+                fileInfo['add'] > 0):
                 return True
         return False
 
@@ -344,6 +344,10 @@ class PluginData():
         # of fileName and it's metrics
         fileInfoData = PluginData.get_existing_file_info(fileName)
 
+        # "add" = additive keystrokes
+        # "netkeys" = add - delete
+        # "keys" = add + delete
+        # "delete" = delete keystrokes
         if fileInfoData is None:
             fileInfoData = dict()
             fileInfoData['keys'] = 0
@@ -352,6 +356,12 @@ class PluginData():
             fileInfoData['close'] = 0
             fileInfoData['length'] = 0
             fileInfoData['delete'] = 0
+            fileInfoData['netkeys'] = 0
+            fileInfoData['add'] = 0
+            fileInfoData['lines'] = 0
+            fileInfoData['linesAdded'] = 0
+            fileInfoData['linesRemoved'] = 0
+            fileInfoData['syntax'] = ""
             keystrokeCount.source[fileName] = fileInfoData
 
     @staticmethod
@@ -431,18 +441,27 @@ class EventListener(sublime_plugin.EventListener):
             log('Software.com: copy and pasted incremented')
         elif charCountDiff < 0:
             fileInfoData['delete'] = fileInfoData['delete'] + 1
+            # increment the overall count
+            active_data.data = active_data.data + 1
             log('Software.com: delete incremented')
         else:
-            fileInfoData['keys'] = fileInfoData['keys'] + 1
+            fileInfoData['add'] = fileInfoData['add'] + 1
+            # increment the overall count
             active_data.data = active_data.data + 1
             log('Software.com: KPM incremented')
+
+        # update the netkeys and the keys
+        # "netkeys" = add - delete
+        # "keys" = add + delete
+        fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
+        fileInfoData['keys'] = fileInfoData['add'] + fileInfoData['delete']
 
 #
 # Iniates the plugin tasks once the it's loaded into Sublime
 #
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
-    showStatus("v%s" % VERSION)
+    showStatus("Software.com")
 
     authStatusTimer = Timer(10, chekUserAuthenticationStatus)
     authStatusTimer.start()
@@ -639,7 +658,7 @@ def isAuthenticated():
     jwtVal = getItem('jwt')
 
     if (tokenVal is None or jwtVal is None):
-        showStatus(LOGIN_KEYMAP_MSG)
+        showStatus(DASHBOARD_KEYMAP_MSG)
         return False
 
     response = requestIt("GET", "/users/ping", None)
@@ -647,7 +666,7 @@ def isAuthenticated():
     if (response is not None):
         return True
     else:
-        showStatus(LOGIN_KEYMAP_MSG)
+        showStatus(DASHBOARD_KEYMAP_MSG)
         return False
 
 def checkOnline():
@@ -701,7 +720,7 @@ def chekUserAuthenticationStatus():
         infoMsg = "To see your coding data in Software.com, please sign in to your account."
         if (existingJwt):
             # show the Software.com message
-            showStatus(LOGIN_KEYMAP_MSG)
+            showStatus(DASHBOARD_KEYMAP_MSG)
         else:
             clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
             if (clickAction):
@@ -709,7 +728,7 @@ def chekUserAuthenticationStatus():
                 launchDashboard()
     elif (not authenticated):
         # show the Software.com message
-        showStatus(LOGIN_KEYMAP_MSG)
+        showStatus(DASHBOARD_KEYMAP_MSG)
         log("Software.com: user auth check status [online: %s, authenticated: %s, pastThresholdTime: %s]" % (serverAvailable, authenticated, pastThresholdTime))
     else:
         initiateCheckTokenAvailability = False
@@ -753,7 +772,7 @@ def checkTokenAvailability():
         # start the token availability timer
         tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
         tokenAvailabilityTimer.start()
-        showStatus(LOGIN_KEYMAP_MSG)
+        showStatus(DASHBOARD_KEYMAP_MSG)
 
 
 def fetchDailyKpmSessionInfo():
@@ -784,11 +803,14 @@ def fetchDailyKpmSessionInfo():
 
             statusMsg = avgKpm + " KPM, " + sessionTime
 
-            # set the status bar message
-            showStatus(statusMsg)
+            if (totalMin > 0 or avgKpm > 0):
+                # set the status bar message
+                showStatus("<s> " + statusMsg)
+            else:
+                showStatus(DASHBOARD_KEYMAP_MSG)
     else:
         log("Software.com: Currently not authenticated to fetch daily kpm session info")
-        showStatus(LOGIN_KEYMAP_MSG)
+        showStatus(DASHBOARD_KEYMAP_MSG)
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
@@ -850,7 +872,7 @@ def showStatus(msg):
         active_window = sublime.active_window()
         if active_window:
             for view in active_window.views():
-                view.set_status('software.com', "(Software.com: " + msg + ")")
+                view.set_status('software.com', msg)
     except RuntimeError:
         log(msg)
 
