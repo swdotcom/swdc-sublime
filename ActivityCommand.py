@@ -16,7 +16,7 @@ import zipfile
 import re
 import sublime_plugin, sublime
 
-VERSION = '0.1.2'
+VERSION = '0.1.3'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
@@ -783,13 +783,9 @@ def fetchDailyKpmSessionInfo():
         if (response is not None):
             sessions = json.loads(response.read().decode('utf-8'))
 
-            log("recevied session: %s" % sessions)
-
             avgKpm = sessions.get("kpm", 0)
             totalMin = sessions.get("minutesTotal", 0)
             sessionTime = ""
-
-            log("fetchDailyKpmSessionInfo: avgKpm, totalMin: %s %s" % (avgKpm, totalMin))
 
             if (totalMin == 60):
                 sessionTime = "1 hr"
