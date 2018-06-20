@@ -16,7 +16,7 @@ import zipfile
 import re
 import sublime_plugin, sublime
 
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
@@ -639,6 +639,7 @@ def isAuthenticated():
     jwtVal = getItem('jwt')
 
     if (tokenVal is None or jwtVal is None):
+        showStatus(LOGIN_KEYMAP_MSG)
         return False
 
     response = requestIt("GET", "/users/ping", None)
@@ -646,6 +647,7 @@ def isAuthenticated():
     if (response is not None):
         return True
     else:
+        showStatus(LOGIN_KEYMAP_MSG)
         return False
 
 def checkOnline():
@@ -838,7 +840,7 @@ def launchDashboard():
         tokenVal = createToken()
         # update the .software data with the token we've just created
         setItem("token", tokenVal)
-        webUrl += "/login?token=" + tokenVal
+        webUrl += "/onboarding?token=" + tokenVal
 
     webbrowser.open(webUrl)
 
