@@ -736,7 +736,7 @@ def chekUserAuthenticationStatus():
 
     if (initiateCheckTokenAvailability):
         # start the token availability timer
-        tokenAvailabilityTimer = Timer(30, checkTokenAvailability)
+        tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
         tokenAvailabilityTimer.start()
 
 def checkTokenAvailability():
@@ -770,7 +770,7 @@ def checkTokenAvailability():
 
     if (not foundJwt):
         # start the token availability timer
-        tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
+        tokenAvailabilityTimer = Timer(120, checkTokenAvailability)
         tokenAvailabilityTimer.start()
         showStatus(DASHBOARD_KEYMAP_MSG)
 
