@@ -640,7 +640,7 @@ def isPastTimeThreshold():
     if (existingJwt is None):
         thresholdHoursBeforeCheckingAgain = SHORT_THRESHOLD_HOURS
 
-    lastUpdateTime = getItem("submlime_lastUpdateTime")
+    lastUpdateTime = getItem("sublime_lastUpdateTime")
     if (lastUpdateTime is None):
         lastUpdateTime = 0
 
@@ -715,7 +715,7 @@ def chekUserAuthenticationStatus():
             pastThresholdTime):
 
         # set the last update time so we don't try to ask too frequently
-        setItem("submlime_lastUpdateTime", int(trueSecondsNow()))
+        setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
         infoMsg = "To see your coding data in Software.com, please sign in to your account."
         if (existingJwt):
@@ -786,6 +786,7 @@ def fetchDailyKpmSessionInfo():
             avgKpm = sessions.get("kpm", 0)
             totalMin = sessions.get("minutesTotal", 0)
             sessionTime = ""
+            inFlow = sessions.get("inFlow", False)
 
             if (totalMin == 60):
                 sessionTime = "1 hr"
@@ -800,8 +801,11 @@ def fetchDailyKpmSessionInfo():
             statusMsg = avgKpm + " KPM, " + sessionTime
 
             if (totalMin > 0 or avgKpm > 0):
-                # set the status bar message
-                showStatus("<s> " + statusMsg)
+                if (inFlow):
+                    # set the status bar message
+                    showStatus("<s> " + statusMsg + " ^")
+                else:
+                    showStatus("<s> " + statusMsg)
             else:
                 showStatus(DASHBOARD_KEYMAP_MSG)
     else:
