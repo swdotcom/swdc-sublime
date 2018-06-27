@@ -16,7 +16,7 @@ import zipfile
 import re
 import sublime_plugin, sublime
 
-VERSION = '0.1.3'
+VERSION = '0.1.4'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
@@ -34,14 +34,14 @@ PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Pl
 PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
 PLUGIN_ZIP_NAME = "swdc-sublime.zip"
 PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
-LOGIN_LABEL = "Sign in"
+LOGIN_LABEL = "Log in"
 
 MILLIS_PER_DAY = 1000 * 60 * 60 * 24
 MILLIS_PER_HOUR = 1000 * 60 * 60
 SECONDS_PER_HOUR = 60 * 60
 SECONDS_PER_HALF_HOUR = 60 * 30
 LONG_THRESHOLD_HOURS = 12
-SHORT_THRESHOLD_HOURS = 1
+SHORT_THRESHOLD_HOURS = 4
 DASHBOARD_KEYMAP_MSG = "Software.com [ctrl+alt+o]"
 PROD_API_ENDPOINT = "api.software.com"
 PROD_URL = "https://alpha.software.com"
@@ -717,7 +717,7 @@ def chekUserAuthenticationStatus():
         # set the last update time so we don't try to ask too frequently
         setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
-        infoMsg = "To see your coding data in Software.com, please sign in to your account."
+        infoMsg = "To see your coding data in Software.com, please log in to your account."
         if (existingJwt):
             # show the Software.com message
             showStatus(DASHBOARD_KEYMAP_MSG)
