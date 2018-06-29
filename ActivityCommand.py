@@ -83,6 +83,9 @@ def post_json(json_data):
 
     PluginData.reset_source_data()
 
+#
+# Background thread used to send data every minute
+#
 class BackgroundWorker():
     def __init__(self, threads_count, target_func):
         self.queue = Queue(maxsize=0)
@@ -774,7 +777,9 @@ def checkTokenAvailability():
         tokenAvailabilityTimer.start()
         showStatus(DASHBOARD_KEYMAP_MSG)
 
-
+#
+# Fetch and display the daily KPM info
+#
 def fetchDailyKpmSessionInfo():
     if (isAuthenticated()):
         api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
@@ -788,6 +793,8 @@ def fetchDailyKpmSessionInfo():
             sessionTime = ""
             inFlow = sessions.get("inFlow", False)
 
+            log("KPM: " + str(avgKpm) + ", totalMin: " + str(totalMin))
+
             if (totalMin == 60):
                 sessionTime = "1 hr"
             elif (totalMin > 60):
@@ -798,7 +805,7 @@ def fetchDailyKpmSessionInfo():
             else:
                 sessionTime = str(totalMin) + " min"
 
-            statusMsg = avgKpm + " KPM, " + sessionTime
+            statusMsg = str(avgKpm) + " KPM, " + sessionTime
 
             if (totalMin > 0 or avgKpm > 0):
                 if (inFlow):
