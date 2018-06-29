@@ -866,9 +866,11 @@ def launchDashboard():
 
     existingJwt = getItem("jwt")
     if (existingJwt is None):
-        tokenVal = createToken()
-        # update the .software data with the token we've just created
-        setItem("token", tokenVal)
+        tokenVal = getItem("token")
+        if (tokenVal is None):
+            tokenVal = createToken()
+            # update the .software data with the token we've just created
+            setItem("token", tokenVal)
         webUrl += "/onboarding?token=" + tokenVal
 
     webbrowser.open(webUrl)
