@@ -16,7 +16,7 @@ import zipfile
 import re
 import sublime_plugin, sublime
 
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 PM_URL = 'localhost:19234'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 LOGGING = True
@@ -102,9 +102,12 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
+#
+# Class to download the plugin desktop
+#
 class DownloadPM(Thread):
 
-    # download the PM and install it....
+    # download the PM and install
     def run(self):
         downloadingPM = True
         saveAs = getDownloadFilePathName()
@@ -710,18 +713,22 @@ def chekUserAuthenticationStatus():
     authenticated = isAuthenticated()
     pastThresholdTime = isPastTimeThreshold()
     existingJwt = getItem("jwt")
+    existingToken = getItem("token")
 
     initiateCheckTokenAvailability = True
 
-    if (serverAvailable and
-            not authenticated and
-            pastThresholdTime):
+    # show the dialog if we don't have a token yet,
+    # or if we do have a token but no jwt token then
+    # show it every 4 hours until we get a jwt token
+
+    if (existingToken is None or
+        (serverAvailable and not authenticated and pastThresholdTime)):
 
         # set the last update time so we don't try to ask too frequently
         setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
         infoMsg = "To see your coding data in Software.com, please log in to your account."
-        if (existingJwt):
+        if (existingToken is not None and existingJwt):
             # show the Software.com message
             showStatus(DASHBOARD_KEYMAP_MSG)
         else:
@@ -737,7 +744,7 @@ def chekUserAuthenticationStatus():
         initiateCheckTokenAvailability = False
 
 
-    if (initiateCheckTokenAvailability):
+    if (existingJwt is None):
         # start the token availability timer
         tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
         tokenAvailabilityTimer.start()
@@ -788,24 +795,22 @@ def fetchDailyKpmSessionInfo():
         if (response is not None):
             sessions = json.loads(response.read().decode('utf-8'))
 
-            avgKpm = sessions.get("kpm", 0)
+            avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
             totalMin = sessions.get("minutesTotal", 0)
             sessionTime = ""
             inFlow = sessions.get("inFlow", False)
 
-            log("KPM: " + str(avgKpm) + ", totalMin: " + str(totalMin))
-
             if (totalMin == 60):
                 sessionTime = "1 hr"
             elif (totalMin > 60):
-                # todo: make sure we use a precision of 2
-                sessionTime = (totalMin / 60) + " hrs"
+                # at least 4 chars (including the dot) with 2 after the dec point
+                sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
             elif (totalMin == 1):
                 sessionTime = "1 min"
             else:
-                sessionTime = str(totalMin) + " min"
+                sessionTime = '{:1.0f}'.format(totalMin) + " min"
 
-            statusMsg = str(avgKpm) + " KPM, " + sessionTime
+            statusMsg = avgKpm + " KPM, " + sessionTime
 
             if (totalMin > 0 or avgKpm > 0):
                 if (inFlow):
@@ -818,6 +823,7 @@ def fetchDailyKpmSessionInfo():
     else:
         log("Software.com: Currently not authenticated to fetch daily kpm session info")
         showStatus(DASHBOARD_KEYMAP_MSG)
+        chekUserAuthenticationStatus()
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
