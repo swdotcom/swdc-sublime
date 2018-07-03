@@ -201,6 +201,7 @@ class CheckForUpdates(Thread):
 
         updates_running = False
 
+# plugin payload data structure
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
@@ -432,6 +433,22 @@ class EventListener(sublime_plugin.EventListener):
             return
 
         fileSize = view.size()
+        lines = 0
+        # try:
+        # rowcol(point) Calculates the 0-based line and column numbers of the point
+        lines = view.rowcol(fileSize)[0]
+
+        prevLines = fileInfoData['lines']
+        fileInfoData['lines'] = lines
+
+        lineDiff = lines - prevLines
+        if (lineDiff > 0):
+            fileInfoData['linesAdded'] = fileInfoData['linesAdded'] + lineDiff
+            log('Software.com: lines added incremented')
+        elif (lineDiff < 0):
+            fileInfoData['linesRemoved'] = fileInfoData['linesRemoved'] + lineDiff
+            log('Software.com: lines removed incremented')
+        
         # subtract the current size of the file from what we had before
         # we'll know whether it's a delete, copy+paste, or kpm
         currLen = fileInfoData['length']
