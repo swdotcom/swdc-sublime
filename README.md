@@ -5,7 +5,7 @@
 *Software* measures activity in your text editor or IDE so you can see the times during the day when you are the most productive. We also help you see how much you code at work or at nights and weekends, how meetings impact the amount you code, and more. 
 
 ## Setup
-
+<!--- Begin: setup --->
 ### Install
 
 1. [**Download**](https://github.com/swdotcom/swdc-sublime/archive/master.zip) and **unzip** the Sublime Text plugin
@@ -20,6 +20,8 @@
 
 1. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
 2. **Delete** the folder with the *Software* plugin
+
+<!--- End: setup --->
 
 ## Privacy
 
