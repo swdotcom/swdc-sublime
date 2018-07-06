@@ -44,7 +44,7 @@ LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 DASHBOARD_KEYMAP_MSG = "Software.com [ctrl+alt+o]"
 PROD_API_ENDPOINT = "api.software.com"
-PROD_URL = "https://alpha.software.com"
+PROD_URL = "https://app.software.com"
 TEST_API_ENDPOINT = "localhost:5000"
 TEST_URL = "http://localhost:3000"
 
