@@ -1,0 +1,18 @@
+[
+	{
+		"id": "tools",
+		"children":
+		[
+			{ "caption": "-", "id": "software" },
+			{
+				"caption": "Software",
+				"children":
+				[
+					{ "command": "pause_kpm_updates" },
+					{ "command": "enable_kpm_updates" },
+					{ "command": "go_to_software" },
+				]
+			},
+		]
+	}
+]

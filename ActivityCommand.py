@@ -3,68 +3,20 @@
 from datetime import datetime, timezone, timedelta
 from threading import Thread, Timer, Event
 from queue import Queue
-import webbrowser
-import uuid
-import time
-import math
-import http
 import json
-import os
-import urllib
-import subprocess
-import zipfile
-import re
 import sublime_plugin, sublime
+from .lib.SessionManager import sendOfflineData, chekUserAuthenticationStatus, storePayload, launchDashboard, fetchDailyKpmSessionInfo
+from .lib.HttpClientManager import log, requestIt, updateTelemetry, showStatus
+from .lib.Util import VERSION
 
-VERSION = '0.1.5'
-PM_URL = 'localhost:19234'
-USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
-LOGGING = True
 DEFAULT_DURATION = 60
-was_new_version_shown = False
-updates_running = False
-downloadingPM = False
-fetchingUserFromToken = False
 
-PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
-PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
-PM_NAME = "software"
-NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Software Desktop may not be installed. Would you like to download it now?"
-PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Software Desktop is running and signed on."
-PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
-PLUGIN_ZIP_NAME = "swdc-sublime.zip"
-PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
-LOGIN_LABEL = "Log in"
-
-MILLIS_PER_DAY = 1000 * 60 * 60 * 24
-MILLIS_PER_HOUR = 1000 * 60 * 60
-SECONDS_PER_HOUR = 60 * 60
-SECONDS_PER_HALF_HOUR = 60 * 30
-LONG_THRESHOLD_HOURS = 12
-SHORT_THRESHOLD_HOURS = 4
-DASHBOARD_KEYMAP_MSG = "Software.com [ctrl+alt+o]"
-PROD_API_ENDPOINT = "api.software.com"
-PROD_URL = "https://alpha.software.com"
-TEST_API_ENDPOINT = "localhost:5000"
-TEST_URL = "http://localhost:3000"
-
-# set the api endpoint to use
-api_endpoint = PROD_API_ENDPOINT
-# set the launch url to use
-launch_url = PROD_URL
-
-# log the message
-def log(message):
-    if not LOGGING:
-        return
-
-    print(message)
+# flag to toggle updating kpm info
+#
+telemetryOn = True
 
 def secondsNow():
     return datetime.utcnow()
-
-def trueSecondsNow():
-    return time.mktime(secondsNow().timetuple())
 
 #
 # post the json data
@@ -102,106 +54,8 @@ class BackgroundWorker():
             self.target_func(self.queue.get())
             self.queue.task_done()
 
-#
-# Class to download the plugin desktop
-#
-class DownloadPM(Thread):
-
-    # download the PM and install
-    def run(self):
-        downloadingPM = True
-        saveAs = getDownloadFilePathName()
-        url = getFileUrl()
-        downloadPath = getDownloadPath()
-
-        showStatus("Downlaoding Software Desktop")
-
-        try:
-            urllib.urlretrieve(url, saveAs)
-        except AttributeError:
-            urllib.request.urlretrieve(url, saveAs)
-
-        showStatus("Completed downloading Software Desktop")
-
-        showStatus("Installing Software Desktop")
-        if (isMac()):
-            # open the .dmg
-            subprocess.Popen(['open', saveAs], stdout=subprocess.PIPE)
-        else:
-            # open the .deb or .exe
-            subprocess.Popen([saveAs], stdout=subprocess.PIPE)
-
-# download the plugin and unzip it to the packages folder.
-class DownloadPlugin(Thread):
-    def run(self):
-        # delete existing zip files
-        packagesDir = sublime.packages_path()
-        for file in os.listdir(packagesDir):
-            if (file.startswith("swdc") and file.find(".zip") != -1):
-                zipToRemove = os.path.join(getPluginPathWithSlash(), file)
-                os.remove(zipToRemove)
-
-        showStatus("Downloading Software package")
-
-        saveAs = getPluginDataPathFileName()
-
-        try:
-            urllib.urlretrieve(PLUGIN_ZIP_URL, saveAs)
-        except AttributeError:
-            urllib.request.urlretrieve(PLUGIN_ZIP_URL, saveAs)
-
-        # unzip it now
-        showStatus("Extracting Software package")
-
-        with zipfile.ZipFile(saveAs, "r") as zip_ref:
-            zip_ref.extractall(sublime.packages_path())
-
-        showStatus("Completed package installation")
-
-        try:
-            os.remove(saveAs)
-        except:
-            pass
-
-
-# fetch the plugins.yml to find out if there's a new plugin version to download
-class CheckForUpdates(Thread):
-
-    def run(self):
-        global was_new_version_shown
-        global updates_running
-
-        updates_running = True
-        
-        with urllib.request.urlopen(PLUGIN_YML_URL) as response:
-            ymldata = response.read().decode("utf-8")
-
-            if (ymldata is not None):
-                ymllines = ymldata.splitlines()
-                # look for "sublime-version"
-                if (ymllines and len(ymllines) > 0):
-                    for versionline in ymllines:
-                        if (versionline.startswith("sublime-version")):
-                            versionparts = versionline.split()
-                            availableversion = versionparts[1].strip()
-                            if (len(versionparts) == 2 and VERSION != availableversion):
-                                # alert the user that there's a new version
-                                was_new_version_shown = True
-
-                                version_available_msg = PLUGIN_UPDATE_AVAILABLE_MSG % availableversion
-
-                                clickAction = sublime.ok_cancel_dialog(version_available_msg, "Download")
-                                if (clickAction == True):
-                                    thread = DownloadPlugin()
-                                    thread.start()
-                                return
-                                
-                            # break out, we found the sublime version line
-                            break
-
-        updates_running = False
-
 # plugin payload data structure
+#
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
@@ -234,6 +88,7 @@ class PluginData():
 
         return json.dumps(dict_data)
 
+    # send the kpm info
     def send(self):
         if PluginData.background_worker is not None and self.hasData():
             PluginData.background_worker.queue.put(self.json())
@@ -380,13 +235,34 @@ class PluginData():
 
         return fileInfoData
 
-class DashboardView(sublime_plugin.TextCommand):
+class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def run(self, edit, **kwargs):
         launchDashboard()
 
+# Command to pause kpm updates
+class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
+    def run(self, edit, **kwargs):
+        global telemetryOn
+        telemetryOn = False
+        updateTelemetry(telemetryOn)
+
+    def is_enabled(self):
+        return (telemetryOn is True)
+
+# Command to re-enable kpm updates
+class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
+    def run(self, edit, **kwargs):
+        global telemetryOn
+        telemetryOn = True
+        updateTelemetry(telemetryOn)
+
+    def is_enabled(self):
+        global telemetryOn
+        return (telemetryOn is False)
+
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
-    def on_load(self, view):
+    def on_load_async(self, view):
         fileName = view.file_name()
 
         active_data = PluginData.get_active_data(view)
@@ -420,7 +296,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['close'] = fileInfoData['close'] + 1
         log('Software.com: closed file %s' % fileName)
 
-    def on_modified(self, view):
+    def on_modified_async(self, view):
         # get active data will create the file info if it doesn't exist
         active_data = PluginData.get_active_data(view)
         if active_data is None:
@@ -486,427 +362,21 @@ def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
     showStatus("Software.com")
 
-    authStatusTimer = Timer(10, chekUserAuthenticationStatus)
-    authStatusTimer.start()
-
-    kpmFetchTimer = Timer(30, fetchDailyKpmSessionInfo)
-    kpmFetchTimer.start()
-
     sendOfflineDataTimer = Timer(20, sendOfflineData)
+    sendOfflineDataTimer.start()
+
+    sendOfflineDataTimer = Timer(30, fetchDailyKpmSessionInfo)
     sendOfflineDataTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()
     PluginData.background_worker.queue.join()
 
-def isWindows():
-    if (os.name == 'nt'):
-        return True
 
-    return False
 
-def isMac():
-    if (os.name == 'posix'):
-        return True
 
-    return False
 
-# get the url + PM name to download the PM.
-def getFileUrl():
-    fileUrl = PM_BUCKET + PM_NAME + getPmExtension()
-    return fileUrl
 
-def getHomeDir():
-    return os.environ['HOME']
-
-# get the path to download the PM to
-def getDownloadPath():
-    downloadPath = getHomeDir()
-    if (isWindows()):
-        downloadPath += "\\Desktop\\"
-    else:
-        downloadPath += "/Desktop/"
-
-    return downloadPath
-
-def getPmExtension():
-    if (isWindows()):
-        return ".exe"
-    elif (isMac()):
-        return ".dmg"
-    else:
-        return ".deb"
-
-def getPluginPathWithSlash():
-    pluginPathWithExtension = sublime.packages_path()
-
-    if (isWindows()):
-        return pluginPathWithExtension + "\\"
-    else:
-        return pluginPathWithExtension + "/"
-
-    return pluginPathWithExtension
-
-# For Sublime 3, the locations are the following
-# Windows: %APPDATA%\Sublime Text 3\Packages
-# OS X: ~/Library/Application Support/Sublime Text 3/Packages
-# Linux: ~/.config/sublime-text-3/packages
-def getPluginDataPathFileName():
-    # i.e. sublime path: /Users/xavierluiz/Library/Application Support/Sublime Text 3/Packages
-    pluginPathFileName = sublime.packages_path()
-
-    if (isWindows()):
-        return pluginPathFileName + "\\" + PLUGIN_ZIP_NAME
-    else:
-        return pluginPathFileName + "/" + PLUGIN_ZIP_NAME
-
-# get the filename we're going to use for the PM download
-def getDownloadFilePathName():
-    downloadFilePathName = getDownloadPath() + PM_NAME + getPmExtension()
-    return downloadFilePathName
-     
-# get the directory path where the PM should be installed
-def getPmInstallDirectoryPath():
-    if (isWindows()):
-        return getHomeDir() + "\\AppData\\Local\\Programs"
-    elif (isMac()):
-        return "/Applications"
-    else:
-        return "/user/lib"
-
-# check if the PM was installed or not
-def hasPluginInstalled():
-    installDir = getPmInstallDirectoryPath()
-
-    for file in os.listdir(installDir):
-        pathname = os.path.join(installDir, file)
-        lcfile = file.lower()
-        # file found: Software.com Plugin Manager.app
-        if (lcfile.startswith("software")):
-            return True
-
-    return False
-
-def getSoftwareDir():
-    softwareDataDir = getHomeDir()
-    if (isWindows()):
-        softwareDataDir += "\\.software"
-    else:
-        softwareDataDir += "/.software"
-
-    if not os.path.exists(softwareDataDir):
-        os.makedirs(softwareDataDir)
-
-    return softwareDataDir
-
-def getSoftwareSessionFile():
-    file = getSoftwareDir()
-    if (isWindows()):
-        file += "\\session.json"
-    else:
-        file += "/session.json"
-    return file
-
-def getSoftwareDataStoreFile():
-    file = getSoftwareDir()
-    if (isWindows()):
-        file += "\\data.json"
-    else:
-        file += "/data.json"
-    return file
-
-def storePayload(payload):
-    # append payload to software data store file
-    dataStoreFile = getSoftwareDataStoreFile()
-
-    with open(dataStoreFile, "a") as dsFile:
-        dsFile.write(payload + "\n")
-
-def setItem(key, value):
-    jsonObj = getSoftwareSessionAsJson()
-    jsonObj[key] = value
-
-    content = json.dumps(jsonObj)
-
-    sessionFile = getSoftwareSessionFile()
-    with open(sessionFile, 'w') as f:
-        f.write(content)
-
-def getItem(key):
-    jsonObj = getSoftwareSessionAsJson()
-
-    # return a default of None if key isn't found
-    val = jsonObj.get(key, None)
-
-    return val
-
-def getSoftwareSessionAsJson():
-    data = None
-
-    sessionFile = getSoftwareSessionFile()
-    if (os.path.isfile(sessionFile)):
-        content = open(sessionFile).read()
-
-        if (content is not None):
-            # json parse the content
-            data = json.loads(content)
-
-    if (data is not None):
-        return data
-
-    return dict()
-
-def isPastTimeThreshold():
-    existingJwt = getItem("jwt")
-
-    thresholdHoursBeforeCheckingAgain = LONG_THRESHOLD_HOURS
-    if (existingJwt is None):
-        thresholdHoursBeforeCheckingAgain = SHORT_THRESHOLD_HOURS
-
-    lastUpdateTime = getItem("sublime_lastUpdateTime")
-    if (lastUpdateTime is None):
-        lastUpdateTime = 0
-
-    timeDiffSinceUpdate = trueSecondsNow() - lastUpdateTime
-
-    threshold = SECONDS_PER_HOUR * thresholdHoursBeforeCheckingAgain
-
-    if (timeDiffSinceUpdate < threshold):
-        return False
-
-    return True
-
-def isAuthenticated():
-    tokenVal = getItem('token')
-    jwtVal = getItem('jwt')
-
-    if (tokenVal is None or jwtVal is None):
-        showStatus(DASHBOARD_KEYMAP_MSG)
-        return False
-
-    response = requestIt("GET", "/users/ping", None)
-
-    if (response is not None):
-        return True
-    else:
-        showStatus(DASHBOARD_KEYMAP_MSG)
-        return False
-
-def checkOnline():
-    # non-authenticated ping, no need to set the Authorization header
-    response = requestIt("GET", "/ping", None)
-    if (response is not None):
-        return True
-    else:
-        return False
-
-def sendOfflineData():
-    # send the offline data
-    dataStoreFile = getSoftwareDataStoreFile()
-
-    payloads = []
-
-    if (os.path.isfile(dataStoreFile)):
-        with open(dataStoreFile) as fp:
-            for line in fp:
-                if (line and line.strip()):
-                    line = line.rstrip()
-                    # convert to object
-                    json_obj = json.loads(line)
-                    # convert to json to send
-                    payloads.append(json_obj)
-
-    if (payloads):
-        response = requestIt("POST", "/data/batch", json.dumps(payloads))
-
-        if (response is not None):
-            deleteFile(dataStoreFile)
-
-def deleteFile(file):
-    os.remove(file)
-
-def chekUserAuthenticationStatus():
-    serverAvailable = checkOnline()
-    authenticated = isAuthenticated()
-    pastThresholdTime = isPastTimeThreshold()
-    existingJwt = getItem("jwt")
-    existingToken = getItem("token")
-
-    initiateCheckTokenAvailability = True
-
-    # show the dialog if we don't have a token yet,
-    # or if we do have a token but no jwt token then
-    # show it every 4 hours until we get a jwt token
-
-    if (existingToken is None or
-        (serverAvailable and not authenticated and pastThresholdTime)):
-
-        # set the last update time so we don't try to ask too frequently
-        setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
-        confirmWindowOpen = True
-        infoMsg = "To see your coding data in Software.com, please log in to your account."
-        if (existingToken is not None and existingJwt):
-            # show the Software.com message
-            showStatus(DASHBOARD_KEYMAP_MSG)
-        else:
-            clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
-            if (clickAction):
-                # launch the login view
-                launchDashboard()
-    elif (not authenticated):
-        # show the Software.com message
-        showStatus(DASHBOARD_KEYMAP_MSG)
-        log("Software.com: user auth check status [online: %s, authenticated: %s, pastThresholdTime: %s]" % (serverAvailable, authenticated, pastThresholdTime))
-    else:
-        initiateCheckTokenAvailability = False
-
-
-    if (existingJwt is None):
-        # start the token availability timer
-        tokenAvailabilityTimer = Timer(60, checkTokenAvailability)
-        tokenAvailabilityTimer.start()
-
-def checkTokenAvailability():
-    global fetchingUserFromToken
-
-    tokenVal = getItem("token")
-    fetchingUserFromToken = True
-
-    foundJwt = False
-    if (tokenVal is not None):
-        api = '/users/plugin/confirm?token=' + tokenVal
-        response = requestIt("GET", api, None)
-
-        if (response is not None):
-
-            json_obj = json.loads(response.read().decode('utf-8'))
-
-            jwt = json_obj.get("jwt", None)
-            user = json_obj.get("user", None)
-            if (jwt is not None):
-                setItem("jwt", jwt)
-                setItem("user", user)
-                setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
-                fetchingUserFromToken = False
-                foundJwt = True
-            else:
-                # check if there's a message
-                message = json_obj.get("message", None)
-                if (message is not None):
-                    log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
-
-    if (not foundJwt):
-        # start the token availability timer
-        tokenAvailabilityTimer = Timer(120, checkTokenAvailability)
-        tokenAvailabilityTimer.start()
-        showStatus(DASHBOARD_KEYMAP_MSG)
-
-#
-# Fetch and display the daily KPM info
-#
-def fetchDailyKpmSessionInfo():
-    if (isAuthenticated()):
-        api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
-        response = requestIt("GET", api, None)
-
-        if (response is not None):
-            sessions = json.loads(response.read().decode('utf-8'))
-
-            avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
-            totalMin = sessions.get("minutesTotal", 0)
-            sessionTime = ""
-            inFlow = sessions.get("inFlow", False)
-
-            if (totalMin == 60):
-                sessionTime = "1 hr"
-            elif (totalMin > 60):
-                # at least 4 chars (including the dot) with 2 after the dec point
-                sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
-            elif (totalMin == 1):
-                sessionTime = "1 min"
-            else:
-                sessionTime = '{:1.0f}'.format(totalMin) + " min"
-
-            statusMsg = avgKpm + " KPM, " + sessionTime
-
-            if (totalMin > 0 or avgKpm > 0):
-                if (inFlow):
-                    # set the status bar message
-                    showStatus("<s> " + statusMsg + " ^")
-                else:
-                    showStatus("<s> " + statusMsg)
-            else:
-                showStatus(DASHBOARD_KEYMAP_MSG)
-    else:
-        log("Software.com: Currently not authenticated to fetch daily kpm session info")
-        showStatus(DASHBOARD_KEYMAP_MSG)
-        chekUserAuthenticationStatus()
-
-    # fetch the daily kpm session info in 1 minute
-    kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
-    kpmReFetchTimer.start()
-
-def createToken():
-    # return os.urandom(16).encode('hex')
-    uid = uuid.uuid4()
-    return uid.hex
-
-def handlKpmClickedEvent():
-    launchDashboard()
-
-def requestIt(method, api, payload):
-
-    log("Software.com: Sending request -- [" + method + ": " + api_endpoint + "" + api + "] payload: %s" % payload)
-    
-    try:
-        connection = None
-        if (api_endpoint is TEST_API_ENDPOINT):
-            connection = http.client.HTTPConnection(api_endpoint)
-        else:
-            connection = http.client.HTTPSConnection(api_endpoint)
-
-        headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
-
-        jwt = getItem("jwt")
-        if (jwt is not None):
-            headers['Authorization'] = jwt
-
-        # make the request
-        if (payload is None):
-            payload = {}
-
-        connection.request(method, api, payload, headers)
-
-        response = connection.getresponse()
-        log("Software.com: " + api + " Response (%d)" % response.status)
-        return response
-    except (http.client.HTTPException, http.client.CannotSendHeader, ConnectionError, Exception) as ex:
-        log("Software.com: " + api + " Network error: %s" % ex)
-        return None
-
-def launchDashboard():
-    webUrl = launch_url
-
-    existingJwt = getItem("jwt")
-    if (existingJwt is None):
-        tokenVal = getItem("token")
-        if (tokenVal is None):
-            tokenVal = createToken()
-            # update the .software data with the token we've just created
-            setItem("token", tokenVal)
-        webUrl += "/onboarding?token=" + tokenVal
-
-    webbrowser.open(webUrl)
-
-def showStatus(msg):
-    """Updates the status bar"""
-    try:
-        active_window = sublime.active_window()
-        if active_window:
-            for view in active_window.views():
-                view.set_status('software.com', msg)
-    except RuntimeError:
-        log(msg)
 
 
 
