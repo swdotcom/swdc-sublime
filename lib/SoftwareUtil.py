@@ -6,12 +6,7 @@ import json
 VERSION = '0.1.6'
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 
-def getJwt():
-    return getItem("jwt")
-
-def getToken():
-	return getItem("token")
-
+# fetch a value from the .software/sesion.json file
 def getItem(key):
     jsonObj = getSoftwareSessionAsJson()
 

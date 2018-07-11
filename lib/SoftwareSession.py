@@ -8,8 +8,8 @@ import time
 import json
 import os
 import sublime_plugin, sublime
-from .HttpClientManager import log, requestIt, updateTelemetry, showStatus
-from .Util import *
+from .SoftwareHttp import *
+from .SoftwareUtil import *
 
 # Constants
 DASHBOARD_KEYMAP_MSG = "Log in to Software.com [ctrl+alt+o]"
@@ -27,6 +27,8 @@ TEST_URL = "http://localhost:3000"
 #
 launch_url = PROD_URL
 
+fetchingUserFromToken = False
+
 # get the number of seconds from epoch
 #
 def trueSecondsNow():
@@ -36,9 +38,9 @@ def trueSecondsNow():
 def launchDashboard():
     webUrl = launch_url
 
-    existingJwt = getJwt()
+    existingJwt = getItem("jwt")
     if (existingJwt is None):
-        tokenVal = getToken()
+        tokenVal = getItem("token")
         if (tokenVal is None):
             tokenVal = createToken()
             # update the .software data with the token we've just created
@@ -164,6 +166,9 @@ def isPastTimeThreshold():
 
     return True
 
+#
+# check if the token is found to establish an authenticated session
+#
 def checkTokenAvailability():
     global fetchingUserFromToken
 
@@ -198,14 +203,17 @@ def checkTokenAvailability():
         tokenAvailabilityTimer.start()
         showStatus(DASHBOARD_KEYMAP_MSG)
 
+#
 # Fetch and display the daily KPM info
 #
 def fetchDailyKpmSessionInfo():
+    recievedData = False
     if (isAuthenticated()):
         api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
         response = requestIt("GET", api, None)
 
         if (response is not None):
+            recievedData = True
             sessions = json.loads(response.read().decode('utf-8'))
 
             avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
@@ -234,13 +242,16 @@ def fetchDailyKpmSessionInfo():
             else:
                 showStatus(DASHBOARD_KEYMAP_MSG)
 
-        # fetch the daily kpm session info in 1 minute
-        kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo())
-        kpmReFetchTimer.start()
-    else:
+    # check if we need to retrieve the token since we're unable to get the kpm data
+    if (recievedData is False):
         showStatus(DASHBOARD_KEYMAP_MSG)
         chekUserAuthenticationStatus()
 
+    # fetch the daily kpm session info in 1 minute
+    kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
+    kpmReFetchTimer.start()
+
+# crate a uuid token to establish a connection
 def createToken():
     # return os.urandom(16).encode('hex')
     uid = uuid.uuid4()

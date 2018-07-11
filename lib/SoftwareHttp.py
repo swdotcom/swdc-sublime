@@ -3,7 +3,7 @@
 
 import http
 import sublime_plugin, sublime
-from .Util import *
+from .SoftwareUtil import *
 
 # constants
 PROD_API_ENDPOINT = "api.software.com"
@@ -19,6 +19,8 @@ LOGGING = True
 TELEMETRY_ON = True
 
 def updateTelemetry(telemtryOnVal):
+    global TELEMETRY_ON
+    log("setting software telemetry to: %s " % telemtryOnVal)
     TELEMETRY_ON = telemtryOnVal
 
 # log the message
@@ -39,6 +41,7 @@ def showStatus(msg):
         log(msg)
 
 def requestIt(method, api, payload):
+    global TELEMETRY_ON
 
     if (TELEMETRY_ON is False):
         log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
@@ -55,7 +58,7 @@ def requestIt(method, api, payload):
 
         headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
 
-        jwt = getJwt()
+        jwt = getItem("jwt")
         if (jwt is not None):
             headers['Authorization'] = jwt
 
