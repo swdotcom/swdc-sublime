@@ -59,7 +59,7 @@ def storePayload(payload):
 def checkOnline():
     # non-authenticated ping, no need to set the Authorization header
     response = requestIt("GET", "/ping", None)
-    if (response is not None):
+    if (response is not None and response.status < 300):
         return True
     else:
         return False
@@ -140,7 +140,7 @@ def isAuthenticated():
 
     response = requestIt("GET", "/users/ping", None)
 
-    if (response is not None):
+    if (response is not None and response.status < 300):
         return True
     else:
         showStatus(DASHBOARD_KEYMAP_MSG)
@@ -180,7 +180,7 @@ def checkTokenAvailability():
         api = '/users/plugin/confirm?token=' + tokenVal
         response = requestIt("GET", api, None)
 
-        if (response is not None):
+        if (response is not None and response.status < 300):
 
             json_obj = json.loads(response.read().decode('utf-8'))
 
@@ -212,7 +212,7 @@ def fetchDailyKpmSessionInfo():
         api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
         response = requestIt("GET", api, None)
 
-        if (response is not None):
+        if (response is not None and response.status < 300):
             recievedData = True
             sessions = json.loads(response.read().decode('utf-8'))
 

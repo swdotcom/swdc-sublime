@@ -14,20 +14,19 @@ DEFAULT_DURATION = 60
 # flag to toggle updating kpm info
 telemetryOn = True
 
-
+#
 def secondsNow():
     return datetime.utcnow()
 
 #
 # update the kpm info
-#
 def post_json(json_data):
     # send offline data
     sendOfflineData()
 
     response = requestIt("POST", "/data", json_data)
 
-    if (response is None):
+    if (response is None or response.status < 300):
         # save the data to the offline data file
         storePayload(json_data)
         # check if we need to ask to login

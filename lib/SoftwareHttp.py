@@ -40,6 +40,7 @@ def showStatus(msg):
     except RuntimeError:
         log(msg)
 
+# send the request
 def requestIt(method, api, payload):
     global TELEMETRY_ON
 
@@ -47,8 +48,6 @@ def requestIt(method, api, payload):
         log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
-    log("Software.com: Sending request -- [" + method + ": " + api_endpoint + "" + api + "] payload: %s" % payload)
-    
     try:
         connection = None
         if (api_endpoint is TEST_API_ENDPOINT):
@@ -66,10 +65,12 @@ def requestIt(method, api, payload):
         if (payload is None):
             payload = {}
 
+        log("Software.com: Request [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        log("Software.com: " + api + " Response (%d)" % response.status)
+        log("Software.com: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except (http.client.HTTPException, http.client.CannotSendHeader, ConnectionError, Exception) as ex:
         log("Software.com: " + api + " Network error: %s" % ex)
