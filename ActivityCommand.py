@@ -14,6 +14,38 @@ DEFAULT_DURATION = 60
 # flag to toggle updating kpm info
 #
 telemetryOn = True
+was_new_version_shown = False
+updates_running = False
+downloadingPM = False
+fetchingUserFromToken = False
+
+PM_BUCKET = "https://s3-us-west-1.amazonaws.com/swdc-plugin-manager/"
+PLUGIN_YML_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/plugins.yml"
+PM_NAME = "software"
+NO_PM_FOUND_MSG = "We are having trouble sending data to Software.com. The Software Desktop may not be installed. Would you like to download it now?"
+PLUGIN_TO_PM_ERROR_MSG = "We are having trouble sending data to Software.com. Please make sure the Software Desktop is running and signed on."
+PLUGIN_UPDATE_AVAILABLE_MSG = "A new version of the Software plugin (%s) for Sublime Text is now available. Update now?"
+PLUGIN_ZIP_NAME = "swdc-sublime.zip"
+PLUGIN_ZIP_URL = "https://s3-us-west-1.amazonaws.com/swdc-plugins/%s" % PLUGIN_ZIP_NAME
+LOGIN_LABEL = "Log in"
+
+MILLIS_PER_DAY = 1000 * 60 * 60 * 24
+MILLIS_PER_HOUR = 1000 * 60 * 60
+SECONDS_PER_HOUR = 60 * 60
+SECONDS_PER_HALF_HOUR = 60 * 30
+LONG_THRESHOLD_HOURS = 12
+SHORT_THRESHOLD_HOURS = 4
+DASHBOARD_KEYMAP_MSG = "Software.com [ctrl+alt+o]"
+PROD_API_ENDPOINT = "api.software.com"
+PROD_URL = "https://app.software.com"
+TEST_API_ENDPOINT = "localhost:5000"
+TEST_URL = "http://localhost:3000"
+
+# set the api endpoint to use
+api_endpoint = PROD_API_ENDPOINT
+# set the launch url to use
+launch_url = PROD_URL
+
 
 def secondsNow():
     return datetime.utcnow()
