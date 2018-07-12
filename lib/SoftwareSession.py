@@ -16,23 +16,24 @@ DASHBOARD_KEYMAP_MSG = "Log in to Software.com [ctrl+alt+o]"
 SECONDS_PER_HOUR = 60 * 60
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
+NO_TOKEN_THRESHOLD_HOURS = 2
 LOGIN_LABEL = "Log in"
-
-sublime_settings = sublime.load_settings("Software.sublime-settings")
 
 fetchingUserFromToken = False
 fetchingKpmData = False
 
 # launch the browser with either the dashboard or the login
 def launchDashboard():
-    global sublime_settings
+    sublime_settings = sublime.load_settings("Software.sublime-settings")
     webUrl = sublime_settings.get("software_dashboard_url", "https://app.software.com")
     log("web url %s" % webUrl)
     existingJwt = getItem("jwt")
     if (existingJwt is None):
         tokenVal = getItem("token")
+        log("existing token val: %s" % tokenVal)
         if (tokenVal is None):
             tokenVal = createToken()
+            log("token val after creation: %s" % tokenVal)
             # update the .software data with the token we've just created
             setItem("token", tokenVal)
         webUrl += "/onboarding?token=" + tokenVal
@@ -101,8 +102,7 @@ def chekUserAuthenticationStatus():
     # or if we do have a token but no jwt token then
     # show it every 4 hours until we get a jwt token
 
-    if (existingToken is None or
-        (serverAvailable and not authenticated and pastThresholdTime)):
+    if (serverAvailable and not authenticated and pastThresholdTime):
 
         # remove the jwt so we can re-establish a connection since we're not authenticated
         setItem("jwt", None)
@@ -147,12 +147,17 @@ def isAuthenticated():
         showStatus(DASHBOARD_KEYMAP_MSG)
         return False
 
+# check if we can update the user if they need to authenticate or not
 def isPastTimeThreshold():
     existingJwt = getItem('jwt')
 
     thresholdHoursBeforeCheckingAgain = LONG_THRESHOLD_HOURS
     if (existingJwt is None):
-        thresholdHoursBeforeCheckingAgain = SHORT_THRESHOLD_HOURS
+        existingToken = getItem("token")
+        if (existingToken is None):
+            thresholdHoursBeforeCheckingAgain = NO_TOKEN_THRESHOLD_HOURS
+        else:
+            thresholdHoursBeforeCheckingAgain = SHORT_THRESHOLD_HOURS
 
     lastUpdateTime = getItem("sublime_lastUpdateTime")
     if (lastUpdateTime is None):
@@ -197,6 +202,9 @@ def checkTokenAvailability():
                 message = json_obj.get("message", None)
                 if (message is not None):
                     log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
+        elif (response is not None and int(response.status) == 400):
+            setItem("jwt", None)
+            setItem("token", None)
 
     if (not foundJwt and foundJwt is None):
         # start the token availability timer again

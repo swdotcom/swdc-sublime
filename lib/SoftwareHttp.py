@@ -7,9 +7,6 @@ from .SoftwareUtil import *
 
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 
-# load the settings
-sublime_settings = sublime.load_settings("Software.sublime-settings")
-
 # update the status bar message
 def showStatus(msg):
     try:
@@ -22,14 +19,14 @@ def showStatus(msg):
 
 # send the request
 def requestIt(method, api, payload):
-    global sublime_settings
+    sublime_settings = sublime.load_settings("Software.sublime-settings")
     api_endpoint = sublime_settings.get("software_api_endpoint", "api.software.com")
 
     if (sublime_settings.get("software_telemetry_on", True) is False):
         log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
-    # try to update kpm data.
+    # try to update kpm data
     try:
         connection = None
         # create the connection

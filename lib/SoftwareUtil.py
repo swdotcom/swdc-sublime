@@ -8,19 +8,17 @@ import sublime_plugin, sublime
 
 VERSION = '0.1.6'
 
-# load settings
-sublime_settings = sublime.load_settings("Software.sublime-settings")
-
 # get the number of seconds from epoch.
 def trueSecondsNow():
     return time.mktime(datetime.utcnow().timetuple())
 
+# get the utc time
 def secondsNow():
     return datetime.utcnow()
 
 # log the message
 def log(message):
-    global sublime_settings
+    sublime_settings = sublime.load_settings("Software.sublime-settings")
     if (sublime_settings.get("software_logging_on", True) is False):
         return
     print(message)
