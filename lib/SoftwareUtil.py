@@ -1,10 +1,29 @@
 # Copyright (c) 2018 by Software.com
 
+from datetime import datetime, timedelta
 import os
 import json
+import time
+import sublime_plugin, sublime
 
 VERSION = '0.1.6'
-USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
+
+# load settings
+sublime_settings = sublime.load_settings("Software.sublime-settings")
+
+# get the number of seconds from epoch.
+def trueSecondsNow():
+    return time.mktime(datetime.utcnow().timetuple())
+
+def secondsNow():
+    return datetime.utcnow()
+
+# log the message
+def log(message):
+    global sublime_settings
+    if (sublime_settings.get("software_logging_on", True) is False):
+        return
+    print(message)
 
 # fetch a value from the .software/sesion.json file
 def getItem(key):
@@ -15,6 +34,7 @@ def getItem(key):
 
     return val
 
+# get an item from the session json file
 def setItem(key, value):
     jsonObj = getSoftwareSessionAsJson()
     jsonObj[key] = value
@@ -25,6 +45,7 @@ def setItem(key, value):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
+# store the payload offline
 def storePayload(payload):
     # append payload to software data store file
     dataStoreFile = getSoftwareDataStoreFile()
@@ -33,20 +54,11 @@ def storePayload(payload):
         dsFile.write(payload + "\n")
 
 def getSoftwareSessionAsJson():
-    data = None
-
-    sessionFile = getSoftwareSessionFile()
-    if (os.path.isfile(sessionFile)):
-        content = open(sessionFile).read()
-
-        if (content is not None):
-            # json parse the content
-            data = json.loads(content)
-
-    if (data is not None):
-        return data
-
-    return dict()
+    try:
+        with open(getSoftwareSessionFile()) as sessionFile:
+            return json.load(sessionFile)
+    except FileNotFoundError:
+        return {}
 
 def getSoftwareSessionFile():
     file = getSoftwareDir()
@@ -65,14 +77,13 @@ def getSoftwareDataStoreFile():
     return file
 
 def getSoftwareDir():
-    softwareDataDir = getHomeDir()
+    softwareDataDir = os.path.expanduser('~')
     if (isWindows()):
         softwareDataDir += "\\.software"
     else:
         softwareDataDir += "/.software"
 
-    if not os.path.exists(softwareDataDir):
-        os.makedirs(softwareDataDir)
+    os.makedirs(softwareDataDir, exist_ok=True)
 
     return softwareDataDir
 
@@ -81,14 +92,5 @@ def isWindows():
         return True
 
     return False
-
-def isMac():
-    if (os.name == 'posix'):
-        return True
-
-    return False
-
-def getHomeDir():
-    return os.environ['HOME']
 
 

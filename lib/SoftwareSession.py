@@ -13,31 +13,21 @@ from .SoftwareUtil import *
 
 # Constants
 DASHBOARD_KEYMAP_MSG = "Log in to Software.com [ctrl+alt+o]"
-MILLIS_PER_DAY = 1000 * 60 * 60 * 24
-MILLIS_PER_HOUR = 1000 * 60 * 60
 SECONDS_PER_HOUR = 60 * 60
-SECONDS_PER_HALF_HOUR = 60 * 30
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 LOGIN_LABEL = "Log in"
-PROD_URL = "https://app.software.com"
-TEST_URL = "http://localhost:3000"
 
-# set the launch url to use
-#
-launch_url = PROD_URL
+sublime_settings = sublime.load_settings("Software.sublime-settings")
 
 fetchingUserFromToken = False
-
-# get the number of seconds from epoch
-#
-def trueSecondsNow():
-    return time.mktime(datetime.utcnow().timetuple())
+fetchingKpmData = False
 
 # launch the browser with either the dashboard or the login
 def launchDashboard():
-    webUrl = launch_url
-
+    global sublime_settings
+    webUrl = sublime_settings.get("software_dashboard_url", "https://app.software.com")
+    log("web url %s" % webUrl)
     existingJwt = getItem("jwt")
     if (existingJwt is None):
         tokenVal = getItem("token")
@@ -49,6 +39,7 @@ def launchDashboard():
 
     webbrowser.open(webUrl)
 
+# store the payload offline
 def storePayload(payload):
     # append payload to software data store file
     dataStoreFile = getSoftwareDataStoreFile()
@@ -59,19 +50,25 @@ def storePayload(payload):
 def checkOnline():
     # non-authenticated ping, no need to set the Authorization header
     response = requestIt("GET", "/ping", None)
-    if (response is not None and response.status < 300):
+    if (response is not None and int(response.status) < 300):
         return True
     else:
         return False
 
 # send the data that has been saved offline
 def sendOfflineData():
+    existingJwt = getItem("jwt")
+
+    # no need to try to send the offline data if we don't have an auth token
+    if (existingJwt is None):
+        return
+
     # send the offline data
     dataStoreFile = getSoftwareDataStoreFile()
 
     payloads = []
 
-    if (os.path.isfile(dataStoreFile)):
+    try:
         with open(dataStoreFile) as fp:
             for line in fp:
                 if (line and line.strip()):
@@ -80,6 +77,10 @@ def sendOfflineData():
                     json_obj = json.loads(line)
                     # convert to json to send
                     payloads.append(json_obj)
+    except FileNotFoundError:
+        log("%s file not found" % dataStoreFile)
+    except Exception:
+        log("Unexpected error reading file %s" % dataStoreFile)
 
     if (payloads):
         response = requestIt("POST", "/data/batch", json.dumps(payloads))
@@ -140,7 +141,7 @@ def isAuthenticated():
 
     response = requestIt("GET", "/users/ping", None)
 
-    if (response is not None and response.status < 300):
+    if (response is not None and int(response.status) < 300):
         return True
     else:
         showStatus(DASHBOARD_KEYMAP_MSG)
@@ -180,7 +181,7 @@ def checkTokenAvailability():
         api = '/users/plugin/confirm?token=' + tokenVal
         response = requestIt("GET", api, None)
 
-        if (response is not None and response.status < 300):
+        if (response is not None and int(response.status) < 300):
 
             json_obj = json.loads(response.read().decode('utf-8'))
 
@@ -207,45 +208,47 @@ def checkTokenAvailability():
 # Fetch and display the daily KPM info
 #
 def fetchDailyKpmSessionInfo():
-    recievedData = False
-    if (isAuthenticated()):
-        api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
-        response = requestIt("GET", api, None)
+    global fetchingKpmData
 
-        if (response is not None and response.status < 300):
-            recievedData = True
-            sessions = json.loads(response.read().decode('utf-8'))
+    if (fetchingKpmData is False):
 
-            avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
-            totalMin = sessions.get("minutesTotal", 0)
-            sessionTime = ""
-            inFlow = sessions.get("inFlow", False)
+        if (isAuthenticated()):
+            fetchingKpmData = True
+            api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
+            response = requestIt("GET", api, None)
 
-            if (totalMin == 60):
-                sessionTime = "1 hr"
-            elif (totalMin > 60):
-                # at least 4 chars (including the dot) with 2 after the dec point
-                sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
-            elif (totalMin == 1):
-                sessionTime = "1 min"
-            else:
-                sessionTime = '{:1.0f}'.format(totalMin) + " min"
+            fetchingKpmData = False
 
-            statusMsg = avgKpm + " KPM, " + sessionTime
+            if (response is not None and int(response.status) < 300):
+                sessions = json.loads(response.read().decode('utf-8'))
 
-            if (totalMin > 0 or avgKpm > 0):
-                if (inFlow):
-                    # set the status bar message
-                    showStatus("<s> " + statusMsg + " ^")
+                avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
+                totalMin = sessions.get("minutesTotal", 0)
+                sessionTime = ""
+                inFlow = sessions.get("inFlow", False)
+
+                if (totalMin == 60):
+                    sessionTime = "1 hr"
+                elif (totalMin > 60):
+                    # at least 4 chars (including the dot) with 2 after the dec point
+                    sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
+                elif (totalMin == 1):
+                    sessionTime = "1 min"
                 else:
-                    showStatus("<s> " + statusMsg)
-            else:
-                showStatus(DASHBOARD_KEYMAP_MSG)
+                    sessionTime = '{:1.0f}'.format(totalMin) + " min"
 
-    # check if we need to retrieve the token since we're unable to get the kpm data
-    if (recievedData is False):
-        showStatus(DASHBOARD_KEYMAP_MSG)
-        chekUserAuthenticationStatus()
+                statusMsg = avgKpm + " KPM, " + sessionTime
+
+                if (totalMin > 0 or avgKpm > 0):
+                    if (inFlow):
+                        # set the status bar message
+                        showStatus("<s> " + statusMsg + " ^")
+                    else:
+                        showStatus("<s> " + statusMsg)
+                else:
+                    showStatus(DASHBOARD_KEYMAP_MSG)
+        else:
+            chekUserAuthenticationStatus()
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)

@@ -5,30 +5,10 @@ import http
 import sublime_plugin, sublime
 from .SoftwareUtil import *
 
-# constants
-PROD_API_ENDPOINT = "api.software.com"
-TEST_API_ENDPOINT = "localhost:5000"
+USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 
-# set the api endpoint to use
-api_endpoint = PROD_API_ENDPOINT
-
-# toggle to turn on/off logging
-LOGGING = True
-
-# toggle to turn on/of telemetry
-TELEMETRY_ON = True
-
-def updateTelemetry(telemtryOnVal):
-    global TELEMETRY_ON
-    log("setting software telemetry to: %s " % telemtryOnVal)
-    TELEMETRY_ON = telemtryOnVal
-
-# log the message
-def log(message):
-    global LOGGING
-    if not LOGGING:
-        return
-    print(message)
+# load the settings
+sublime_settings = sublime.load_settings("Software.sublime-settings")
 
 # update the status bar message
 def showStatus(msg):
@@ -42,24 +22,30 @@ def showStatus(msg):
 
 # send the request
 def requestIt(method, api, payload):
-    global TELEMETRY_ON
+    global sublime_settings
+    api_endpoint = sublime_settings.get("software_api_endpoint", "api.software.com")
 
-    if (TELEMETRY_ON is False):
+    if (sublime_settings.get("software_telemetry_on", True) is False):
         log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
+    # try to update kpm data.
     try:
         connection = None
-        if (api_endpoint is TEST_API_ENDPOINT):
+        # create the connection
+        if ('localhost' in api_endpoint):
             connection = http.client.HTTPConnection(api_endpoint)
         else:
             connection = http.client.HTTPSConnection(api_endpoint)
 
-        headers = {'Content-type': 'application/json', 'User-Agent': USER_AGENT}
+        headers = {'Content-Type': 'application/json', 'User-Agent': USER_AGENT}
 
         jwt = getItem("jwt")
         if (jwt is not None):
             headers['Authorization'] = jwt
+        elif (method is 'POST' and jwt is None):
+            log("Software.com: no auth token available to post kpm data")
+            return None
 
         # make the request
         if (payload is None):
@@ -67,6 +53,7 @@ def requestIt(method, api, payload):
 
         log("Software.com: Request [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
 
+        # send the request
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()

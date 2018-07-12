@@ -10,23 +10,17 @@ from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 
 DEFAULT_DURATION = 60
+SETTINGS_FILE = 'Software.sublime-settings'
+SETTINGS = {}
 
-# flag to toggle updating kpm info
-telemetryOn = True
-
-#
-def secondsNow():
-    return datetime.utcnow()
-
-#
-# update the kpm info
+# update the kpm info.
 def post_json(json_data):
     # send offline data
     sendOfflineData()
 
     response = requestIt("POST", "/data", json_data)
 
-    if (response is None or response.status < 300):
+    if (response is None or int(response.status) >= 400):
         # save the data to the offline data file
         storePayload(json_data)
         # check if we need to ask to login
@@ -61,10 +55,10 @@ class PluginData():
     convert_to_seconds = ('start', 'end')
     json_ignore = ('send_timer',)
     background_worker = BackgroundWorker(1, post_json)
-    active_datas = dict()
+    active_datas = {}
 
     def __init__(self, project):
-        self.source = dict()
+        self.source = {}
         self.type = 'Events'
         self.data = 0
         self.start = secondsNow()
@@ -110,7 +104,7 @@ class PluginData():
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             if keystrokeCountObj is not None:
-                keystrokeCountObj.source = dict()
+                keystrokeCountObj.source = {}
                 keystrokeCountObj.data = 0
                 keystrokeCountObj.start = secondsNow()
                 keystrokeCountObj.end = keystrokeCountObj.start + timedelta(seconds=60)
@@ -127,9 +121,9 @@ class PluginData():
             return return_data
 
         sublime_variables = view.window().extract_variables()
-        project = dict()
+        project = {}
 
-        #
+        # set it to none as a default
         projectFolder = 'None'
 
         # set the project folder
@@ -211,7 +205,7 @@ class PluginData():
         # "keys" = add + delete
         # "delete" = delete keystrokes
         if fileInfoData is None:
-            fileInfoData = dict()
+            fileInfoData = {}
             fileInfoData['keys'] = 0
             fileInfoData['paste'] = 0
             fileInfoData['open'] = 0
@@ -236,29 +230,26 @@ class PluginData():
         return fileInfoData
 
 class GoToSoftwareCommand(sublime_plugin.TextCommand):
-    def run(self, edit, **kwargs):
+    def run(self, edit):
         launchDashboard()
 
 # Command to pause kpm updates
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
-    def run(self, edit, **kwargs):
-        global telemetryOn
-        telemetryOn = False
-        updateTelemetry(telemetryOn)
+    def run(self, edit):
+        log("software kpm updates paused")
+        SETTINGS.set("software_telemetry_on", False)
 
     def is_enabled(self):
-        return (telemetryOn is True)
+        return (SETTINGS.get("software_telemetry_on", True) is True)
 
 # Command to re-enable kpm updates
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
-    def run(self, edit, **kwargs):
-        global telemetryOn
-        telemetryOn = True
-        updateTelemetry(telemetryOn)
+    def run(self, edit):
+        log("software kpm updates enabled")
+        SETTINGS.set("software_telemetry_on", True)
 
     def is_enabled(self):
-        global telemetryOn
-        return (telemetryOn is False)
+        return (SETTINGS.get("software_telemetry_on", True) is False)
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
@@ -361,6 +352,9 @@ class EventListener(sublime_plugin.EventListener):
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
     showStatus("Software.com")
+
+    global SETTINGS
+    SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()
