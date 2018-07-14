@@ -5,12 +5,12 @@
 		[
 			{ "caption": "-", "id": "software" },
 			{
-				"caption": "Software",
+				"caption": "Software.com",
 				"children":
 				[
-					{ "command": "pause_kpm_updates" },
-					{ "command": "enable_kpm_updates" },
-					{ "command": "go_to_software" },
+					{ "command": "pause_kpm_updates", "caption": "Pause metrics" },
+					{ "command": "enable_kpm_updates", "caption": "Enable metrics" },
+					{ "command": "go_to_software", "caption": "Go to Software.com" },
 				]
 			},
 		]
