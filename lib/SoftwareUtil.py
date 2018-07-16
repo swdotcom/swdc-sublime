@@ -19,9 +19,8 @@ def secondsNow():
 # log the message
 def log(message):
     sublime_settings = sublime.load_settings("Software.sublime-settings")
-    if (sublime_settings.get("software_logging_on", True) is False):
-        return
-    print(message)
+    if (sublime_settings.get("software_logging_on", True)):
+        print(message)
 
 # fetch a value from the .software/sesion.json file
 def getItem(key):
@@ -60,35 +59,17 @@ def getSoftwareSessionAsJson():
 
 def getSoftwareSessionFile():
     file = getSoftwareDir()
-    if (isWindows()):
-        file += "\\session.json"
-    else:
-        file += "/session.json"
-    return file
+    return os.path.join(file, 'session.json')
 
 def getSoftwareDataStoreFile():
     file = getSoftwareDir()
-    if (isWindows()):
-        file += "\\data.json"
-    else:
-        file += "/data.json"
-    return file
+    return os.path.join(file, 'data.json')
 
 def getSoftwareDir():
     softwareDataDir = os.path.expanduser('~')
-    if (isWindows()):
-        softwareDataDir += "\\.software"
-    else:
-        softwareDataDir += "/.software"
-
+    softwareDataDir = os.path.join(softwareDataDir, '.software')
     os.makedirs(softwareDataDir, exist_ok=True)
 
     return softwareDataDir
-
-def isWindows():
-    if (os.name == 'nt'):
-        return True
-
-    return False
 
 

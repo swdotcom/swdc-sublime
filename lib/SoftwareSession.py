@@ -26,14 +26,11 @@ fetchingKpmData = False
 def launchDashboard():
     sublime_settings = sublime.load_settings("Software.sublime-settings")
     webUrl = sublime_settings.get("software_dashboard_url", "https://app.software.com")
-    log("web url %s" % webUrl)
     existingJwt = getItem("jwt")
     if (existingJwt is None):
         tokenVal = getItem("token")
-        log("existing token val: %s" % tokenVal)
         if (tokenVal is None):
             tokenVal = createToken()
-            log("token val after creation: %s" % tokenVal)
             # update the .software data with the token we've just created
             setItem("token", tokenVal)
         webUrl += "/onboarding?token=" + tokenVal
@@ -235,19 +232,19 @@ def fetchDailyKpmSessionInfo():
                 sessionTime = ""
                 inFlow = sessions.get("inFlow", False)
 
-                if (totalMin == 60):
+                if (int(totalMin) == 60):
                     sessionTime = "1 hr"
-                elif (totalMin > 60):
+                elif (int(totalMin) > 60):
                     # at least 4 chars (including the dot) with 2 after the dec point
                     sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
-                elif (totalMin == 1):
+                elif (int(totalMin) == 1):
                     sessionTime = "1 min"
                 else:
                     sessionTime = '{:1.0f}'.format(totalMin) + " min"
 
                 statusMsg = avgKpm + " KPM, " + sessionTime
 
-                if (totalMin > 0 or avgKpm > 0):
+                if (int(totalMin) > 0 or int(avgKpm) > 0):
                     if (inFlow):
                         # set the status bar message
                         showStatus("<s> " + statusMsg + " ^")
