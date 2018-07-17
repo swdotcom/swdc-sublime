@@ -13,8 +13,8 @@
 1. Navigate to Tools > Command Palette
 2. Enter "Package Control: Install Package"
 3. Search for "Software" and click to install
-4. **Restart** Sublime Text
-5. **Log in** to authenticate your account by clicking the IDE prompt
+4. Restart Sublime Text
+5. Log in to authenticate your account by following the prompt
 
 ![Install](https://user-images.githubusercontent.com/27828739/42833691-b7a44438-89a9-11e8-9ca1-153b25994ddd.gif)
 
