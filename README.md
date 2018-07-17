@@ -1,25 +1,28 @@
 # *Software* for Sublime Text
 
-***Software* is currently in private Beta. To use this plugin, please join the wait list at https://software.com**
+***Software* is currently in private beta. To use this plugin, please join the wait list at https://software.com**
 
 *Software* measures activity in your text editor or IDE so you can see the times during the day when you are the most productive. We also help you see how much you code at work or at nights and weekends, how meetings impact the amount you code, and more. 
 
 ## Setup
+
 <!--- Begin: setup --->
+
 ### Install
 
-1. [**Download**](https://github.com/swdotcom/swdc-sublime/archive/master.zip) and **unzip** the Sublime Text plugin
-2. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
-3. Place the Sublime plugin in the **Packages** directory
+1. Navigate to Tools > Command Palette
+2. Enter "Package Control: Install Package"
+3. Search for "Software" and click to install
 4. **Restart** Sublime Text
-5. **Log in** to authenticate your account by clicking the IDE prompt (only required for the first plugin you install)
+5. **Log in** to authenticate your account by clicking the IDE prompt
 
-![Install](https://user-images.githubusercontent.com/27828739/41547214-6f242250-72d4-11e8-8d51-dd41689020de.gif)
+![Install](https://user-images.githubusercontent.com/27828739/42833691-b7a44438-89a9-11e8-9ca1-153b25994ddd.gif)
 
 ### Uninstall
 
-1. Navigate to **Sublime Text** > **Preferences** > **Browse Packages**
-2. **Delete** the folder with the *Software* plugin
+1. Navigate to Tools > Command Palette
+2. Enter "Package Control: Remove Package"
+2. Find Software and click to uninstall
 
 <!--- End: setup --->
 
