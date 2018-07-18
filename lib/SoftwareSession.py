@@ -251,7 +251,7 @@ def fetchDailyKpmSessionInfo():
                     else:
                         showStatus("<s> " + statusMsg)
                 else:
-                    showStatus(DASHBOARD_KEYMAP_MSG)
+                    showStatus("<s> 0 KPM")
         else:
             chekUserAuthenticationStatus()
 
