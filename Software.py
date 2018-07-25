@@ -13,7 +13,7 @@ DEFAULT_DURATION = 60
 SETTINGS_FILE = 'Software.sublime-settings'
 SETTINGS = {}
 
-# update the kpm info.
+# update the kpm info
 def post_json(json_data):
     # send offline data
     sendOfflineData()
@@ -359,7 +359,7 @@ def plugin_loaded():
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()
 
-    sendOfflineDataTimer = Timer(30, fetchDailyKpmSessionInfo)
+    sendOfflineDataTimer = Timer(5, fetchDailyKpmSessionInfo)
     sendOfflineDataTimer.start()
 
 def plugin_unloaded():

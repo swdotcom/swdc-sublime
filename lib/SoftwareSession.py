@@ -229,35 +229,54 @@ def fetchDailyKpmSessionInfo():
 
                 avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
                 totalMin = sessions.get("minutesTotal", 0)
-                sessionTime = ""
+                sessionMinGoalPercent = sessions.get("sessionMinGoalPercent", 0)
+                sessionTime = humanizeMinutes(totalMin)
                 inFlow = sessions.get("inFlow", False)
 
-                if (int(totalMin) == 60):
-                    sessionTime = "1 hr"
-                elif (int(totalMin) > 60):
-                    # at least 4 chars (including the dot) with 2 after the dec point
-                    sessionTime = '{:4.2f}'.format((totalMin / 60)) + " hrs"
-                elif (int(totalMin) == 1):
-                    sessionTime = "1 min"
-                else:
-                    sessionTime = '{:1.0f}'.format(totalMin) + " min"
-
-                statusMsg = avgKpm + " KPM, " + sessionTime
-
-                if (int(totalMin) > 0 or int(avgKpm) > 0):
-                    if (inFlow):
-                        # set the status bar message
-                        showStatus("<s> " + statusMsg + " ^")
+                # determine the session icon based on the minutes goal percent
+                sessionTimeIcon = ''
+                if (sessionMinGoalPercent > 0):
+                    if (sessionMinGoalPercent < 0.45):
+                        sessionTimeIcon = '❍'
+                    elif (sessionMinGoalPercent < 0.7):
+                        sessionTimeIcon = '◒'
+                    elif (sessionMinGoalPercent < 0.95):
+                        sessionTimeIcon = '◍'
                     else:
-                        showStatus("<s> " + statusMsg)
-                else:
-                    showStatus("<s> 0 KPM")
+                        sessionTimeIcon = '●'
+
+                kpmMsg = avgKpm + " KPM"
+                kpmIcon = ''
+                if (inFlow):
+                    kpmMsg = '🚀' + " " + kpmMsg
+
+                sessionMsg = sessionTime
+                if (sessionTimeIcon):
+                    sessionMsg = sessionTimeIcon + " " + sessionMsg
+
+                statusMsg = kpmMsg + ", " + sessionMsg
+                showStatus("<s> " + statusMsg)
         else:
             chekUserAuthenticationStatus()
 
     # fetch the daily kpm session info in 1 minute
     kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
     kpmReFetchTimer.start()
+
+def humanizeMinutes(minutes):
+    minutes = int(minutes)
+    humanizedStr = ""
+    if (minutes == 60):
+        humanizedStr = "1 hr"
+    elif (minutes > 60):
+        # at least 4 chars (including the dot) with 2 after the dec point
+        humanizedStr = '{:4.2f}'.format((minutes / 60)) + " hrs"
+    elif (minutes == 1):
+        humanizedStr = "1 min"
+    else:
+        humanizedStr = '{:1.0f}'.format(minutes) + " min"
+
+    return humanizedStr
 
 # crate a uuid token to establish a connection
 def createToken():
