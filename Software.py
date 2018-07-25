@@ -233,19 +233,21 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         launchDashboard()
 
-# Command to pause kpm updates
+# Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        log("software kpm updates paused")
+        log("software kpm metrics paused")
+        showStatus("Paused")
         SETTINGS.set("software_telemetry_on", False)
 
     def is_enabled(self):
         return (SETTINGS.get("software_telemetry_on", True) is True)
 
-# Command to re-enable kpm updates
+# Command to re-enable kpm metrics
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        log("software kpm updates enabled")
+        log("software kpm metrics enabled")
+        showStatus("Software.com")
         SETTINGS.set("software_telemetry_on", True)
 
     def is_enabled(self):
