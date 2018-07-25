@@ -227,9 +227,9 @@ def fetchDailyKpmSessionInfo():
             if (response is not None and int(response.status) < 300):
                 sessions = json.loads(response.read().decode('utf-8'))
 
-                avgKpm = '{:1.0f}'.format(sessions.get("kpm", 0))
-                totalMin = sessions.get("minutesTotal", 0)
-                sessionMinGoalPercent = sessions.get("sessionMinGoalPercent", 0)
+                avgKpmStr = '{:1.0f}'.format(sessions.get("kpm", 0))
+                totalMin = int(sessions.get("minutesTotal", 0))
+                sessionMinGoalPercent = float(sessions.get("sessionMinGoalPercent", 0))
                 sessionTime = humanizeMinutes(totalMin)
                 inFlow = sessions.get("inFlow", False)
 
@@ -245,7 +245,7 @@ def fetchDailyKpmSessionInfo():
                     else:
                         sessionTimeIcon = '●'
 
-                kpmMsg = avgKpm + " KPM"
+                kpmMsg = avgKpmStr + " KPM"
                 kpmIcon = ''
                 if (inFlow):
                     kpmMsg = '🚀' + " " + kpmMsg

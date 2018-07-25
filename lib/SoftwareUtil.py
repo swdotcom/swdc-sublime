@@ -6,7 +6,7 @@ import json
 import time
 import sublime_plugin, sublime
 
-VERSION = '0.1.8'
+VERSION = '0.1.9'
 
 # get the number of seconds from epoch.
 def trueSecondsNow():
