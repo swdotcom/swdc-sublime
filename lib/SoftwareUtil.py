@@ -6,7 +6,7 @@ import json
 import time
 import sublime_plugin, sublime
 
-VERSION = '0.2.0'
+VERSION = '0.2.2'
 
 # get the number of seconds from epoch.
 def trueSecondsNow():
@@ -16,7 +16,7 @@ def trueSecondsNow():
 def secondsNow():
     return datetime.utcnow()
 
-# log the message
+# log the message.
 def log(message):
     sublime_settings = sublime.load_settings("Software.sublime-settings")
     if (sublime_settings.get("software_logging_on", True)):

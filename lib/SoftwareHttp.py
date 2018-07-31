@@ -56,7 +56,7 @@ def requestIt(method, api, payload):
         response = connection.getresponse()
         log("Software.com: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
-    except (http.client.HTTPException, http.client.CannotSendHeader, ConnectionError) as ex:
+    except Exception as ex:
         print("Software.com: " + api + " Network error: %s" % ex)
         return None
 

@@ -10,7 +10,7 @@
 				[
 					{ "command": "pause_kpm_updates", "caption": "Pause metrics" },
 					{ "command": "enable_kpm_updates", "caption": "Enable metrics" },
-					{ "command": "go_to_software", "caption": "Go to Software.com" },
+					{ "command": "go_to_software", "caption": "Go to software.com" },
 				]
 			},
 		]

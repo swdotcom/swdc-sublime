@@ -12,7 +12,7 @@ from .SoftwareHttp import *
 from .SoftwareUtil import *
 
 # Constants
-DASHBOARD_KEYMAP_MSG = "Log in to Software.com [ctrl+alt+o]"
+DASHBOARD_KEYMAP_MSG = "⚠️Software.com ctrl+alt+o"
 SECONDS_PER_HOUR = 60 * 60
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
@@ -27,13 +27,21 @@ def launchDashboard():
     sublime_settings = sublime.load_settings("Software.sublime-settings")
     webUrl = sublime_settings.get("software_dashboard_url", "https://app.software.com")
     existingJwt = getItem("jwt")
-    if (existingJwt is None):
-        tokenVal = getItem("token")
-        if (tokenVal is None):
-            tokenVal = createToken()
-            # update the .software data with the token we've just created
-            setItem("token", tokenVal)
+    tokenVal = getItem("token")
+    userIsAuthenticated = isAuthenticated()
+    addedToken = False
+
+    if (tokenVal is None):
+        tokenVal = createToken()
+        # add it to the session file
+        setItem("token", tokenVal)
+        addedToken = True
+    elif (existingJwt is None or not userIsAuthenticated):
+        addedToken = True
+
+    if (addedToken):
         webUrl += "/onboarding?token=" + tokenVal
+
 
     webbrowser.open(webUrl)
 
@@ -102,20 +110,16 @@ def chekUserAuthenticationStatus():
     if (serverAvailable and not authenticated and pastThresholdTime):
 
         # remove the jwt so we can re-establish a connection since we're not authenticated
-        setItem("jwt", None)
+        # setItem("jwt", None)
 
         # set the last update time so we don't try to ask too frequently
         setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
         confirmWindowOpen = True
         infoMsg = "To see your coding data in Software.com, please log in to your account."
-        if (existingToken is not None and existingJwt):
-            # show the Software.com message
-            showStatus(DASHBOARD_KEYMAP_MSG)
-        else:
-            clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
-            if (clickAction):
-                # launch the login view
-                launchDashboard()
+        clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
+        if (clickAction):
+            # launch the login view
+            launchDashboard()
     elif (not authenticated):
         # show the Software.com message
         showStatus(DASHBOARD_KEYMAP_MSG)
@@ -200,62 +204,81 @@ def checkTokenAvailability():
                 if (message is not None):
                     log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
         elif (response is not None and int(response.status) == 400):
-            setItem("jwt", None)
-            setItem("token", None)
+            showStatus(DASHBOARD_KEYMAP_MSG)
 
-    if (not foundJwt and foundJwt is None):
+    if (not foundJwt and jwtVal is None):
         # start the token availability timer again
         tokenAvailabilityTimer = Timer(120, checkTokenAvailability)
         tokenAvailabilityTimer.start()
         showStatus(DASHBOARD_KEYMAP_MSG)
 
 #
-# Fetch and display the daily KPM info
+# Fetch and display the daily KPM info.
 #
 def fetchDailyKpmSessionInfo():
     global fetchingKpmData
 
     if (fetchingKpmData is False):
 
-        if (isAuthenticated()):
-            fetchingKpmData = True
-            api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
-            response = requestIt("GET", api, None)
+        fetchingKpmData = True
+        api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
+        response = requestIt("GET", api, None)
 
-            fetchingKpmData = False
+        fetchingKpmData = False
 
-            if (response is not None and int(response.status) < 300):
-                sessions = json.loads(response.read().decode('utf-8'))
+        if (response is not None and int(response.status) < 300):
+            sessions = json.loads(response.read().decode('utf-8'))
+            # i.e.
+            # {'sessionMinAvg': 0, 'inFlow': False, 'minutesTotal': 23.983333333333334, 'kpm': 0, 'sessionMinGoalPercent': None}
+            # but should be...
+            # {'sessionMinAvg': 0, 'inFlow': False, 'minutesTotal': 23.983333333333334, 'kpm': 0, 'sessionMinGoalPercent': 0.44}
 
+            avgKpmStr = "0"
+            try:
                 avgKpmStr = '{:1.0f}'.format(sessions.get("kpm", 0))
+            except Exception:
+                avgKpmStr = "0"
+
+            totalMin = 0
+            try:
                 totalMin = int(sessions.get("minutesTotal", 0))
-                sessionMinGoalPercent = float(sessions.get("sessionMinGoalPercent", 0))
-                sessionTime = humanizeMinutes(totalMin)
-                inFlow = sessions.get("inFlow", False)
+            except Exception:
+                totalMin = 0
 
-                # determine the session icon based on the minutes goal percent
-                sessionTimeIcon = ''
-                if (sessionMinGoalPercent > 0):
-                    if (sessionMinGoalPercent < 0.45):
-                        sessionTimeIcon = '❍'
-                    elif (sessionMinGoalPercent < 0.7):
-                        sessionTimeIcon = '◒'
-                    elif (sessionMinGoalPercent < 0.95):
-                        sessionTimeIcon = '◍'
-                    else:
-                        sessionTimeIcon = '●'
+            sessionMinGoalPercent = 0.0
+            try:
+                if (sessions.get("sessionMinGoalPercent") is not None):
+                    sessionMinGoalPercent = float(sessions.get("sessionMinGoalPercent", 0.0))
+            except Exception:
+                sessionMinGoalPercent = 0.0
+            
+            sessionTime = humanizeMinutes(totalMin)
 
-                kpmMsg = avgKpmStr + " KPM"
-                kpmIcon = ''
-                if (inFlow):
-                    kpmMsg = '🚀' + " " + kpmMsg
+            inFlow = sessions.get("inFlow", False)
 
-                sessionMsg = sessionTime
-                if (sessionTimeIcon):
-                    sessionMsg = sessionTimeIcon + " " + sessionMsg
+            # determine the session icon based on the minutes goal percent
+            sessionTimeIcon = ''
+            if (sessionMinGoalPercent > 0):
+                if (sessionMinGoalPercent < 0.45):
+                    sessionTimeIcon = '❍'
+                elif (sessionMinGoalPercent < 0.7):
+                    sessionTimeIcon = '◒'
+                elif (sessionMinGoalPercent < 0.95):
+                    sessionTimeIcon = '◍'
+                else:
+                    sessionTimeIcon = '●'
 
-                statusMsg = kpmMsg + ", " + sessionMsg
-                showStatus("<s> " + statusMsg)
+            kpmMsg = avgKpmStr + " KPM"
+            kpmIcon = ''
+            if (inFlow):
+                kpmMsg = '🚀' + " " + kpmMsg
+
+            sessionMsg = sessionTime
+            if (sessionTimeIcon):
+                sessionMsg = sessionTimeIcon + " " + sessionMsg
+
+            statusMsg = kpmMsg + ", " + sessionMsg
+            showStatus(statusMsg)
         else:
             chekUserAuthenticationStatus()
 
