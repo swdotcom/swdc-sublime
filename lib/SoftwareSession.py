@@ -229,26 +229,26 @@ def fetchDailyKpmSessionInfo():
         if (response is not None and int(response.status) < 300):
             sessions = json.loads(response.read().decode('utf-8'))
             # i.e.
-            # {'sessionMinAvg': 0, 'inFlow': False, 'minutesTotal': 23.983333333333334, 'kpm': 0, 'sessionMinGoalPercent': None}
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'currentSessionKpm': 0, 'currentSessionGoalPercent': None}
             # but should be...
-            # {'sessionMinAvg': 0, 'inFlow': False, 'minutesTotal': 23.983333333333334, 'kpm': 0, 'sessionMinGoalPercent': 0.44}
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'currentSessionKpm': 0, 'currentSessionGoalPercent': 0.44}
 
             avgKpmStr = "0"
             try:
-                avgKpmStr = '{:1.0f}'.format(sessions.get("kpm", 0))
+                avgKpmStr = '{:1.0f}'.format(sessions.get("currentSessionKpm", 0))
             except Exception:
                 avgKpmStr = "0"
 
             totalMin = 0
             try:
-                totalMin = int(sessions.get("minutesTotal", 0))
+                totalMin = int(sessions.get("currentSessionMinutes", 0))
             except Exception:
                 totalMin = 0
 
             sessionMinGoalPercent = 0.0
             try:
-                if (sessions.get("sessionMinGoalPercent") is not None):
-                    sessionMinGoalPercent = float(sessions.get("sessionMinGoalPercent", 0.0))
+                if (sessions.get("currentSessionGoalPercent") is not None):
+                    sessionMinGoalPercent = float(sessions.get("currentSessionGoalPercent", 0.0))
             except Exception:
                 sessionMinGoalPercent = 0.0
             
