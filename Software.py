@@ -214,10 +214,11 @@ class PluginData():
             fileInfoData['delete'] = 0
             fileInfoData['netkeys'] = 0
             fileInfoData['add'] = 0
-            fileInfoData['lines'] = 0
+            fileInfoData['lines'] = -1
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
+            fileInfoData['trackInfo'] = {}
             keystrokeCount.source[fileName] = fileInfoData
 
     @staticmethod
@@ -308,15 +309,17 @@ class EventListener(sublime_plugin.EventListener):
         lines = view.rowcol(fileSize)[0]
 
         prevLines = fileInfoData['lines']
-        fileInfoData['lines'] = lines
 
-        lineDiff = lines - prevLines
-        if (lineDiff > 0):
-            fileInfoData['linesAdded'] = fileInfoData['linesAdded'] + lineDiff
-            log('Software.com: lines added incremented')
-        elif (lineDiff < 0):
-            fileInfoData['linesRemoved'] = fileInfoData['linesRemoved'] + lineDiff
-            log('Software.com: lines removed incremented')
+        if (prevLines > 0):
+            lineDiff = lines - prevLines
+            if (lineDiff > 0):
+                fileInfoData['linesAdded'] = fileInfoData['linesAdded'] + lineDiff
+                log('Software.com: lines added incremented')
+            elif (lineDiff < 0):
+                fileInfoData['linesRemoved'] = fileInfoData['linesRemoved'] + lineDiff
+                log('Software.com: lines removed incremented')
+
+        fileInfoData['lines'] = lines
         
         # subtract the current size of the file from what we had before
         # we'll know whether it's a delete, copy+paste, or kpm
@@ -326,6 +329,11 @@ class EventListener(sublime_plugin.EventListener):
         
         if currLen > 0:
             charCountDiff = fileSize - currLen
+
+        if (not fileInfoData["trackInfo"]):
+            fileInfoData["trackInfo"] = getCurrentMusicTrack()
+
+        log("trackinfo: %s" % fileInfoData["trackInfo"])
         
         fileInfoData['length'] = fileSize
         if charCountDiff > 1:

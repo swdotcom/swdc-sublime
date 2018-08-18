@@ -23,7 +23,7 @@ def requestIt(method, api, payload):
     api_endpoint = sublime_settings.get("software_api_endpoint", "api.software.com")
 
     if (sublime_settings.get("software_telemetry_on", True) is False):
-        log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
+        # log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
     # try to update kpm data
@@ -54,7 +54,7 @@ def requestIt(method, api, payload):
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        log("Software.com: " + api_endpoint + "" + api + " Response (%d)" % response.status)
+        # log("Software.com: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except Exception as ex:
         print("Software.com: " + api + " Network error: %s" % ex)
