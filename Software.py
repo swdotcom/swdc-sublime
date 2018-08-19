@@ -48,7 +48,7 @@ class BackgroundWorker():
             self.queue.task_done()
 
 #
-# kpm payload data structure
+# kpm payload data structure.
 #
 class PluginData():
     __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
@@ -332,8 +332,6 @@ class EventListener(sublime_plugin.EventListener):
 
         if (not fileInfoData["trackInfo"]):
             fileInfoData["trackInfo"] = getCurrentMusicTrack()
-
-        log("trackinfo: %s" % fileInfoData["trackInfo"])
         
         fileInfoData['length'] = fileSize
         if charCountDiff > 1:
