@@ -9,9 +9,9 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 
-# get the number of seconds from epoch
+# get the number of seconds from epoch.
 def trueSecondsNow():
     return time.mktime(datetime.utcnow().timetuple())
 
@@ -75,7 +75,7 @@ def getSoftwareDir():
 
     return softwareDataDir
 
-# execute the applescript command
+# execute the applescript command.
 def _execute_command(cmd):
     stdout = ""
     if cmd != "":
@@ -94,7 +94,7 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_genre to genre of current track
                     set track_id to database ID of current track
-                    set json to {genre:track_genre, artist:track_artist, id:track_id, name:track_name, state:appState}
+                    set json to "genre='" & track_genre & "',artist='" & track_artist & "',id='" & track_id & "',name='" & track_name & "',state='playing'"
                 end tell
                 return json
             end buildItunesRecord
@@ -105,7 +105,7 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_duration to duration of current track
                     set track_id to id of current track
-                    set json to {genre:"", artist:track_artist, id:track_id, name:track_name, state:appState}
+                    set json to "genre='',artist='" & track_artist & "',id='" & track_id & "',name='" & track_name & "',state='playing'"
                 end tell
                 return json
             end buildSpotifyRecord
@@ -114,7 +114,7 @@ def getCurrentMusicTrack():
                 if application "Spotify" is running and application "iTunes" is not running then
                     tell application "Spotify" to set spotifyState to (player state as text)
                     -- spotify is running and itunes is not
-                    if (spotifyState is "paused" or spotifyState is "running") then
+                    if (spotifyState is "paused" or spotifyState is "playing") then
                         set jsonRecord to buildSpotifyRecord(spotifyState)
                     else
                         set jsonRecord to {}
@@ -145,7 +145,11 @@ def getCurrentMusicTrack():
         '''
         try:
             result = _execute_command(script)
-            trackInfo = dict(item.strip().split(":") for item in result.strip().split(","))
+            result = result.strip('\r\n')
+            result = result.replace('"', '')
+            result = result.replace('\'', '')
+
+            trackInfo = dict(item.strip().split("=") for item in result.strip().split(","))
             return trackInfo
         except Exception as e:
             log("Unable to parse music track info: %s" % e)
