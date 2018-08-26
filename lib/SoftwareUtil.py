@@ -94,7 +94,7 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_genre to genre of current track
                     set track_id to database ID of current track
-                    set json to "genre='" & track_genre & "',artist='" & track_artist & "',id='" & track_id & "',name='" & track_name & "',state='playing'"
+                    set json to "genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing'"
                 end tell
                 return json
             end buildItunesRecord
@@ -105,7 +105,7 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_duration to duration of current track
                     set track_id to id of current track
-                    set json to "genre='',artist='" & track_artist & "',id='" & track_id & "',name='" & track_name & "',state='playing'"
+                    set json to "genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing'"
                 end tell
                 return json
             end buildSpotifyRecord
@@ -149,7 +149,7 @@ def getCurrentMusicTrack():
             result = result.replace('"', '')
             result = result.replace('\'', '')
 
-            trackInfo = dict(item.strip().split("=") for item in result.strip().split(","))
+            trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
             return trackInfo
         except Exception as e:
             log("Unable to parse music track info: %s" % e)
