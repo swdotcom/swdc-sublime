@@ -9,7 +9,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.2.5'
+VERSION = '0.2.6'
 
 # get the number of seconds from epoch.
 def trueSecondsNow():

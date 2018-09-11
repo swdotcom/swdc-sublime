@@ -56,6 +56,7 @@ class PluginData():
     json_ignore = ('send_timer',)
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {}
+    line_counts = {}
 
     def __init__(self, project):
         self.source = {}
@@ -88,6 +89,7 @@ class PluginData():
             PluginData.background_worker.queue.put(self.json())
 
     # check if we have data
+
     def hasData(self):
         for fileName in self.source:
             fileInfo = self.source[fileName]
@@ -103,6 +105,13 @@ class PluginData():
     def reset_source_data():
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
+            
+            # get the lines so we can add that back
+            for fileName in keystrokeCountObj.source:
+                fileInfo = keystrokeCountObj.source[fileName]
+                # add the lines for this file so we can re-use again
+                PluginData.line_counts[fileName] = fileInfo["lines"]
+
             if keystrokeCountObj is not None:
                 keystrokeCountObj.source = {}
                 keystrokeCountObj.data = 0
@@ -269,8 +278,12 @@ class EventListener(sublime_plugin.EventListener):
         fileSize = view.size()
         fileInfoData['length'] = fileSize
 
+        # get the number of lines
+        lines = view.rowcol(fileSize)[0]
+        fileInfoData['lines'] = lines
+
         # we have the fileinfo, update the metric
-        fileInfoData['open'] = fileInfoData['open'] + 1
+        fileInfoData['open'] += 1
         log('Software.com: opened file %s' % fileName)
 
     def on_close(self, view):
@@ -286,8 +299,12 @@ class EventListener(sublime_plugin.EventListener):
         fileSize = view.size()
         fileInfoData['length'] = fileSize
 
+        # get the number of lines
+        lines = view.rowcol(fileSize)[0]
+        fileInfoData['lines'] = lines
+
         # we have the fileInfo, update the metric
-        fileInfoData['close'] = fileInfoData['close'] + 1
+        fileInfoData['close'] += 1
         log('Software.com: closed file %s' % fileName)
 
     def on_modified_async(self, view):
@@ -308,15 +325,21 @@ class EventListener(sublime_plugin.EventListener):
         # rowcol(point) Calculates the 0-based line and column numbers of the point
         lines = view.rowcol(fileSize)[0]
 
-        prevLines = fileInfoData['lines']
 
+        prevLines = fileInfoData['lines']
+        if (prevLines == 0):
+            prevLines = PluginData.line_counts[fileName]
+            if (prevLines > 0):
+                fileInfoData['lines'] = prevLines
+
+        lineDiff = 0
         if (prevLines > 0):
             lineDiff = lines - prevLines
             if (lineDiff > 0):
-                fileInfoData['linesAdded'] = fileInfoData['linesAdded'] + lineDiff
+                fileInfoData['linesAdded'] += lineDiff
                 log('Software.com: lines added incremented')
             elif (lineDiff < 0):
-                fileInfoData['linesRemoved'] = fileInfoData['linesRemoved'] + lineDiff
+                fileInfoData['linesRemoved'] += lineDiff
                 log('Software.com: lines removed incremented')
 
         fileInfoData['lines'] = lines
@@ -334,19 +357,19 @@ class EventListener(sublime_plugin.EventListener):
             fileInfoData["trackInfo"] = getCurrentMusicTrack()
         
         fileInfoData['length'] = fileSize
-        if charCountDiff > 1:
-            fileInfoData['paste'] = fileInfoData['paste'] + charCountDiff
+        if charCountDiff > 1 and lineDiff == 0:
+            fileInfoData['paste'] += charCountDiff
             log('Software.com: copy and pasted incremented')
         elif charCountDiff < 0:
-            fileInfoData['delete'] = fileInfoData['delete'] + 1
-            # increment the overall count
-            active_data.data = active_data.data + 1
+            fileInfoData['delete'] += 1
             log('Software.com: delete incremented')
-        else:
-            fileInfoData['add'] = fileInfoData['add'] + 1
-            # increment the overall count
-            active_data.data = active_data.data + 1
+        elif lineDiff == 0:
+            fileInfoData['add'] += 1
             log('Software.com: KPM incremented')
+
+        if charCountDiff != 0:
+            # increment the overall count
+            active_data.data += 1
 
         # update the netkeys and the keys
         # "netkeys" = add - delete

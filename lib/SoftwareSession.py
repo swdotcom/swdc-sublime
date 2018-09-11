@@ -277,7 +277,7 @@ def fetchDailyKpmSessionInfo():
             if (sessionTimeIcon):
                 sessionMsg = sessionTimeIcon + " " + sessionMsg
 
-            statusMsg = kpmMsg + ", " + sessionMsg
+            statusMsg = "<S> " + kpmMsg + ", " + sessionMsg
             showStatus(statusMsg)
         else:
             chekUserAuthenticationStatus()
