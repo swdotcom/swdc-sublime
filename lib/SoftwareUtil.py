@@ -9,9 +9,9 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.2.6'
+VERSION = '0.2.7'
 
-# get the number of seconds from epoch.
+# get the number of seconds from epoch
 def trueSecondsNow():
     return time.mktime(datetime.utcnow().timetuple())
 
@@ -76,12 +76,9 @@ def getSoftwareDir():
     return softwareDataDir
 
 # execute the applescript command.
-def _execute_command(cmd):
-    stdout = ""
-    if cmd != "":
-        bytes_cmd = cmd.encode('latin-1')
-        p = Popen(['osascript', '-'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate(bytes_cmd)
+def runTrackCmd(cmd, args):
+    p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate(cmd)
     return stdout.decode('utf-8').strip()
 
 # get the current track playing (spotify or itunes)
@@ -144,7 +141,8 @@ def getCurrentMusicTrack():
             end try
         '''
         try:
-            result = _execute_command(script)
+            cmd = script.encode('latin-1')
+            result = runTrackCmd(cmd, ['osascript', '-'])
             result = result.strip('\r\n')
             result = result.replace('"', '')
             result = result.replace('\'', '')
@@ -157,6 +155,41 @@ def getCurrentMusicTrack():
     else:
         # not supported on other platforms yet
         return {}
+
+def runResourceCmd(cmdArgs, rootDir):
+    p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    stdout = stdout.decode('utf-8').strip()
+    if (stdout):
+        stdout = stdout.strip('\r\n')
+        return stdout
+    else:
+        return ""
+
+
+def getResourceInfo(rootDir):
+    resourceInfo = {}
+    try:
+        tag = runResourceCmd(['git', 'describe', '--all'], rootDir)
+        if (tag):
+            resourceInfo['tag'] = tag
+        identifier = runResourceCmd(['git', 'config', '--get', 'remote.origin.url'], rootDir)
+        if (identifier):
+            resourceInfo['identifier'] = identifier
+        branch = runResourceCmd(['git', 'symbolic-ref', '--short', 'HEAD'], rootDir)
+        if (branch):
+            resourceInfo['branch'] = branch
+        email = runResourceCmd(['git', 'config', 'user.email'], rootDir)
+        if (email):
+            resourceInfo['email'] = email
+            
+        if (resourceInfo.get("identifier") is not None):
+            return resourceInfo
+        else:
+            return {}
+    except Exception as e:
+        log("Unable to locate git repo info: %s" % e)
+        return resourceInfo
 
 
 

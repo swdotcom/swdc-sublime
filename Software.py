@@ -155,6 +155,12 @@ class PluginData():
         else:
             project['directory'] = 'None'
 
+        # getResourceInfo is a SoftwareUtil function
+        resourceInfoDict = getResourceInfo(projectFolder)
+        if (project.get("identifier") is None and resourceInfoDict.get("identifier") is not None):
+            project['identifier'] = resourceInfoDict['identifier']
+            project['resource'] = resourceInfoDict
+
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
             old_active_data = PluginData.active_datas[project['directory']]
@@ -355,6 +361,8 @@ class EventListener(sublime_plugin.EventListener):
 
         if (not fileInfoData["trackInfo"]):
             fileInfoData["trackInfo"] = getCurrentMusicTrack()
+
+
         
         fileInfoData['length'] = fileSize
         if charCountDiff > 1 and lineDiff == 0:
