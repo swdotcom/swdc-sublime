@@ -48,15 +48,15 @@ class BackgroundWorker():
             self.queue.task_done()
 
 #
-# kpm payload data structure.
+# kpm payload data structure...
 #
 class PluginData():
-    __slots__ = ('source', 'type', 'data', 'start', 'end', 'send_timer', 'project', 'pluginId', 'version')
+    __slots__ = ('source', 'type', 'data', 'start', 'end', 'project', 'pluginId', 'version')
     convert_to_seconds = ('start', 'end')
-    json_ignore = ('send_timer',)
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {}
     line_counts = {}
+    send_timer = None
 
     def __init__(self, project):
         self.source = {}
@@ -64,7 +64,6 @@ class PluginData():
         self.data = 0
         self.start = secondsNow()
         self.end = self.start + timedelta(seconds=60)
-        self.send_timer = None
         self.project = project
         self.pluginId = 1
         self.version = VERSION
@@ -75,7 +74,7 @@ class PluginData():
             self.project = None
 
         dict_data = {key: getattr(self, key, None)
-                     for key in self.__slots__ if key not in self.json_ignore}
+                     for key in self.__slots__}
 
         for key in self.convert_to_seconds:
             dict_data[key] = int(round(dict_data[key]
@@ -83,26 +82,29 @@ class PluginData():
 
         return json.dumps(dict_data)
 
-    # send the kpm info
+    # send the kpm info.
     def send(self):
         if PluginData.background_worker is not None and self.hasData():
             PluginData.background_worker.queue.put(self.json())
 
     # check if we have data
-
     def hasData(self):
+        if (self.data > 0):
+            return True
         for fileName in self.source:
             fileInfo = self.source[fileName]
             if (fileInfo['close'] > 0 or
                 fileInfo['open'] > 0 or
                 fileInfo['paste'] > 0 or
                 fileInfo['delete'] > 0 or
-                fileInfo['add'] > 0):
+                fileInfo['add'] > 0 or
+                fileInfo['netkeys'] > 0):
                 return True
         return False
 
     @staticmethod
     def reset_source_data():
+        PluginData.send_timer = None
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             
@@ -115,6 +117,7 @@ class PluginData():
             if keystrokeCountObj is not None:
                 keystrokeCountObj.source = {}
                 keystrokeCountObj.data = 0
+                keystrokeCountObj.project['identifier'] = None
                 keystrokeCountObj.start = secondsNow()
                 keystrokeCountObj.end = keystrokeCountObj.start + timedelta(seconds=60)
 
@@ -155,24 +158,12 @@ class PluginData():
         else:
             project['directory'] = 'None'
 
-        # getResourceInfo is a SoftwareUtil function
-        resourceInfoDict = getResourceInfo(projectFolder)
-        if (project.get("identifier") is None and resourceInfoDict.get("identifier") is not None):
-            project['identifier'] = resourceInfoDict['identifier']
-            project['resource'] = resourceInfoDict
-
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
             old_active_data = PluginData.active_datas[project['directory']]
-
+        
         if old_active_data is None or now > old_active_data.end:
             new_active_data = PluginData(project)
-
-            # This activates the 60 second timer. The callback
-            # in the Timer sends the data
-            new_active_data.send_timer = Timer(DEFAULT_DURATION,
-                                               new_active_data.send)
-            new_active_data.send_timer.start()
 
             PluginData.active_datas[project['directory']] = new_active_data
             return_data = new_active_data
@@ -180,6 +171,12 @@ class PluginData():
             return_data = old_active_data
 
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(return_data, fileName)
+
+        # This activates the 60 second timer. The callback
+        # in the Timer sends the data
+        if (PluginData.send_timer is None):
+            PluginData.send_timer = Timer(DEFAULT_DURATION, return_data.send)
+            PluginData.send_timer.start()
 
         return return_data
 
@@ -362,6 +359,13 @@ class EventListener(sublime_plugin.EventListener):
         if (not fileInfoData["trackInfo"]):
             fileInfoData["trackInfo"] = getCurrentMusicTrack()
 
+        # getResourceInfo is a SoftwareUtil function
+        if (active_data.project.get("identifier") is None):
+            resourceInfoDict = getResourceInfo(active_data.project['directory'])
+            if (resourceInfoDict.get("identifier") is not None):
+                active_data.project['identifier'] = resourceInfoDict['identifier']
+                active_data.project['resource'] = resourceInfoDict
+                log("identifier: %s" % resourceInfoDict['identifier'])
 
         
         fileInfoData['length'] = fileSize

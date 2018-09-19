@@ -9,7 +9,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.2.7'
+VERSION = '0.3.0'
 
 # get the number of seconds from epoch
 def trueSecondsNow():
@@ -150,7 +150,7 @@ def getCurrentMusicTrack():
             trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
             return trackInfo
         except Exception as e:
-            log("Unable to parse music track info: %s" % e)
+            # no music found playing
             return {}
     else:
         # not supported on other platforms yet
@@ -166,10 +166,9 @@ def runResourceCmd(cmdArgs, rootDir):
     else:
         return ""
 
-
 def getResourceInfo(rootDir):
-    resourceInfo = {}
     try:
+        resourceInfo = {}
         tag = runResourceCmd(['git', 'describe', '--all'], rootDir)
         if (tag):
             resourceInfo['tag'] = tag
@@ -189,7 +188,7 @@ def getResourceInfo(rootDir):
             return {}
     except Exception as e:
         log("Unable to locate git repo info: %s" % e)
-        return resourceInfo
+        return {}
 
 
 
