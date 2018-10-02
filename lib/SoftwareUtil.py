@@ -1,6 +1,5 @@
 # Copyright (c) 2018 by Software.com
 
-from datetime import datetime, timedelta
 import os
 import json
 import time
@@ -9,17 +8,9 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.3.0'
+VERSION = '0.3.2'
 
-# get the number of seconds from epoch
-def trueSecondsNow():
-    return time.mktime(datetime.utcnow().timetuple())
-
-# get the utc time
-def secondsNow():
-    return datetime.utcnow()
-
-# log the message
+# log the message.
 def log(message):
     sublime_settings = sublime.load_settings("Software.sublime-settings")
     if (sublime_settings.get("software_logging_on", True)):

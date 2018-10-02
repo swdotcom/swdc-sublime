@@ -1,8 +1,9 @@
 # Copyright (c) 2018 by Software.com
 
-from datetime import datetime, timezone, timedelta
 from threading import Thread, Timer, Event
 from queue import Queue
+import time
+import datetime
 import json
 import sublime_plugin, sublime
 from .lib.SoftwareSession import *
@@ -51,8 +52,7 @@ class BackgroundWorker():
 # kpm payload data structure...
 #
 class PluginData():
-    __slots__ = ('source', 'type', 'data', 'start', 'end', 'project', 'pluginId', 'version')
-    convert_to_seconds = ('start', 'end')
+    __slots__ = ('source', 'type', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'timezone')
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {}
     line_counts = {}
@@ -61,12 +61,25 @@ class PluginData():
     def __init__(self, project):
         self.source = {}
         self.type = 'Events'
-        self.data = 0
-        self.start = secondsNow()
-        self.end = self.start + timedelta(seconds=60)
+        self.start = 0
+        self.local_start = 0
+        self.timezone = ''
+        self.keystrokes = 0
         self.project = project
         self.pluginId = 1
         self.version = VERSION
+        # set the start and local_start
+        now = round(time.time()) - 60
+        self.start = now
+        self.local_start = now - time.timezone
+
+        try:
+            if time.tzname[0] == time.tzname[1]:
+                self.timezone = time.tzname[0]
+            else:
+                self.timezone = time.tzname[1]
+        except Exception:
+            self.timezone = ''
 
     def json(self):
 
@@ -76,20 +89,16 @@ class PluginData():
         dict_data = {key: getattr(self, key, None)
                      for key in self.__slots__}
 
-        for key in self.convert_to_seconds:
-            dict_data[key] = int(round(dict_data[key]
-                                       .replace(tzinfo=timezone.utc).timestamp()))
-
         return json.dumps(dict_data)
 
-    # send the kpm info.
+    # send the kpm info
     def send(self):
         if PluginData.background_worker is not None and self.hasData():
             PluginData.background_worker.queue.put(self.json())
 
     # check if we have data
     def hasData(self):
-        if (self.data > 0):
+        if (self.keystrokes > 0):
             return True
         for fileName in self.source:
             fileInfo = self.source[fileName]
@@ -105,6 +114,7 @@ class PluginData():
     @staticmethod
     def reset_source_data():
         PluginData.send_timer = None
+
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             
@@ -116,14 +126,21 @@ class PluginData():
 
             if keystrokeCountObj is not None:
                 keystrokeCountObj.source = {}
-                keystrokeCountObj.data = 0
+                keystrokeCountObj.keystrokes = 0
                 keystrokeCountObj.project['identifier'] = None
-                keystrokeCountObj.start = secondsNow()
-                keystrokeCountObj.end = keystrokeCountObj.start + timedelta(seconds=60)
+                now = round(time.time()) - 60
+                keystrokeCountObj.start = now
+                keystrokeCountObj.local_start = now - time.timezone
+                try:
+                    if time.tzname[0] == time.tzname[1]:
+                        keystrokeCountObj.timezone = time.tzname[0]
+                    else:
+                        keystrokeCountObj.timezone = time.tzname[1]
+                except Exception:
+                    keystrokeCountObj.timezone = ''
 
     @staticmethod
     def get_active_data(view):
-        now = secondsNow()
         return_data = None
         if view is None or view.window() is None:
             return return_data
@@ -162,7 +179,7 @@ class PluginData():
         if project['directory'] in PluginData.active_datas:
             old_active_data = PluginData.active_datas[project['directory']]
         
-        if old_active_data is None or now > old_active_data.end:
+        if old_active_data is None:
             new_active_data = PluginData(project)
 
             PluginData.active_datas[project['directory']] = new_active_data
@@ -218,7 +235,6 @@ class PluginData():
         # "delete" = delete keystrokes
         if fileInfoData is None:
             fileInfoData = {}
-            fileInfoData['keys'] = 0
             fileInfoData['paste'] = 0
             fileInfoData['open'] = 0
             fileInfoData['close'] = 0
@@ -328,7 +344,6 @@ class EventListener(sublime_plugin.EventListener):
         # rowcol(point) Calculates the 0-based line and column numbers of the point
         lines = view.rowcol(fileSize)[0]
 
-
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
             prevLines = PluginData.line_counts[fileName]
@@ -348,7 +363,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['lines'] = lines
         
         # subtract the current size of the file from what we had before
-        # we'll know whether it's a delete, copy+paste, or kpm
+        # we'll know whether it's a delete, copy+paste, or kpm..
         currLen = fileInfoData['length']
 
         charCountDiff = 0
@@ -365,12 +380,11 @@ class EventListener(sublime_plugin.EventListener):
             if (resourceInfoDict.get("identifier") is not None):
                 active_data.project['identifier'] = resourceInfoDict['identifier']
                 active_data.project['resource'] = resourceInfoDict
-                log("identifier: %s" % resourceInfoDict['identifier'])
 
         
         fileInfoData['length'] = fileSize
         if charCountDiff > 1 and lineDiff == 0:
-            fileInfoData['paste'] += charCountDiff
+            fileInfoData['paste'] += 1
             log('Software.com: copy and pasted incremented')
         elif charCountDiff < 0:
             fileInfoData['delete'] += 1
@@ -381,16 +395,14 @@ class EventListener(sublime_plugin.EventListener):
 
         if charCountDiff != 0:
             # increment the overall count
-            active_data.data += 1
+            active_data.keystrokes += 1
 
         # update the netkeys and the keys
         # "netkeys" = add - delete
-        # "keys" = add + delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
-        fileInfoData['keys'] = fileInfoData['add'] + fileInfoData['delete']
 
 #
-# Iniates the plugin tasks once the it's loaded into Sublime
+# Iniates the plugin tasks once the it's loaded into Sublime.
 #
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)

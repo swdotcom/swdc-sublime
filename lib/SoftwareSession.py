@@ -113,7 +113,7 @@ def chekUserAuthenticationStatus():
         # setItem("jwt", None)
 
         # set the last update time so we don't try to ask too frequently
-        setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
+        setItem("sublime_lastUpdateTime", round(time.time()))
         confirmWindowOpen = True
         infoMsg = "To see your coding data in Software.com, please log in to your account."
         clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
@@ -164,7 +164,7 @@ def isPastTimeThreshold():
     if (lastUpdateTime is None):
         lastUpdateTime = 0
 
-    timeDiffSinceUpdate = trueSecondsNow() - lastUpdateTime
+    timeDiffSinceUpdate = round(time.time()) - lastUpdateTime
 
     threshold = SECONDS_PER_HOUR * thresholdHoursBeforeCheckingAgain
 
@@ -196,7 +196,7 @@ def checkTokenAvailability():
             if (jwt is not None):
                 setItem("jwt", jwt)
                 setItem("user", user)
-                setItem("sublime_lastUpdateTime", int(trueSecondsNow()))
+                setItem("sublime_lastUpdateTime", round(time.time()))
                 foundJwt = True
             else:
                 # check if there's a message
@@ -221,7 +221,7 @@ def fetchDailyKpmSessionInfo():
     if (fetchingKpmData is False):
 
         fetchingKpmData = True
-        api = '/sessions?from=' + str(int(trueSecondsNow())) + '&summary=true'
+        api = '/sessions?from=' + str(round(time.time())) + '&summary=true'
         response = requestIt("GET", api, None)
 
         fetchingKpmData = False
