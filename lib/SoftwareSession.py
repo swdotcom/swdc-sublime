@@ -229,13 +229,13 @@ def fetchDailyKpmSessionInfo():
         if (response is not None and int(response.status) < 300):
             sessions = json.loads(response.read().decode('utf-8'))
             # i.e.
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'currentSessionKpm': 0, 'currentSessionGoalPercent': None}
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
             # but should be...
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'currentSessionKpm': 0, 'currentSessionGoalPercent': 0.44}
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
 
             avgKpmStr = "0"
             try:
-                avgKpmStr = '{:1.0f}'.format(sessions.get("currentSessionKpm", 0))
+                avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
             except Exception:
                 avgKpmStr = "0"
 

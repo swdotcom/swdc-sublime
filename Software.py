@@ -49,7 +49,7 @@ class BackgroundWorker():
             self.queue.task_done()
 
 #
-# kpm payload data structure...
+# kpm payload data structure
 #
 class PluginData():
     __slots__ = ('source', 'type', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'timezone')
