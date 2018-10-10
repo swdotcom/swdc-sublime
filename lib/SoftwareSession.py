@@ -259,14 +259,16 @@ def fetchDailyKpmSessionInfo():
             # determine the session icon based on the minutes goal percent
             sessionTimeIcon = ''
             if (sessionMinGoalPercent > 0):
-                if (sessionMinGoalPercent < 0.45):
-                    sessionTimeIcon = '❍'
+                if (sessionMinGoalPercent < 0.40):
+                    sessionTimeIcon = '🌘'
                 elif (sessionMinGoalPercent < 0.7):
-                    sessionTimeIcon = '◒'
-                elif (sessionMinGoalPercent < 0.95):
-                    sessionTimeIcon = '◍'
+                    sessionTimeIcon = '🌗'
+                elif (sessionMinGoalPercent < 0.93):
+                    sessionTimeIcon = '🌖'
+                elif (sessionMinGoalPercent < 1.3):
+                    sessionTimeIcon = '🌕'
                 else:
-                    sessionTimeIcon = '●'
+                    sessionTimeIcon = '🌔'
 
             kpmMsg = avgKpmStr + " KPM"
             kpmIcon = ''
