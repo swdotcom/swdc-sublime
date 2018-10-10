@@ -78,6 +78,8 @@ class PluginData():
                 self.timezone = time.tzname[0]
             else:
                 self.timezone = time.tzname[1]
+                # add an hour to the local_start since we're in DST
+                self.local_start += (60 * 60)
         except Exception:
             self.timezone = ''
 

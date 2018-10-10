@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.3.4'
+VERSION = '0.3.5'
 
 # log the message.
 def log(message):
@@ -73,6 +73,7 @@ def runTrackCmd(cmd, args):
     return stdout.decode('utf-8').strip()
 
 # get the current track playing (spotify or itunes)
+#..
 def getCurrentMusicTrack():
     if sys.platform == "darwin": # OS X
         script = '''
