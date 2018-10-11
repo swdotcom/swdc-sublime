@@ -365,7 +365,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['lines'] = lines
         
         # subtract the current size of the file from what we had before
-        # we'll know whether it's a delete, copy+paste, or kpm..
+        # we'll know whether it's a delete, copy+paste, or kpm.
         currLen = fileInfoData['length']
 
         charCountDiff = 0
@@ -376,7 +376,16 @@ class EventListener(sublime_plugin.EventListener):
         if (not fileInfoData["trackInfo"]):
             fileInfoData["trackInfo"] = getCurrentMusicTrack()
 
-        # getResourceInfo is a SoftwareUtil function
+        if (not fileInfoData["syntax"]):
+            syntax = view.settings().get('syntax')
+            # get the last occurance of the "/" then get the 1st occurance of the .sublime-syntax
+            # [language].sublime-syntax......
+            # Packages/Python/Python.sublime-syntax
+            syntax = syntax[syntax.rfind('/') + 1:-len(".sublime-syntax")]
+            if (syntax):
+                fileInfoData["syntax"] = syntax
+
+        # getResourceInfo is a SoftwareUtil function.
         if (active_data.project.get("identifier") is None):
             resourceInfoDict = getResourceInfo(active_data.project['directory'])
             if (resourceInfoDict.get("identifier") is not None):
