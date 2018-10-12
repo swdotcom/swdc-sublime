@@ -342,7 +342,7 @@ class EventListener(sublime_plugin.EventListener):
 
         fileSize = view.size()
         lines = 0
-        # try:
+        # try
         # rowcol(point) Calculates the 0-based line and column numbers of the point
         lines = view.rowcol(fileSize)[0]
 
@@ -359,7 +359,7 @@ class EventListener(sublime_plugin.EventListener):
                 fileInfoData['linesAdded'] += lineDiff
                 log('Software.com: lines added incremented')
             elif (lineDiff < 0):
-                fileInfoData['linesRemoved'] += lineDiff
+                fileInfoData['linesRemoved'] += abs(lineDiff)
                 log('Software.com: lines removed incremented')
 
         fileInfoData['lines'] = lines
@@ -385,7 +385,7 @@ class EventListener(sublime_plugin.EventListener):
             if (syntax):
                 fileInfoData["syntax"] = syntax
 
-        # getResourceInfo is a SoftwareUtil function.
+        # getResourceInfo is a SoftwareUtil function
         if (active_data.project.get("identifier") is None):
             resourceInfoDict = getResourceInfo(active_data.project['directory'])
             if (resourceInfoDict.get("identifier") is not None):
@@ -394,19 +394,19 @@ class EventListener(sublime_plugin.EventListener):
 
         
         fileInfoData['length'] = fileSize
-        if charCountDiff > 1 and lineDiff == 0:
+
+        if lineDiff == 0 and charCountDiff > 8:
             fileInfoData['paste'] += 1
             log('Software.com: copy and pasted incremented')
-        elif charCountDiff < 0:
+        elif charCountDiff == -1:
             fileInfoData['delete'] += 1
             log('Software.com: delete incremented')
-        elif lineDiff == 0:
+        elif lineDiff == 0 and charCountDiff == 1:
             fileInfoData['add'] += 1
             log('Software.com: KPM incremented')
 
-        if charCountDiff != 0:
-            # increment the overall count
-            active_data.keystrokes += 1
+        # increment the overall count
+        active_data.keystrokes += 1
 
         # update the netkeys and the keys
         # "netkeys" = add - delete
