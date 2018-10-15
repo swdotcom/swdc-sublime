@@ -7,6 +7,7 @@ from .SoftwareUtil import *
 
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 
+
 # update the status bar message
 def showStatus(msg):
     try:

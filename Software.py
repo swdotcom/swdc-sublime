@@ -348,6 +348,10 @@ class EventListener(sublime_plugin.EventListener):
 
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
+
+            if (not PluginData.line_counts):
+                PluginData.line_counts[fileName] = prevLines
+
             prevLines = PluginData.line_counts[fileName]
             if (prevLines > 0):
                 fileInfoData['lines'] = prevLines
