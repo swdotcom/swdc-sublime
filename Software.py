@@ -341,6 +341,7 @@ class EventListener(sublime_plugin.EventListener):
             return
 
         fileSize = view.size()
+
         lines = 0
         # try
         # rowcol(point) Calculates the 0-based line and column numbers of the point
@@ -361,10 +362,10 @@ class EventListener(sublime_plugin.EventListener):
             lineDiff = lines - prevLines
             if (lineDiff > 0):
                 fileInfoData['linesAdded'] += lineDiff
-                log('Software.com: lines added incremented')
+                log('Software.com: linesAdded incremented')
             elif (lineDiff < 0):
                 fileInfoData['linesRemoved'] += abs(lineDiff)
-                log('Software.com: lines removed incremented')
+                log('Software.com: linesRemoved incremented')
 
         fileInfoData['lines'] = lines
         
@@ -401,8 +402,8 @@ class EventListener(sublime_plugin.EventListener):
 
         if lineDiff == 0 and charCountDiff > 8:
             fileInfoData['paste'] += 1
-            log('Software.com: copy and pasted incremented')
-        elif charCountDiff == -1:
+            log('Software.com: pasted incremented')
+        elif lineDiff == 0 and charCountDiff == -1:
             fileInfoData['delete'] += 1
             log('Software.com: delete incremented')
         elif lineDiff == 0 and charCountDiff == 1:
@@ -410,7 +411,8 @@ class EventListener(sublime_plugin.EventListener):
             log('Software.com: KPM incremented')
 
         # increment the overall count
-        active_data.keystrokes += 1
+        if (charCountDiff != 0 or lineDiff != 0):
+            active_data.keystrokes += 1
 
         # update the netkeys and the keys
         # "netkeys" = add - delete
