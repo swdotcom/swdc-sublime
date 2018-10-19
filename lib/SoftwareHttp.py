@@ -48,8 +48,10 @@ def requestIt(method, api, payload):
         # make the request
         if (payload is None):
             payload = {}
-
-        log("Software.com: Request [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+            log("Software.com: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
+        else:
+            log("Software.com: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+        
 
         # send the request
         connection.request(method, api, payload, headers)
