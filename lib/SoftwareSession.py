@@ -221,7 +221,14 @@ def fetchDailyKpmSessionInfo():
     if (fetchingKpmData is False):
 
         fetchingKpmData = True
-        api = '/sessions?from=' + str(round(time.time())) + '&summary=true'
+
+        # send in the start of the day in seconds
+        today = datetime.now()
+        today = today.replace(hour=0, minute=0, second=0, microsecond=0)
+        fromSeconds = round(today.timestamp());
+
+        # api to fetch the session kpm info
+        api = '/sessions?from=' + str(fromSeconds) + '&summary=true'
         response = requestIt("GET", api, None)
 
         fetchingKpmData = False
