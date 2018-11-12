@@ -9,12 +9,13 @@ import sublime_plugin, sublime
 from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
+from .lib.SoftwareMusic import *
 
 DEFAULT_DURATION = 60
 SETTINGS_FILE = 'Software.sublime-settings'
 SETTINGS = {}
 
-# update the kpm info
+# update the kpm info.
 def post_json(json_data):
     # send offline data
     sendOfflineData()
@@ -248,7 +249,6 @@ class PluginData():
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
-            fileInfoData['trackInfo'] = {}
             keystrokeCount.source[fileName] = fileInfoData
 
     @staticmethod
@@ -378,9 +378,6 @@ class EventListener(sublime_plugin.EventListener):
         if currLen > 0:
             charCountDiff = fileSize - currLen
 
-        if (not fileInfoData["trackInfo"]):
-            fileInfoData["trackInfo"] = getCurrentMusicTrack()
-
         if (not fileInfoData["syntax"]):
             syntax = view.settings().get('syntax')
             # get the last occurance of the "/" then get the 1st occurance of the .sublime-syntax
@@ -431,8 +428,11 @@ def plugin_loaded():
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()
 
-    sendOfflineDataTimer = Timer(5, fetchDailyKpmSessionInfo)
-    sendOfflineDataTimer.start()
+    fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
+    fetchDailyKpmTimer.start()
+
+    gatherMusicTimer = Timer(6, gatherMusicInfo)
+    gatherMusicTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()

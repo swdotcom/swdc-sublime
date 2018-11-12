@@ -73,8 +73,7 @@ def runTrackCmd(cmd, args):
     return stdout.decode('utf-8').strip()
 
 # get the current track playing (spotify or itunes)
-#..
-def getCurrentMusicTrack():
+def getTrackInfo():
     if sys.platform == "darwin": # OS X
         script = '''
             on buildItunesRecord(appState)
@@ -83,7 +82,8 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_genre to genre of current track
                     set track_id to database ID of current track
-                    set json to "genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing'"
+                    set track_duration to duration of current track
+                    set json to "type='itunes';genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
                 end tell
                 return json
             end buildItunesRecord
@@ -94,7 +94,8 @@ def getCurrentMusicTrack():
                     set track_name to name of current track
                     set track_duration to duration of current track
                     set track_id to id of current track
-                    set json to "genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing'"
+                    set track_duration to duration of current track
+                    set json to "type='spotify';genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
                 end tell
                 return json
             end buildSpotifyRecord
