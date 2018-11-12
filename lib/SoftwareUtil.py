@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 
 # log the message.
 def log(message):

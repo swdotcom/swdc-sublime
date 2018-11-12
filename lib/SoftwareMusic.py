@@ -17,9 +17,6 @@ def gatherMusicInfo():
 	start = now
 	local_start = now - time.timezone
 
-	# ctId = currentTrackInfo.get("id", "")
-	# trackId = trackInfo.get("id", "")
-
 	# state = "nice" if is_nice else "not nice"
 	currentTrackId = currentTrackInfo.get("id", None)
 	trackId = trackInfo.get("id", None)
