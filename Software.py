@@ -3,7 +3,6 @@
 from threading import Thread, Timer, Event
 from queue import Queue
 import time
-import datetime
 import json
 import sublime_plugin, sublime
 from .lib.SoftwareSession import *
@@ -15,7 +14,7 @@ DEFAULT_DURATION = 60
 SETTINGS_FILE = 'Software.sublime-settings'
 SETTINGS = {}
 
-# update the kpm info.
+# update the kpm info...
 def post_json(json_data):
     # send offline data
     sendOfflineData()
@@ -75,14 +74,21 @@ class PluginData():
         self.local_start = now - time.timezone
 
         try:
-            if time.tzname[0] == time.tzname[1]:
-                self.timezone = time.tzname[0]
-            else:
-                self.timezone = time.tzname[1]
-                # add an hour to the local_start since we're in DST
-                self.local_start += (60 * 60)
+            # get the offset and timezone from the time value
+            offset = int(time.strftime('%z'))
+            self.timezone = time.strftime('%Z')
+            self.local_start = now + offset
         except Exception:
-            self.timezone = ''
+            # failed getting timezone and offset from time, use tzname
+            try:
+                if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+                    self.timezone = time.tzname[0]
+                else:
+                    self.timezone = time.tzname[1]
+                    # add an hour to the local_start since we're in DST
+                    self.local_start += (60 * 60)
+            except Exception:
+                self.timezone = ''
 
     def json(self):
 
@@ -194,9 +200,9 @@ class PluginData():
 
         # This activates the 60 second timer. The callback
         # in the Timer sends the data
-        if (PluginData.send_timer is None):
-            PluginData.send_timer = Timer(DEFAULT_DURATION, return_data.send)
-            PluginData.send_timer.start()
+        # if (PluginData.send_timer is None):
+        PluginData.send_timer = Timer(DEFAULT_DURATION, return_data.send)
+        PluginData.send_timer.start()
 
         return return_data
 
