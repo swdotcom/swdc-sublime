@@ -27,7 +27,7 @@ def requestIt(method, api, payload):
         # log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
-    # try to update kpm data
+    # try to update kpm data...........
     try:
         connection = None
         # create the connection

@@ -74,10 +74,8 @@ class PluginData():
         self.local_start = now - time.timezone
 
         try:
-            # get the offset and timezone from the time value
-            offset = int(time.strftime('%z'))
+            # get the offset and timezone from the time value......
             self.timezone = time.strftime('%Z')
-            self.local_start = now + offset
         except Exception:
             # failed getting timezone and offset from time, use tzname
             try:
