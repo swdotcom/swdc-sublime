@@ -11,8 +11,6 @@ from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
 
 DEFAULT_DURATION = 60
-SETTINGS_FILE = 'Software.sublime-settings'
-SETTINGS = {}
 
 # update the kpm info...
 def post_json(json_data):
@@ -74,7 +72,7 @@ class PluginData():
         self.local_start = now - time.timezone
 
         try:
-            # get the offset and timezone from the time value......
+            # get the offset and timezone from the time value
             self.timezone = time.strftime('%Z')
         except Exception:
             # failed getting timezone and offset from time, use tzname
@@ -138,13 +136,22 @@ class PluginData():
                 now = round(time.time()) - 60
                 keystrokeCountObj.start = now
                 keystrokeCountObj.local_start = now - time.timezone
+
+
                 try:
-                    if time.tzname[0] == time.tzname[1]:
-                        keystrokeCountObj.timezone = time.tzname[0]
-                    else:
-                        keystrokeCountObj.timezone = time.tzname[1]
+                    # get the offset and timezone from the time value
+                    keystrokeCountObj.timezone = time.strftime('%Z')
                 except Exception:
-                    keystrokeCountObj.timezone = ''
+                    # failed getting timezone and offset from time, use tzname
+                    try:
+                        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+                            keystrokeCountObj.timezone = time.tzname[0]
+                        else:
+                            keystrokeCountObj.timezone = time.tzname[1]
+                            # add an hour to the local_start since we're in DST
+                            keystrokeCountObj.local_start += (60 * 60)
+                    except Exception:
+                        keystrokeCountObj.timezone = ''
 
     @staticmethod
     def get_active_data(view):
@@ -426,8 +433,7 @@ def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
     showStatus("Software.com")
 
-    global SETTINGS
-    SETTINGS = sublime.load_settings(SETTINGS_FILE)
+    setItem("sublime_lastUpdateTime", None)
 
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()

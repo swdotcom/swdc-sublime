@@ -24,8 +24,9 @@ fetchingKpmData = False
 
 # launch the browser with either the dashboard or the login
 def launchDashboard():
-    sublime_settings = sublime.load_settings("Software.sublime-settings")
-    webUrl = sublime_settings.get("software_dashboard_url", "https://app.software.com")
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    
+    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
     existingJwt = getItem("jwt")
     tokenVal = getItem("token")
     userIsAuthenticated = isAuthenticated()
@@ -164,7 +165,7 @@ def isPastTimeThreshold():
     if (lastUpdateTime is None):
         lastUpdateTime = 0
 
-    timeDiffSinceUpdate = round(time.time()) - lastUpdateTime
+    timeDiffSinceUpdate = round(time.time()) - int(lastUpdateTime)
 
     threshold = SECONDS_PER_HOUR * thresholdHoursBeforeCheckingAgain
 
@@ -225,7 +226,7 @@ def fetchDailyKpmSessionInfo():
         # send in the start of the day in seconds
         today = datetime.now()
         today = today.replace(hour=0, minute=0, second=0, microsecond=0)
-        fromSeconds = round(today.timestamp());
+        fromSeconds = round(today.timestamp())
 
         # api to fetch the session kpm info
         api = '/sessions?from=' + str(fromSeconds) + '&summary=true'

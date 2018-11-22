@@ -8,12 +8,14 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.4.4'
+VERSION = '0.4.5'
 
-# log the message......
+
+# log the message
 def log(message):
-    sublime_settings = sublime.load_settings("Software.sublime-settings")
-    if (sublime_settings.get("software_logging_on", True)):
+
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    if (software_settings.get("software_logging_on", True)):
         print(message)
 
 # fetch a value from the .software/sesion.json file

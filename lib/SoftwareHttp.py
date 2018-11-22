@@ -20,10 +20,12 @@ def showStatus(msg):
 
 # send the request
 def requestIt(method, api, payload):
-    sublime_settings = sublime.load_settings("Software.sublime-settings")
-    api_endpoint = sublime_settings.get("software_api_endpoint", "api.software.com")
 
-    if (sublime_settings.get("software_telemetry_on", True) is False):
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    log("Software settings: %s" % software_settings)
+    api_endpoint = software_settings.get("software_api_endpoint", "api.software.com")
+
+    if (software_settings.get("software_telemetry_on", True) is False):
         # log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 

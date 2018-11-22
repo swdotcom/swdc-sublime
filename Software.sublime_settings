@@ -1,7 +1,6 @@
 {
-	// restart sublime to apply the changes
-	"software_telemetry_on": true, // allows software to process and display kpm activity
-	"software_logging_on": true, // will show software package event activity
-	"software_api_endpoint": "api.software.com", // software kpm updates endpoint
-	"software_dashboard_url": "https://app.software.com", // software dashboard url
+	"software_telemetry_on": true,
+	"software_logging_on": true,
+	"software_api_endpoint": "api.software.com",
+	"software_dashboard_url": "https://app.software.com",
 }
