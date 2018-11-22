@@ -22,7 +22,6 @@ def showStatus(msg):
 def requestIt(method, api, payload):
 
     software_settings = sublime.load_settings("Software.sublime_settings")
-    log("Software settings: %s" % software_settings)
     api_endpoint = software_settings.get("software_api_endpoint", "api.software.com")
 
     if (software_settings.get("software_telemetry_on", True) is False):

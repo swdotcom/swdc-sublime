@@ -12,7 +12,10 @@ from .lib.SoftwareMusic import *
 
 DEFAULT_DURATION = 60
 
-# update the kpm info...
+SETTINGS_FILE = 'Software.sublime_settings'
+SETTINGS = {}
+
+# update the kpm info
 def post_json(json_data):
     # send offline data
     sendOfflineData()
@@ -98,7 +101,7 @@ class PluginData():
 
     # send the kpm info
     def send(self):
-        if PluginData.background_worker is not None and self.hasData():
+        if PluginData.background_worker and self.hasData():
             PluginData.background_worker.queue.put(self.json())
 
     # check if we have data
@@ -432,6 +435,9 @@ class EventListener(sublime_plugin.EventListener):
 def plugin_loaded():
     log('Software.com: Loaded v%s' % VERSION)
     showStatus("Software.com")
+
+    global SETTINGS
+    SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     setItem("sublime_lastUpdateTime", None)
 
