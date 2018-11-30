@@ -208,9 +208,9 @@ class PluginData():
 
         # This activates the 60 second timer. The callback
         # in the Timer sends the data
-        # if (PluginData.send_timer is None):
-        PluginData.send_timer = Timer(DEFAULT_DURATION, return_data.send)
-        PluginData.send_timer.start()
+        if (PluginData.send_timer is None):
+            PluginData.send_timer = Timer(DEFAULT_DURATION, return_data.send)
+            PluginData.send_timer.start()
 
         return return_data
 
