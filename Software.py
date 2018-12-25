@@ -9,11 +9,14 @@ from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
+from .lib.SoftwareRepo import *
 
 DEFAULT_DURATION = 60
 
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
+
+rootDir = None
 
 # update the kpm info
 def post_json(json_data):
@@ -132,7 +135,6 @@ class PluginData():
                 now = round(time.time()) - 60
                 keystrokeCountObj.start = now
                 keystrokeCountObj.local_start = now - time.timezone
-
 
                 try:
                     # get the offset and timezone from the time value
@@ -394,9 +396,11 @@ class EventListener(sublime_plugin.EventListener):
             if (syntax):
                 fileInfoData["syntax"] = syntax
 
+        rootDir = active_data.project['directory']
+
         # getResourceInfo is a SoftwareUtil function
         if (active_data.project.get("identifier") is None):
-            resourceInfoDict = getResourceInfo(active_data.project['directory'])
+            resourceInfoDict = getResourceInfo(rootDir)
             if (resourceInfoDict.get("identifier") is not None):
                 active_data.project['identifier'] = resourceInfoDict['identifier']
                 active_data.project['resource'] = resourceInfoDict
@@ -434,14 +438,25 @@ def plugin_loaded():
 
     setItem("sublime_lastUpdateTime", None)
 
+    # fire off timer tasks (seconds, task)
+
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()
 
     fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
     fetchDailyKpmTimer.start()
 
-    gatherMusicTimer = Timer(6, gatherMusicInfo)
+    gatherMusicTimer = Timer(15, gatherMusicInfo)
     gatherMusicTimer.start()
+
+    gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)
+    gatherRepoMembersTimer.start()
+
+def processRepoMemberInfo():
+    gatherRepoMembers(rootDir)
+    # fetch the daily kpm session info in 1 hour
+    gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
+    gatherRepoMembersTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()
