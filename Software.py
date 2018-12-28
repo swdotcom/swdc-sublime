@@ -16,7 +16,7 @@ DEFAULT_DURATION = 60
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
 
-rootDir = None
+PROJECT_DIR = None
 
 # update the kpm info
 def post_json(json_data):
@@ -276,21 +276,25 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
+        global SETTINGS
         log("software kpm metrics paused")
         showStatus("Paused")
         SETTINGS.set("software_telemetry_on", False)
 
     def is_enabled(self):
+        global SETTINGS
         return (SETTINGS.get("software_telemetry_on", True) is True)
 
 # Command to re-enable kpm metrics
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
+        global SETTINGS
         log("software kpm metrics enabled")
         showStatus("Software.com")
         SETTINGS.set("software_telemetry_on", True)
 
     def is_enabled(self):
+        global SETTINGS
         return (SETTINGS.get("software_telemetry_on", True) is False)
 
 # Runs once instance per view (i.e. tab, or single file window)
@@ -338,6 +342,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Software.com: closed file %s' % fileName)
 
     def on_modified_async(self, view):
+        global PROJECT_DIR
         # get active data will create the file info if it doesn't exist
         active_data = PluginData.get_active_data(view)
         if active_data is None:
@@ -396,11 +401,11 @@ class EventListener(sublime_plugin.EventListener):
             if (syntax):
                 fileInfoData["syntax"] = syntax
 
-        rootDir = active_data.project['directory']
+        PROJECT_DIR = active_data.project['directory']
 
         # getResourceInfo is a SoftwareUtil function
         if (active_data.project.get("identifier") is None):
-            resourceInfoDict = getResourceInfo(rootDir)
+            resourceInfoDict = getResourceInfo(PROJECT_DIR)
             if (resourceInfoDict.get("identifier") is not None):
                 active_data.project['identifier'] = resourceInfoDict['identifier']
                 active_data.project['resource'] = resourceInfoDict
@@ -434,6 +439,7 @@ def plugin_loaded():
     showStatus("Software.com")
 
     global SETTINGS
+
     SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     setItem("sublime_lastUpdateTime", None)
@@ -452,11 +458,32 @@ def plugin_loaded():
     gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)
     gatherRepoMembersTimer.start()
 
+    gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
+    gatherRepoCommitsTimer.start()
+
 def processRepoMemberInfo():
-    gatherRepoMembers(rootDir)
-    # fetch the daily kpm session info in 1 hour
-    gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
-    gatherRepoMembersTimer.start()
+    global PROJECT_DIR
+    if (PROJECT_DIR is not None):
+        gatherRepoMembers(PROJECT_DIR)
+        # fetch the repo member info in 1 hour
+        gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
+        gatherRepoMembersTimer.start()
+    else:
+        gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)
+        gatherRepoMembersTimer.start()
+
+
+# gather the git commits
+def processRepoCommitsInfo():
+    global PROJECT_DIR
+    if (PROJECT_DIR is not None):
+        gatherCommits(PROJECT_DIR)
+        # fetch the repo commits info in 1 hour and 1 minute
+        gatherRepoCommitsTimer = Timer(60 * 60 + 60, processRepoCommitsInfo)
+        gatherRepoCommitsTimer.start()
+    else:
+        gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
+        gatherRepoCommitsTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()
