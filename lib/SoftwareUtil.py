@@ -8,9 +8,9 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.4.9'
+VERSION = '0.5.0'
 
-# log the message
+# log the message.
 def log(message):
 
     software_settings = sublime.load_settings("Software.sublime_settings")
@@ -67,11 +67,12 @@ def getSoftwareDir():
 
     return softwareDataDir
 
-# execute the applescript command.
+# execute the applescript command
 def runTrackCmd(cmd, args):
-    p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    p = Popen(args, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(cmd)
     return stdout.decode('utf-8').strip()
+    return ""
 
 # get the current track playing (spotify or itunes)
 def getTrackInfo():
@@ -151,7 +152,7 @@ def getTrackInfo():
         return {}
 
 def runResourceCmd(cmdArgs, rootDir):
-    p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    p = Popen(cmdArgs, cwd = rootDir, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate()
     stdout = stdout.decode('utf-8').strip()
     if (stdout):
