@@ -8,7 +8,10 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.0'
+VERSION = '0.5.1'
+
+runningTrackCmd = False
+runningResourceCmd = False
 
 # log the message.
 def log(message):
@@ -69,10 +72,16 @@ def getSoftwareDir():
 
 # execute the applescript command
 def runTrackCmd(cmd, args):
-    p = Popen(args, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate(cmd)
-    return stdout.decode('utf-8').strip()
-    return ""
+    global runningTrackCmd
+    if (runningTrackCmd == False):
+        runningTrackCmd = True
+        p = Popen(args, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate(cmd)
+        return stdout.decode('utf-8').strip()
+        runningTrackCmd = False
+        return ""
+    else:
+        return ""
 
 # get the current track playing (spotify or itunes)
 def getTrackInfo():
@@ -152,12 +161,19 @@ def getTrackInfo():
         return {}
 
 def runResourceCmd(cmdArgs, rootDir):
-    p = Popen(cmdArgs, cwd = rootDir, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate()
-    stdout = stdout.decode('utf-8').strip()
-    if (stdout):
-        stdout = stdout.strip('\r\n')
-        return stdout
+    global runningResourceCmd
+    if (runningResourceCmd == False):
+        runningResourceCmd = True
+        p = Popen(cmdArgs, cwd = rootDir, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        stdout = stdout.decode('utf-8').strip()
+        if (stdout):
+            stdout = stdout.strip('\r\n')
+            runningResourceCmd = False
+            return stdout
+        else:
+            runningResourceCmd = False
+            return ""
     else:
         return ""
 

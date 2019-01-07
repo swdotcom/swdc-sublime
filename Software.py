@@ -463,27 +463,18 @@ def plugin_loaded():
 
 def processRepoMemberInfo():
     global PROJECT_DIR
-    if (PROJECT_DIR is not None):
-        gatherRepoMembers(PROJECT_DIR)
-        # fetch the repo member info in 1 hour
-        gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
-        gatherRepoMembersTimer.start()
-    else:
-        gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)
-        gatherRepoMembersTimer.start()
-
+    gatherRepoMembers(PROJECT_DIR)
+    # fetch the repo member info in 1 hour
+    gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
+    gatherRepoMembersTimer.start()
 
 # gather the git commits
 def processRepoCommitsInfo():
     global PROJECT_DIR
-    if (PROJECT_DIR is not None):
-        gatherCommits(PROJECT_DIR)
-        # fetch the repo commits info in 1 hour and 1 minute
-        gatherRepoCommitsTimer = Timer(60 * 60 + 60, processRepoCommitsInfo)
-        gatherRepoCommitsTimer.start()
-    else:
-        gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
-        gatherRepoCommitsTimer.start()
+    gatherCommits(PROJECT_DIR)
+    # fetch the repo commits info in 1 hour and 1 minute
+    gatherRepoCommitsTimer = Timer(60 * 60 + 60, processRepoCommitsInfo)
+    gatherRepoCommitsTimer.start()
 
 def plugin_unloaded():
     PluginData.send_all_datas()

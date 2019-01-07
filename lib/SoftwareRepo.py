@@ -7,6 +7,8 @@ from .SoftwareUtil import *
 
 # gather git commits
 def gatherCommits(rootDir):
+	if (rootDir is None):
+		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
 	identifier = resourceInfoDict.get("identifier")
@@ -160,7 +162,6 @@ def gatherCommits(rootDir):
 					sendCommits(commitData)
 
 def sendCommits(commitData):
-	log("----sending commit data ---")
 	response = requestIt("POST", "/commits", json.dumps(commitData))
 	if (response is not None):
 		responseObjStr = response.read().decode('utf-8')
@@ -217,6 +218,9 @@ def getLastCommit(rootDir):
 
 
 def gatherRepoMembers(rootDir):
+	if (rootDir is None):
+		return
+
 	resourceInfoDict = getResourceInfo(rootDir)
 	identifier = resourceInfoDict.get("identifier")
 

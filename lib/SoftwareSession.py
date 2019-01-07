@@ -73,27 +73,26 @@ def sendOfflineData():
     # send the offline data
     dataStoreFile = getSoftwareDataStoreFile()
 
-    payloads = []
+    if (os.path.exists(dataStoreFile)):
+        payloads = []
 
-    try:
-        with open(dataStoreFile) as fp:
-            for line in fp:
-                if (line and line.strip()):
-                    line = line.rstrip()
-                    # convert to object
-                    json_obj = json.loads(line)
-                    # convert to json to send
-                    payloads.append(json_obj)
-    except FileNotFoundError:
-        log("%s file not found" % dataStoreFile)
-    except Exception:
-        log("Unexpected error reading file %s" % dataStoreFile)
+        try:
+            with open(dataStoreFile) as fp:
+                for line in fp:
+                    if (line and line.strip()):
+                        line = line.rstrip()
+                        # convert to object
+                        json_obj = json.loads(line)
+                        # convert to json to send
+                        payloads.append(json_obj)
+        except Exception:
+            log("Unable to read offline data file %s" % dataStoreFile)
 
-    if (payloads):
-        response = requestIt("POST", "/data/batch", json.dumps(payloads))
+        if (payloads):
+            response = requestIt("POST", "/data/batch", json.dumps(payloads))
 
-        if (response is not None):
-            os.remove(dataStoreFile)
+            if (response is not None):
+                os.remove(dataStoreFile)
 
 def chekUserAuthenticationStatus():
     serverAvailable = checkOnline()
