@@ -1,6 +1,7 @@
 # Copyright (c) 2018 by Software.com
 
 from threading import Thread, Timer, Event
+from package_control import events
 from queue import Queue
 import time
 import json
@@ -70,7 +71,7 @@ class PluginData():
         self.timezone = ''
         self.keystrokes = 0
         self.project = project
-        self.pluginId = 1
+        self.pluginId = PLUGIN_ID
         self.version = VERSION
         # set the start and local_start
         now = round(time.time()) - 60
@@ -435,7 +436,8 @@ class EventListener(sublime_plugin.EventListener):
 # Iniates the plugin tasks once the it's loaded into Sublime.
 #
 def plugin_loaded():
-    log('Software.com: Loaded v%s' % VERSION)
+    PACKAGE_NAME = __name__.split('.')[0]
+    log('Software.com: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
     showStatus("Software.com")
 
     global SETTINGS
@@ -460,6 +462,15 @@ def plugin_loaded():
 
     gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
     gatherRepoCommitsTimer.start()
+
+def plugin_unloaded():
+    PACKAGE_NAME = __name__.split('.')[0]
+    if (events.remove(PACKAGE_NAME)):
+        log("Software.com: unlinstalling plugin: %s" % PACKAGE_NAME)
+        api = "/integrations/%s" % PLUGIN_ID
+        response = requestIt("DELETE", api, None)
+        if (response is not None):
+            log("Software.com: uninstall successfully updated")
 
 def processRepoMemberInfo():
     global PROJECT_DIR
