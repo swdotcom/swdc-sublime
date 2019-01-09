@@ -8,13 +8,13 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 PLUGIN_ID = 1
 
 runningTrackCmd = False
 runningResourceCmd = False
 
-# log the message.
+# log the message
 def log(message):
 
     software_settings = sublime.load_settings("Software.sublime_settings")
@@ -76,7 +76,7 @@ def runTrackCmd(cmd, args):
     global runningTrackCmd
     if (runningTrackCmd == False):
         runningTrackCmd = True
-        p = Popen(args, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate(cmd)
         return stdout.decode('utf-8').strip()
         runningTrackCmd = False
@@ -162,35 +162,43 @@ def getTrackInfo():
         return {}
 
 def runResourceCmd(cmdArgs, rootDir):
-    global runningResourceCmd
-    if (runningResourceCmd == False):
-        runningResourceCmd = True
-        p = Popen(cmdArgs, cwd = rootDir, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate()
-        stdout = stdout.decode('utf-8').strip()
-        if (stdout):
-            stdout = stdout.strip('\r\n')
-            runningResourceCmd = False
-            return stdout
+    if sys.platform == "darwin": # OS X
+        global runningResourceCmd
+        if (runningResourceCmd == False):
+            runningResourceCmd = True
+            p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = p.communicate()
+            stdout = stdout.decode('utf-8').strip()
+            if (stdout):
+                stdout = stdout.strip('\r\n')
+                runningResourceCmd = False
+                return stdout
+            else:
+                runningResourceCmd = False
+                return ""
         else:
-            runningResourceCmd = False
             return ""
     else:
         return ""
+
 
 def getResourceInfo(rootDir):
     try:
         resourceInfo = {}
         tag = runResourceCmd(['git', 'describe', '--all'], rootDir)
+
         if (tag):
             resourceInfo['tag'] = tag
         identifier = runResourceCmd(['git', 'config', '--get', 'remote.origin.url'], rootDir)
+
         if (identifier):
             resourceInfo['identifier'] = identifier
         branch = runResourceCmd(['git', 'symbolic-ref', '--short', 'HEAD'], rootDir)
+
         if (branch):
             resourceInfo['branch'] = branch
         email = runResourceCmd(['git', 'config', 'user.email'], rootDir)
+
         if (email):
             resourceInfo['email'] = email
             
