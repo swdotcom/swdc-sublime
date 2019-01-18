@@ -7,7 +7,6 @@ from .SoftwareUtil import *
 
 USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
 
-
 # update the status bar message
 def showStatus(msg):
     try:
@@ -17,6 +16,30 @@ def showStatus(msg):
                 view.set_status('software.com', msg)
     except RuntimeError:
         log(msg)
+
+def isResponsOk(response):
+    if (response is not None and int(response.status) < 300):
+        return True
+    return False
+
+def isUnauthenticated(response):
+    if (response is None or (response is not None and int(response.status) == 401)):
+        return True
+    return False
+
+def isUserDeactivated(response):
+    if (isUnauthenticated(response)):
+        # check if it has the DEACTIVATED "code" in a response body
+        try:
+            data = json.loads(response.read().decode('utf-8'))
+            # data: {'message': 'User is deactivated', 'code': 'DEACTIVATED'}
+            if (data is not None and data.get("code", "") == "DEACTIVATED"):
+                return True
+        except Exception as ex:
+            log("exception reading unauthenticated response data: %s" % ex)
+            return False
+
+    return False
 
 # send the request
 def requestIt(method, api, payload):
@@ -28,7 +51,7 @@ def requestIt(method, api, payload):
         # log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
-    # try to update kpm data...........
+    # try to update kpm data.
     try:
         connection = None
         # create the connection

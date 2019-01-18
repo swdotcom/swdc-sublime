@@ -26,7 +26,7 @@ def post_json(json_data):
 
     response = requestIt("POST", "/data", json_data)
 
-    if (response is None or int(response.status) >= 400):
+    if (isUnauthenticated(response) and isUserDeactivated(response) is False):
         # save the data to the offline data file
         storePayload(json_data)
         # check if we need to ask to login

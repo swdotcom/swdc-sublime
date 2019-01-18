@@ -57,7 +57,7 @@ def storePayload(payload):
 def checkOnline():
     # non-authenticated ping, no need to set the Authorization header
     response = requestIt("GET", "/ping", None)
-    if (response is not None and int(response.status) < 300):
+    if (isResponsOk(response)):
         return True
     else:
         return False
@@ -91,7 +91,7 @@ def sendOfflineData():
         if (payloads):
             response = requestIt("POST", "/data/batch", json.dumps(payloads))
 
-            if (response is not None):
+            if (isResponsOk(response) or isUserDeactivated(response)):
                 os.remove(dataStoreFile)
 
 def chekUserAuthenticationStatus():
@@ -142,8 +142,10 @@ def isAuthenticated():
 
     response = requestIt("GET", "/users/ping", None)
 
-    if (response is not None and int(response.status) < 300):
+    if (isResponsOk(response)):
         return True
+    elif (isUserDeactivated(response)):
+        return False
     else:
         showStatus(DASHBOARD_KEYMAP_MSG)
         return False
@@ -181,13 +183,16 @@ def checkTokenAvailability():
 
     tokenVal = getItem("token")
     jwtVal = getItem("jwt")
+    isDeactivated = False
 
     foundJwt = False
     if (tokenVal is not None):
         api = '/users/plugin/confirm?token=' + tokenVal
         response = requestIt("GET", api, None)
 
-        if (response is not None and int(response.status) < 300):
+        isDeactivated = isUserDeactivated(response)
+
+        if (isResponsOk(response)):
 
             json_obj = json.loads(response.read().decode('utf-8'))
 
@@ -203,10 +208,11 @@ def checkTokenAvailability():
                 message = json_obj.get("message", None)
                 if (message is not None):
                     log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
-        elif (response is not None and int(response.status) == 400):
+        elif (isUnauthenticated(response) and isDeactivated is False):
+            # not deactivated but unauthenticated
             showStatus(DASHBOARD_KEYMAP_MSG)
 
-    if (not foundJwt and jwtVal is None):
+    if (not foundJwt and jwtVal is None and isDeactivated is False):
         # start the token availability timer again
         tokenAvailabilityTimer = Timer(120, checkTokenAvailability)
         tokenAvailabilityTimer.start()
@@ -217,6 +223,8 @@ def checkTokenAvailability():
 #
 def fetchDailyKpmSessionInfo():
     global fetchingKpmData
+
+    isDeactivated = False
 
     if (fetchingKpmData is False):
 
@@ -233,7 +241,9 @@ def fetchDailyKpmSessionInfo():
 
         fetchingKpmData = False
 
-        if (response is not None and int(response.status) < 300):
+        isDeactivated = isUserDeactivated(response)
+
+        if (isResponsOk(response)):
             sessions = json.loads(response.read().decode('utf-8'))
             # i.e.
             # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
@@ -288,12 +298,13 @@ def fetchDailyKpmSessionInfo():
 
             statusMsg = "<S> " + kpmMsg + ", " + sessionMsg
             showStatus(statusMsg)
-        else:
+        elif (isUnauthenticated(response) and isDeactivated is False):
             chekUserAuthenticationStatus()
 
     # fetch the daily kpm session info in 1 minute
-    kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
-    kpmReFetchTimer.start()
+    if (isDeactivated is False):
+        kpmReFetchTimer = Timer(60, fetchDailyKpmSessionInfo)
+        kpmReFetchTimer.start()
 
 def humanizeMinutes(minutes):
     minutes = int(minutes)

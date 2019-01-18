@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.3'
+VERSION = '0.5.4'
 PLUGIN_ID = 1
 
 runningTrackCmd = False
@@ -53,7 +53,7 @@ def getSoftwareSessionAsJson():
     try:
         with open(getSoftwareSessionFile()) as sessionFile:
             return json.load(sessionFile)
-    except FileNotFoundError:
+    except Exception:
         return {}
 
 def getSoftwareSessionFile():
@@ -74,7 +74,7 @@ def getSoftwareDir():
 # execute the applescript command
 def runTrackCmd(cmd, args):
     global runningTrackCmd
-    if (runningTrackCmd == False):
+    if (runningTrackCmd is False):
         runningTrackCmd = True
         p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate(cmd)
@@ -164,7 +164,7 @@ def getTrackInfo():
 def runResourceCmd(cmdArgs, rootDir):
     if sys.platform == "darwin": # OS X
         global runningResourceCmd
-        if (runningResourceCmd == False):
+        if (runningResourceCmd is False):
             runningResourceCmd = True
             p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
             stdout, stderr = p.communicate()
