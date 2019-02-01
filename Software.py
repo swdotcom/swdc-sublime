@@ -19,7 +19,7 @@ SETTINGS = {}
 
 PROJECT_DIR = None
 
-# update the kpm info
+# update the kpm in
 def post_json(json_data):
     # send offline data
     sendOfflineData()
@@ -274,6 +274,17 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         launchDashboard()
 
+# Command to launch the code time metrics "launch_code_time_metrics"
+class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
+    def run(self, edit):
+        api = '/dashboard'
+        response = requestIt("GET", api, None)
+        content = response.read().decode('utf-8')
+        file = getDashboardFile()
+        with open(file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        sublime.active_window().open_file(file)
+
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -291,7 +302,7 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         global SETTINGS
         log("software kpm metrics enabled")
-        showStatus("Software.com")
+        showStatus("Code Time")
         SETTINGS.set("software_telemetry_on", True)
 
     def is_enabled(self):
@@ -319,7 +330,7 @@ class EventListener(sublime_plugin.EventListener):
 
         # we have the fileinfo, update the metric
         fileInfoData['open'] += 1
-        log('Software.com: opened file %s' % fileName)
+        log('Code Time: opened file %s' % fileName)
 
     def on_close(self, view):
         fileName = view.file_name()
@@ -340,7 +351,7 @@ class EventListener(sublime_plugin.EventListener):
 
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
-        log('Software.com: closed file %s' % fileName)
+        log('Code Time: closed file %s' % fileName)
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -377,10 +388,10 @@ class EventListener(sublime_plugin.EventListener):
             lineDiff = lines - prevLines
             if (lineDiff > 0):
                 fileInfoData['linesAdded'] += lineDiff
-                log('Software.com: linesAdded incremented')
+                log('Code Time: linesAdded incremented')
             elif (lineDiff < 0):
                 fileInfoData['linesRemoved'] += abs(lineDiff)
-                log('Software.com: linesRemoved incremented')
+                log('Code Time: linesRemoved incremented')
 
         fileInfoData['lines'] = lines
         
@@ -416,13 +427,13 @@ class EventListener(sublime_plugin.EventListener):
 
         if lineDiff == 0 and charCountDiff > 8:
             fileInfoData['paste'] += 1
-            log('Software.com: pasted incremented')
+            log('Code Time: pasted incremented')
         elif lineDiff == 0 and charCountDiff == -1:
             fileInfoData['delete'] += 1
-            log('Software.com: delete incremented')
+            log('Code Time: delete incremented')
         elif lineDiff == 0 and charCountDiff == 1:
             fileInfoData['add'] += 1
-            log('Software.com: KPM incremented')
+            log('Code Time: KPM incremented')
 
         # increment the overall count
         if (charCountDiff != 0 or lineDiff != 0):
@@ -437,8 +448,8 @@ class EventListener(sublime_plugin.EventListener):
 #
 def plugin_loaded():
     PACKAGE_NAME = __name__.split('.')[0]
-    log('Software.com: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
-    showStatus("Software.com")
+    log('Code Time: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
+    showStatus("Code Time")
 
     global SETTINGS
 
@@ -466,11 +477,11 @@ def plugin_loaded():
 def plugin_unloaded():
     PACKAGE_NAME = __name__.split('.')[0]
     if (events.remove(PACKAGE_NAME)):
-        log("Software.com: unlinstalling plugin: %s" % PACKAGE_NAME)
+        log("Code Time: unlinstalling plugin: %s" % PACKAGE_NAME)
         api = "/integrations/%s" % PLUGIN_ID
         response = requestIt("DELETE", api, None)
         if (response is not None):
-            log("Software.com: uninstall successfully updated")
+            log("Code Time: uninstall successfully updated")
 
 def processRepoMemberInfo():
     global PROJECT_DIR

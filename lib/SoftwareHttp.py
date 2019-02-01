@@ -5,7 +5,7 @@ import http
 import sublime_plugin, sublime
 from .SoftwareUtil import *
 
-USER_AGENT = 'Software.com Sublime Plugin v' + VERSION
+USER_AGENT = 'Code Time Sublime Plugin v' + VERSION
 
 # update the status bar message
 def showStatus(msg):
@@ -48,7 +48,7 @@ def requestIt(method, api, payload):
     api_endpoint = software_settings.get("software_api_endpoint", "api.software.com")
 
     if (software_settings.get("software_telemetry_on", True) is False):
-        # log("Software.com: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
+        # log("Code Time: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
     # try to update kpm data.
@@ -66,24 +66,24 @@ def requestIt(method, api, payload):
         if (jwt is not None):
             headers['Authorization'] = jwt
         elif (method is 'POST' and jwt is None):
-            log("Software.com: no auth token available to post kpm data")
+            log("Code Time: no auth token available to post kpm data")
             return None
 
         # make the request
         if (payload is None):
             payload = {}
-            log("Software.com: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
+            log("Code Time: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
         else:
-            log("Software.com: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+            log("Code Time: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
         
 
         # send the request
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        # log("Software.com: " + api_endpoint + "" + api + " Response (%d)" % response.status)
+        # log("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except Exception as ex:
-        print("Software.com: " + api + " Network error: %s" % ex)
+        print("Code Time: " + api + " Network error: %s" % ex)
         return None
 

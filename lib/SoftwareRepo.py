@@ -167,9 +167,9 @@ def sendCommits(commitData):
 		responseObjStr = response.read().decode('utf-8')
 		try:
 			responseObj = json.loads(responseObjStr)
-			log("Software.com: %s" % responseObj.get("message", "Repo commits update complete"))
+			log("Code Time: %s" % responseObj.get("message", "Repo commits update complete"))
 		except Exception as ex:
-			log("Software.com: Unable to complete repo commits metric update: %s" % ex)
+			log("Code Time: Unable to complete repo commits metric update: %s" % ex)
 
 def buildRepoKey(identifier, branch, tag):
 	return "%s_%s_%s" % (identifier, branch, tag)
@@ -210,9 +210,9 @@ def getLastCommit(rootDir):
 				if (status is not None and status == "success"):
 					# set the last commit data
 					latestCommit = responseObj.get("commit", None)
-				log("Software.com: %s" % responseObj.get("message", "Commit fetch complete"))
+				log("Code Time: %s" % responseObj.get("message", "Commit fetch complete"))
 			except Exception as ex:
-				log("Software.com: Unable to complete repo member metric update: %s" % ex)
+				log("Code Time: Unable to complete repo member metric update: %s" % ex)
 
 	return latestCommit
 
@@ -264,8 +264,8 @@ def gatherRepoMembers(rootDir):
 				responseObjStr = response.read().decode('utf-8')
 				try:
 					responseObj = json.loads(responseObjStr)
-					log("Software.com: %s" % responseObj.get("message", "Repo member update complete"))
+					log("Code Time: %s" % responseObj.get("message", "Repo member update complete"))
 				except Exception as ex:
-					log("Software.com: Unable to complete repo member metric update: %s" % ex)
+					log("Code Time: Unable to complete repo member metric update: %s" % ex)
 
 # eof

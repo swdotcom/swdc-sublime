@@ -12,7 +12,7 @@ from .SoftwareHttp import *
 from .SoftwareUtil import *
 
 # Constants
-DASHBOARD_KEYMAP_MSG = "⚠️Software.com ctrl+alt+o"
+DASHBOARD_KEYMAP_MSG = "⚠️Code Time ctrl+alt+o"
 SECONDS_PER_HOUR = 60 * 60
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
@@ -115,7 +115,7 @@ def chekUserAuthenticationStatus():
         # set the last update time so we don't try to ask too frequently
         setItem("sublime_lastUpdateTime", round(time.time()))
         confirmWindowOpen = True
-        infoMsg = "To see your coding data in Software.com, please log in to your account."
+        infoMsg = "To see your coding data in Code Time, please log in to your account."
         clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
         if (clickAction):
             # launch the login view
@@ -207,7 +207,7 @@ def checkTokenAvailability():
                 # check if there's a message
                 message = json_obj.get("message", None)
                 if (message is not None):
-                    log("Software.com: Failed to retrieve session token, reason: \"%s\"" % message)
+                    log("Code Time: Failed to retrieve session token, reason: \"%s\"" % message)
         elif (isUnauthenticated(response) and isDeactivated is False):
             # not deactivated but unauthenticated
             showStatus(DASHBOARD_KEYMAP_MSG)
@@ -236,7 +236,7 @@ def fetchDailyKpmSessionInfo():
         fromSeconds = round(today.timestamp())
 
         # api to fetch the session kpm info
-        api = '/sessions?from=' + str(fromSeconds) + '&summary=true'
+        api = '/sessions?summary=true'
         response = requestIt("GET", api, None)
 
         fetchingKpmData = False
@@ -256,11 +256,11 @@ def fetchDailyKpmSessionInfo():
             except Exception:
                 avgKpmStr = "0"
 
-            totalMin = 0
+            currentSessionMinutes = 0
             try:
-                totalMin = int(sessions.get("currentSessionMinutes", 0))
+                currentSessionMinutes = int(sessions.get("currentSessionMinutes", 0))
             except Exception:
-                totalMin = 0
+                currentSessionMinutes = 0
 
             sessionMinGoalPercent = 0.0
             try:
@@ -268,35 +268,30 @@ def fetchDailyKpmSessionInfo():
                     sessionMinGoalPercent = float(sessions.get("currentSessionGoalPercent", 0.0))
             except Exception:
                 sessionMinGoalPercent = 0.0
+
+            currentDayMinutes = 0
+            try:
+                currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
+            except Exception:
+                currentDayMinutes = 0
+            averageDailyMinutes = 0
+            try:
+                averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
+            except Exception:
+                averageDailyMinutes = 0
             
-            sessionTime = humanizeMinutes(totalMin)
+            currentSessionTime = humanizeMinutes(currentSessionMinutes)
+            currentDayTime = humanizeMinutes(currentDayMinutes)
+            averageDailyTime = humanizeMinutes(averageDailyMinutes)
 
-            inFlow = sessions.get("inFlow", False)
+            inFlowIcon = ""
+            if (currentDayMinutes > averageDailyMinutes):
+                inFlowIcon = "🚀 "
 
-            # determine the session icon based on the minutes goal percent
-            sessionTimeIcon = ''
-            if (sessionMinGoalPercent > 0):
-                if (sessionMinGoalPercent < 0.40):
-                    sessionTimeIcon = '🌘'
-                elif (sessionMinGoalPercent < 0.7):
-                    sessionTimeIcon = '🌗'
-                elif (sessionMinGoalPercent < 0.93):
-                    sessionTimeIcon = '🌖'
-                elif (sessionMinGoalPercent < 1.3):
-                    sessionTimeIcon = '🌕'
-                else:
-                    sessionTimeIcon = '🌔'
+            statusMsg = "Code time today: " + inFlowIcon + "" + currentDayTime
+            if (averageDailyMinutes > 0):
+                statusMsg += " | Avg: " + averageDailyTime
 
-            kpmMsg = avgKpmStr + " KPM"
-            kpmIcon = ''
-            if (inFlow):
-                kpmMsg = '🚀' + " " + kpmMsg
-
-            sessionMsg = sessionTime
-            if (sessionTimeIcon):
-                sessionMsg = sessionTimeIcon + " " + sessionMsg
-
-            statusMsg = "<S> " + kpmMsg + ", " + sessionMsg
             showStatus(statusMsg)
         elif (isUnauthenticated(response) and isDeactivated is False):
             chekUserAuthenticationStatus()
@@ -312,8 +307,13 @@ def humanizeMinutes(minutes):
     if (minutes == 60):
         humanizedStr = "1 hr"
     elif (minutes > 60):
-        # at least 4 chars (including the dot) with 2 after the dec point
-        humanizedStr = '{:4.2f}'.format((minutes / 60)) + " hrs"
+        floatMin = (minutes / 60)
+        if (floatMin % 1 == 0):
+            # don't show zeros after the decimal
+            humanizedStr = '{:4.0f}'.format(floatMin) + " hrs"
+        else:
+            # at least 4 chars (including the dot) with 2 after the dec point
+            humanizedStr = '{:4.2f}'.format(floatMin) + " hrs"
     elif (minutes == 1):
         humanizedStr = "1 min"
     else:

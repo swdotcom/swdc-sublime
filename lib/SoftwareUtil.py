@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.4'
+VERSION = '0.5.5'
 PLUGIN_ID = 1
 
 runningTrackCmd = False
@@ -70,6 +70,10 @@ def getSoftwareDir():
     os.makedirs(softwareDataDir, exist_ok=True)
 
     return softwareDataDir
+
+def getDashboardFile():
+    file = getSoftwareDir()
+    return os.path.join(file, 'CodeTime')
 
 # execute the applescript command
 def runTrackCmd(cmd, args):

@@ -59,7 +59,7 @@ def gatherMusicInfo():
 			currentTrackInfo["end"] = start - 1
 			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo))
 			if (response is None):
-				log("Software.com: error closing previous track")
+				log("Code Time: error closing previous track")
 
 		if (currentTrackId is None or currentTrackId != trackId):
 			# starting a new song
@@ -68,7 +68,7 @@ def gatherMusicInfo():
 			trackInfo["end"] = 0
 			response = requestIt("POST", "/data/music", json.dumps(trackInfo))
 			if (response is None):
-				log("Software.com: error sending new track")
+				log("Code Time: error sending new track")
 
 			# clone the trackInfo to the currentTrackInfo
 			for key, value in trackInfo.items():
@@ -80,7 +80,7 @@ def gatherMusicInfo():
 			currentTrackInfo["end"] = start - 1
 			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo))
 			if (response is None):
-				log("Software.com: error closing previous track")
+				log("Code Time: error closing previous track")
 
 		# re-initialize the current track info to an empty object
 		currentTrackInfo = {}
