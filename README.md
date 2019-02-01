@@ -3,7 +3,7 @@
 > **Code Time** is an open source plugin that provides programming metrics right in your code editor.
 
 <p align="center" style="margin: 0 10%">
-  <img src="" alt="Gif coming soon" />
+  <img src="https://raw.githubusercontent.com/swdotcom/swdc-sublime/master/assets/sublime-dashboard.gif" alt="Code Time dashboard for Sublime Text" />
 </p>
 
 ## Power up your development
