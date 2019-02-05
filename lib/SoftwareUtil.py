@@ -8,10 +8,9 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.5'
+VERSION = '0.5.6'
 PLUGIN_ID = 1
 
-runningTrackCmd = False
 runningResourceCmd = False
 
 # log the message
@@ -68,7 +67,6 @@ def getSoftwareDir():
     softwareDataDir = os.path.expanduser('~')
     softwareDataDir = os.path.join(softwareDataDir, '.software')
     os.makedirs(softwareDataDir, exist_ok=True)
-
     return softwareDataDir
 
 def getDashboardFile():
@@ -77,16 +75,36 @@ def getDashboardFile():
 
 # execute the applescript command
 def runTrackCmd(cmd, args):
-    global runningTrackCmd
-    if (runningTrackCmd is False):
-        runningTrackCmd = True
-        p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate(cmd)
-        return stdout.decode('utf-8').strip()
-        runningTrackCmd = False
-        return ""
-    else:
-        return ""
+    p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate(cmd)
+    return stdout.decode('utf-8').strip()
+
+def getItunesTrackState():
+    script = '''
+        tell application "iTunes" to get player state
+        '''
+    try:
+        cmd = script.encode('latin-1')
+        result = runTrackCmd(cmd, ['osascript', '-'])
+        return result
+    except Exception as e:
+        log("exception getting track state: %s " % e)
+        # no music found playing
+        return "stopped"
+
+def getSpotifyTrackState():
+    script = '''
+        tell application "Spotify" to get player state
+        '''
+    try:
+        cmd = script.encode('latin-1')
+        result = runTrackCmd(cmd, ['osascript', '-'])
+        return result
+    except Exception as e:
+        log("exception getting track state: %s " % e)
+        # no music found playing
+        return "stopped"
+
 
 # get the current track playing (spotify or itunes)
 def getTrackInfo():
@@ -159,6 +177,7 @@ def getTrackInfo():
             trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
             return trackInfo
         except Exception as e:
+            log("exception getting track: %s " % e)
             # no music found playing
             return {}
     else:
@@ -167,19 +186,13 @@ def getTrackInfo():
 
 def runResourceCmd(cmdArgs, rootDir):
     if sys.platform == "darwin": # OS X
-        global runningResourceCmd
-        if (runningResourceCmd is False):
-            runningResourceCmd = True
-            p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = p.communicate()
-            stdout = stdout.decode('utf-8').strip()
-            if (stdout):
-                stdout = stdout.strip('\r\n')
-                runningResourceCmd = False
-                return stdout
-            else:
-                runningResourceCmd = False
-                return ""
+        runningResourceCmd = True
+        p = Popen(cmdArgs, cwd = rootDir, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        stdout = stdout.decode('utf-8').strip()
+        if (stdout):
+            stdout = stdout.strip('\r\n')
+            return stdout
         else:
             return ""
     else:

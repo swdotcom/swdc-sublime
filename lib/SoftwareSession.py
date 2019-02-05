@@ -6,6 +6,7 @@ import webbrowser
 import uuid
 import time
 import json
+import math
 import os
 import sublime_plugin, sublime
 from .SoftwareHttp import *
@@ -286,11 +287,11 @@ def fetchDailyKpmSessionInfo():
 
             inFlowIcon = ""
             if (currentDayMinutes > averageDailyMinutes):
-                inFlowIcon = "🚀 "
+                inFlowIcon = "🚀"
 
-            statusMsg = "Code time today: " + inFlowIcon + "" + currentDayTime
+            statusMsg = "Code time: " + inFlowIcon + "" + currentDayTime
             if (averageDailyMinutes > 0):
-                statusMsg += " | Avg: " + averageDailyTime
+                statusMsg += " | Avg:" + averageDailyTime
 
             showStatus(statusMsg)
         elif (isUnauthenticated(response) and isDeactivated is False):
@@ -313,7 +314,7 @@ def humanizeMinutes(minutes):
             humanizedStr = '{:4.0f}'.format(floatMin) + " hrs"
         else:
             # at least 4 chars (including the dot) with 2 after the dec point
-            humanizedStr = '{:4.2f}'.format(floatMin) + " hrs"
+            humanizedStr = '{:4.1f}'.format(round(floatMin, 1)) + " hrs"
     elif (minutes == 1):
         humanizedStr = "1 min"
     else:

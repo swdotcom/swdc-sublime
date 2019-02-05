@@ -465,7 +465,7 @@ def plugin_loaded():
     fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
     fetchDailyKpmTimer.start()
 
-    gatherMusicTimer = Timer(15, gatherMusicInfo)
+    gatherMusicTimer = Timer(30, gatherMusicInfo)
     gatherMusicTimer.start()
 
     gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)

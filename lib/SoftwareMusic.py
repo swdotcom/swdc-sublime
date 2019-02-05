@@ -10,6 +10,7 @@ currentTrackInfo = {}
 def gatherMusicInfo():
 	global currentTrackInfo
 
+
 	# get the music track playing
 	# the trackInfo should be a dictionary
 	trackInfo = getTrackInfo()
@@ -23,6 +24,8 @@ def gatherMusicInfo():
 	trackType = trackInfo.get("type", None)
 
 	if (trackId is not None and trackType == "itunes"):
+		itunesTrackState = getItunesTrackState()
+		trackInfo["state"] = itunesTrackState
 		try:
 			# check if itunes is found, if not it'll raise a ValueError
 			idx = trackId.index("itunes")
@@ -33,9 +36,13 @@ def gatherMusicInfo():
 			# set the trackId to "itunes:track:"
 			trackId = "itunes:track:" + str(trackId)
 			trackInfo["id"] = trackId
+	elif (trackId is not None and trackType == "spotify"):
+		spotifyTrackState = getSpotifyTrackState()
+		trackInfo["state"] = spotifyTrackState
 
-
+	trackState = trackInfo.get("state", None)
 	duration = trackInfo.get("duration", None)
+	
 	if (duration is not None):
 		duration_val = float(duration)
 		if (duration_val > 1000):
@@ -53,15 +60,21 @@ def gatherMusicInfo():
 	#    to close the old song and send a payload to start the new song
 
 	if (trackId is not None):
+		isPaused = False
 
-		if (currentTrackId is not None and currentTrackId != trackId):
+		if (trackState != "playing"):
+			isPaused = True
+
+		if (currentTrackId is not None and (currentTrackId != trackId or isPaused is True)):
 			# update the end time of the previous track and post it
 			currentTrackInfo["end"] = start - 1
 			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo))
 			if (response is None):
 				log("Code Time: error closing previous track")
+			# re-initialize the current track info to an empty object
+			currentTrackInfo = {}
 
-		if (currentTrackId is None or currentTrackId != trackId):
+		if (isPaused is False and (currentTrackId is None or currentTrackId != trackId)):
 			# starting a new song
 			trackInfo["start"] = start
 			trackInfo["local_start"] = local_start
