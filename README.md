@@ -1,6 +1,6 @@
 # Code Time for Sublime Text
 
-> **Code Time** is an open source plugin that provides programming metrics right in your code editor.
+> Programming metrics right in your code editor
 
 <p align="center" style="margin: 0 10%">
   <img src="https://raw.githubusercontent.com/swdotcom/swdc-sublime/master/assets/sublime-dashboard.gif" alt="Code Time dashboard for Sublime Text" />
@@ -48,8 +48,8 @@ We provide 90 days of data history for free, forever. In the future, we will pro
 
 ## Getting started
 
-1. [Install the Code Time plugin](https://packagecontrol.io/packages/Software) from Package Control (in Sublime Text, go to `Preferences` > `Package Control` > `Package Control: Install Package`, search for `Software`, hit `Enter` and then restart Sublime Text).
+1. [Install the Code Time plugin](https://packagecontrol.io/packages/CodeTime) from Package Control (in Sublime Text, go to `Preferences` > `Package Control` > `Package Control: Install Package`, search for `Code Time`, hit `Enter` and then restart Sublime Text).
 
-2. After installing Code Time, an alert will appear prompting you to login (you can also click on "Code Time" in the status bar of Sublime Text, which will take you to the final step of setting up your account).
+2. After installing Code Time, an alert will appear prompting you to login (you can also click on "Code Time" in the status bar of Sublime Text.
 
 <!--- End: setup --->
