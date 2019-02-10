@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.6'
+VERSION = '0.5.7'
 PLUGIN_ID = 1
 
 runningResourceCmd = False
@@ -108,80 +108,92 @@ def getSpotifyTrackState():
 
 # get the current track playing (spotify or itunes)
 def getTrackInfo():
-    if sys.platform == "darwin": # OS X
-        script = '''
-            on buildItunesRecord(appState)
-                tell application "iTunes"
-                    set track_artist to artist of current track
-                    set track_name to name of current track
-                    set track_genre to genre of current track
-                    set track_id to database ID of current track
-                    set track_duration to duration of current track
-                    set json to "type='itunes';genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
-                end tell
-                return json
-            end buildItunesRecord
+    if sys.platform == "darwin":
+        return getMacTrackInfo()
+    elif sys.platform == "win32":
+        # not supported on other platforms yet
+        return getWinTrackInfo()
+    else:
+        # linux not supported yet
+        return {}
 
-            on buildSpotifyRecord(appState)
-                tell application "Spotify"
-                    set track_artist to artist of current track
-                    set track_name to name of current track
-                    set track_duration to duration of current track
-                    set track_id to id of current track
-                    set track_duration to duration of current track
-                    set json to "type='spotify';genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
-                end tell
-                return json
-            end buildSpotifyRecord
+# windows
+def getWinTrackInfo():
+    # not supported on other platforms yet
+    return {}
 
-            try
-                if application "Spotify" is running and application "iTunes" is not running then
-                    tell application "Spotify" to set spotifyState to (player state as text)
-                    -- spotify is running and itunes is not
-                    if (spotifyState is "paused" or spotifyState is "playing") then
-                        set jsonRecord to buildSpotifyRecord(spotifyState)
-                    else
-                        set jsonRecord to {}
-                    end if
-                else if application "Spotify" is running and application "iTunes" is running then
-                    tell application "Spotify" to set spotifyState to (player state as text)
-                    tell application "iTunes" to set itunesState to (player state as text)
-                    -- both are running but use spotify as a higher priority
-                    if spotifyState is "playing" then
-                        set jsonRecord to buildSpotifyRecord(spotifyState)
-                    else if itunesState is "playing" then
-                        set jsonRecord to buildItunesRecord(itunesState)
-                    else if spotifyState is "paused" then
-                        set jsonRecord to buildSpotifyRecord(spotifyState)
-                    else
-                        set jsonRecord to {}
-                    end if
-                else if application "iTunes" is running and application "Spotify" is not running then
-                    tell application "iTunes" to set itunesState to (player state as text)
-                    set jsonRecord to buildItunesRecord(itunesState)
+# OS X
+def getMacTrackInfo():
+    script = '''
+        on buildItunesRecord(appState)
+            tell application "iTunes"
+                set track_artist to artist of current track
+                set track_name to name of current track
+                set track_genre to genre of current track
+                set track_id to database ID of current track
+                set track_duration to duration of current track
+                set json to "type='itunes';genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
+            end tell
+            return json
+        end buildItunesRecord
+
+        on buildSpotifyRecord(appState)
+            tell application "Spotify"
+                set track_artist to artist of current track
+                set track_name to name of current track
+                set track_duration to duration of current track
+                set track_id to id of current track
+                set track_duration to duration of current track
+                set json to "type='spotify';genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
+            end tell
+            return json
+        end buildSpotifyRecord
+
+        try
+            if application "Spotify" is running and application "iTunes" is not running then
+                tell application "Spotify" to set spotifyState to (player state as text)
+                -- spotify is running and itunes is not
+                if (spotifyState is "paused" or spotifyState is "playing") then
+                    set jsonRecord to buildSpotifyRecord(spotifyState)
                 else
                     set jsonRecord to {}
                 end if
-                return jsonRecord
-            on error
-                return {}
-            end try
-        '''
-        try:
-            cmd = script.encode('latin-1')
-            result = runTrackCmd(cmd, ['osascript', '-'])
-            result = result.strip('\r\n')
-            result = result.replace('"', '')
-            result = result.replace('\'', '')
-
-            trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
-            return trackInfo
-        except Exception as e:
-            log("exception getting track: %s " % e)
-            # no music found playing
+            else if application "Spotify" is running and application "iTunes" is running then
+                tell application "Spotify" to set spotifyState to (player state as text)
+                tell application "iTunes" to set itunesState to (player state as text)
+                -- both are running but use spotify as a higher priority
+                if spotifyState is "playing" then
+                    set jsonRecord to buildSpotifyRecord(spotifyState)
+                else if itunesState is "playing" then
+                    set jsonRecord to buildItunesRecord(itunesState)
+                else if spotifyState is "paused" then
+                    set jsonRecord to buildSpotifyRecord(spotifyState)
+                else
+                    set jsonRecord to {}
+                end if
+            else if application "iTunes" is running and application "Spotify" is not running then
+                tell application "iTunes" to set itunesState to (player state as text)
+                set jsonRecord to buildItunesRecord(itunesState)
+            else
+                set jsonRecord to {}
+            end if
+            return jsonRecord
+        on error
             return {}
-    else:
-        # not supported on other platforms yet
+        end try
+    '''
+    try:
+        cmd = script.encode('latin-1')
+        result = runTrackCmd(cmd, ['osascript', '-'])
+        result = result.strip('\r\n')
+        result = result.replace('"', '')
+        result = result.replace('\'', '')
+
+        trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
+        return trackInfo
+    except Exception as e:
+        log("exception getting track: %s " % e)
+        # no music found playing
         return {}
 
 def runResourceCmd(cmdArgs, rootDir):

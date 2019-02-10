@@ -5,12 +5,12 @@
 		[
 			{ "caption": "-", "id": "software" },
 			{
-				"caption": "Software.com",
+				"caption": "Code Time",
 				"children":
 				[
-					{ "command": "launch_code_time_metrics", "caption": "Code time metrics" },
-					{ "command": "pause_kpm_updates", "caption": "Pause code time metrics" },
-					{ "command": "enable_kpm_updates", "caption": "Enable code time metrics" },
+					{ "command": "launch_code_time_metrics", "caption": "Code Time" },
+					{ "command": "pause_kpm_updates", "caption": "Pause code time" },
+					{ "command": "enable_kpm_updates", "caption": "Enable code time" },
 					{ "command": "go_to_software", "caption": "Go to software.com" },
 				]
 			},
