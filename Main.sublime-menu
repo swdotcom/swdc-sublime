@@ -8,7 +8,7 @@
 				"caption": "Code Time",
 				"children":
 				[
-					{ "command": "launch_code_time_metrics", "caption": "Code Time" },
+					{ "command": "launch_code_time_metrics", "caption": "Dashboard" },
 					{ "command": "pause_kpm_updates", "caption": "Pause code time" },
 					{ "command": "enable_kpm_updates", "caption": "Enable code time" },
 					{ "command": "go_to_software", "caption": "Go to software.com" },

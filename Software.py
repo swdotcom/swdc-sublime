@@ -5,6 +5,7 @@ from package_control import events
 from queue import Queue
 import time
 import json
+import os
 import sublime_plugin, sublime
 from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
@@ -284,6 +285,11 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
         with open(file, 'w', encoding='utf-8') as f:
             f.write(content)
         sublime.active_window().open_file(file)
+
+        # delete the legacy if it exists
+        legacyFile = file[:file.rindex(".")]
+        if (os.path.exists(legacyFile)):
+            os.remove(legacyFile)
 
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):

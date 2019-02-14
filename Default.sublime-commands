@@ -1,4 +1,4 @@
 [
-	{ "command": "launch_code_time_metrics", "caption": "Code Time" },
+	{ "command": "launch_code_time_metrics", "caption": "Code Time Dashboard" },
 	{ "command": "go_to_software", "caption": "Go to software.com" }
 ]
