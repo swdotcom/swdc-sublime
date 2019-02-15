@@ -3,6 +3,7 @@
 from threading import Thread, Timer, Event
 from package_control import events
 from queue import Queue
+import webbrowser
 import time
 import json
 import os
@@ -290,6 +291,11 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
         legacyFile = file[:file.rindex(".")]
         if (os.path.exists(legacyFile)):
             os.remove(legacyFile)
+
+class SoftwareTopForty(sublime_plugin.TextCommand):
+    def run(self, edit):
+        webbrowser.open("https://api.software.com/music/top40")
+
 
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):

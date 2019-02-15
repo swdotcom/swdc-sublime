@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.8'
+VERSION = '0.5.9'
 PLUGIN_ID = 1
 
 runningResourceCmd = False
