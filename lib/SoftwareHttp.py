@@ -28,7 +28,7 @@ def isUnauthenticated(response):
     return False
 
 def isUserDeactivated(response):
-    if (isUnauthenticated(response)):
+    if (response is not None and isUnauthenticated(response)):
         # check if it has the DEACTIVATED "code" in a response body
         try:
             data = json.loads(response.read().decode('utf-8'))

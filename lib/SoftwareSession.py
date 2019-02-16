@@ -142,7 +142,6 @@ def isAuthenticated():
         return False
 
     response = requestIt("GET", "/users/ping", None)
-
     if (isResponsOk(response)):
         return True
     elif (isUserDeactivated(response)):

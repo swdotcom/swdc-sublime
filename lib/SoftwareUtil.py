@@ -8,7 +8,7 @@ import sys
 from subprocess import Popen, PIPE
 import re
 
-VERSION = '0.5.9'
+VERSION = '0.6.0'
 PLUGIN_ID = 1
 
 runningResourceCmd = False
@@ -189,8 +189,11 @@ def getMacTrackInfo():
         result = result.replace('"', '')
         result = result.replace('\'', '')
 
-        trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
-        return trackInfo
+        if (result):
+            trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
+            return trackInfo
+        else:
+            return {}
     except Exception as e:
         log("exception getting track: %s " % e)
         # no music found playing
