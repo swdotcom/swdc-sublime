@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.2'
+VERSION = '0.6.3'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -442,7 +442,7 @@ def hasAnyUserAccounts(identityId, authAccounts):
 
     return False
 
-def getAnonymouseUser(identityId, authAccounts):
+def getAnonymousUser(identityId, authAccounts):
     if (authAccounts):
         for account in authAccounts:
             userEmail = account.get("email", "")
@@ -477,12 +477,12 @@ def getUserStatus():
     
     authAccounts = getAuthenticatedPluginAccounts(identityId)
     loggedInUser = getLoggedInUser(identityId, authAccounts)
-    anonUser = getAnonymouseUser(identityId, authAccounts)
+    anonUser = getAnonymousUser(identityId, authAccounts)
     if (anonUser is None):
         # create the anonymous user
         createAnonymousUser(identityId)
         authAccounts = getAuthenticatedPluginAccounts(identityId)
-        anonUser = getLoggedInUser(identityId, authAccounts)
+        anonUser = getAnonymousUser(identityId, authAccounts)
 
     email = None
 
