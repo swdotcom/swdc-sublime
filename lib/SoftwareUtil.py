@@ -1,17 +1,27 @@
 # Copyright (c) 2018 by Software.com
-
+from threading import Thread, Timer, Event
 import os
 import json
 import time
 import sublime_plugin, sublime
 import sys
+import platform
+import re, uuid
+import webbrowser
+from urllib.parse import quote_plus
 from subprocess import Popen, PIPE
-import re
+from .SoftwareHttp import *
 
-VERSION = '0.6.0'
+
+VERSION = '0.6.2'
 PLUGIN_ID = 1
+SETTINGS_FILE = 'Software.sublime_settings'
+SETTINGS = {}
 
 runningResourceCmd = False
+currentUserStatus = None
+lastRegisterUserCheck = 0
+
 
 # log the message
 def log(message):
@@ -19,6 +29,13 @@ def log(message):
     software_settings = sublime.load_settings("Software.sublime_settings")
     if (software_settings.get("software_logging_on", True)):
         print(message)
+
+def clearUserStatusCache():
+    global currentUserStatus
+    global lastRegisterUserCheck
+    currentUserStatus = None
+    lastRegisterUserCheck = 0
+
 
 # fetch a value from the .software/sesion.json file
 def getItem(key):
@@ -241,6 +258,252 @@ def getResourceInfo(rootDir):
     except Exception as e:
         log("Unable to locate git repo info: %s" % e)
         return {}
+
+def checkOnline():
+    # non-authenticated ping, no need to set the Authorization header
+    response = requestIt("GET", "/ping", None, getItem("jwt"))
+    if (isResponsOk(response)):
+        return True
+    else:
+        return False
+
+def getIdentity():
+    homedir = os.path.expanduser('~')
+    # python gets the create time in seconds
+    # convert it to milliseconds as the other plugins are using millis
+    createTimeMs = os.stat(homedir).st_ctime
+    createTimeMs *= 1000
+
+    # strip out the username from the homedir
+    username = os.path.basename(homedir)
+
+    identityId = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
+
+    parts = []
+    if (username):
+        parts.append(username)
+    if (identityId):
+        parts.append(identityId)
+
+    identityId = '_'.join(parts)
+
+    return identityId
+
+def refetchUserStatusLazily(tryCountUntilFoundUser):
+    currentUserStatus = getUserStatus()
+    loggedInUser = currentUserStatus.get("loggedInUser", None)
+    if (loggedInUser is not None or tryCountUntilFoundUser <= 0):
+        return
+
+    # start the time
+    tryCountUntilFoundUser -= 1
+    t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
+    t.start()
+
+def launchLoginUrl():
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
+    identityId = getIdentity()
+    webUrl += "/login?addr=" + identityId
+    webbrowser.open(webUrl)
+    refetchUserStatusLazily(6)
+
+def launchSignupUrl():
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
+    identityId = getIdentity()
+    webUrl += "/onboarding?addr=" + identityId
+    webbrowser.open(webUrl)
+    refetchUserStatusLazily(12)
+
+def launchWebDashboardUrl():
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
+    log("web url: %s" % webUrl)
+    webbrowser.open(webUrl)
+
+
+def fetchCodeTimeMetrics():
+    api = '/dashboard'
+    response = requestIt("GET", api, None, getItem("jwt"))
+    content = response.read().decode('utf-8')
+    file = getDashboardFile()
+    with open(file, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+def launchCodeTimeMetrics():
+    fetchCodeTimeMetrics()
+    file = getDashboardFile()
+    sublime.active_window().open_file(file)
+
+def pluginLogout():
+    api = "/users/plugin/logout"
+    response = requestIt("POST", api, None, getItem("jwt"))
+
+    clearUserStatusCache()
+    getUserStatus()
+
+def getAppJwt():
+    setItem("app_jwt", None)
+    serverAvailable = checkOnline()
+    if (serverAvailable):
+        identityId = getIdentity()
+        if (identityId):
+            encodedIdentityId = quote_plus(identityId) 
+            api = "/data/token?addr=" + identityId
+            response = requestIt("GET", api, None, None)
+            if (response is not None):
+                responseObjStr = response.read().decode('utf-8')
+                try:
+                    responseObj = json.loads(responseObjStr)
+                    appJwt = responseObj.get("jwt", None)
+                    if (appJwt is not None):
+                        return appJwt
+                except Exception as ex:
+                    log("Code Time: Unable to retrieve app token: %s" % ex)
+    return None
+
+def createAnonymousUser(identityId):
+    appJwt = getAppJwt()
+    serverAvailable = checkOnline()
+
+    if (serverAvailable and appJwt):
+        plugin_token = getItem("token")
+        if (plugin_token is None):
+            plugin_token = createToken()
+            setItem("token", plugin_token)
+
+        email = identityId
+
+        timezone = ""
+        try:
+            timezone = time.strftime('%Z')
+        except Exception:
+            timezone = time.tzname[0]
+
+        payload = {}
+        payload["email"] = email
+        payload["plugin_token"] = plugin_token
+        payload["timezone"] = timezone
+        encodedIdentityId = quote_plus(identityId) 
+        api = "/data/onboard?addr=" + identityId
+        response = requestIt("POST", api, payload, appJwt)
+
+        if (response is not None and isResponsOk(response)):
+            try:
+                responseObj = json.loads(response.read().decode('utf-8'))
+                jwt = responseObj.get("jwt", None)
+                setItem("jwt", jwt)
+                user = responseObj.get("user", None)
+                setItem("user", user)
+                setItem("sublime_lastUpdateTime", round(time.time()))
+                return None
+            except Exception as ex:
+                log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+
+
+def getAuthenticatedPluginAccounts(identityId):
+    jwt = getItem("jwt")
+    encodedIdentityId = quote_plus(identityId) 
+    serverAvailable = checkOnline()
+    tokenStr = "token=" + identityId
+    if (jwt and serverAvailable and identityId):
+        api = "/users/plugin/accounts?" + tokenStr
+        response = requestIt("GET", api, None, getItem("jwt"))
+        if (response is not None and isResponsOk(response)):
+            try:
+                responseObj = json.loads(response.read().decode('utf-8'))
+                return responseObj.get("users", None)
+            except Exception as ex:
+                log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+
+    return None
+
+def getLoggedInUser(identityId, authAccounts):
+    if (authAccounts):
+        for account in authAccounts:
+            userEmail = account.get("email", "")
+            userMacAddr = account.get("mac_addr", "")
+            userMacAddrShare = account.get("mac_addr_share", "")
+            if (userEmail != userMacAddr and userEmail != identityId and userEmail != userMacAddrShare
+                and userMacAddr == identityId):
+                return account
+
+    return None
+
+def hasAnyUserAccounts(identityId, authAccounts):
+    if (authAccounts):
+        for account in authAccounts:
+            userEmail = account.get("email", "")
+            userMacAddr = account.get("mac_addr", "")
+            userMacAddrShare = account.get("mac_addr_share", "")
+            if (userEmail != userMacAddr and userEmail != identityId and userEmail != userMacAddrShare):
+                return True
+
+    return False
+
+def getAnonymouseUser(identityId, authAccounts):
+    if (authAccounts):
+        for account in authAccounts:
+            userEmail = account.get("email", "")
+            userMacAddr = account.get("mac_addr", "")
+            userMacAddrShare = account.get("mac_addr_share", "")
+            if (userEmail == userMacAddr or userEmail == identityId or userEmail == userMacAddrShare):
+                return account
+
+    return None
+
+def updateSessionUserInfo(user):
+    userObj = {}
+    userObj["id"] = user.get("id")
+    setItem("jwt", user.get("plugin_jwt"))
+    setItem("user", userObj)
+    setItem("sublime_lastUpdateTime", round(time.time()))
+
+def getUserStatus():
+    global SETTINGS
+    global currentUserStatus
+    global lastRegisterUserCheck
+
+    SETTINGS = sublime.load_settings(SETTINGS_FILE)
+    
+    nowTime = round(time.time())
+
+    if (currentUserStatus is not None and lastRegisterUserCheck is not None):
+        if (nowTime - lastRegisterUserCheck <= 5):
+            return currentUserStatus
+
+    identityId = getIdentity()
+    
+    authAccounts = getAuthenticatedPluginAccounts(identityId)
+    loggedInUser = getLoggedInUser(identityId, authAccounts)
+    anonUser = getAnonymouseUser(identityId, authAccounts)
+    if (anonUser is None):
+        # create the anonymous user
+        createAnonymousUser(identityId)
+        authAccounts = getAuthenticatedPluginAccounts(identityId)
+        anonUser = getLoggedInUser(identityId, authAccounts)
+
+    email = None
+
+    if (loggedInUser is not None):
+        updateSessionUserInfo(loggedInUser)
+        email = loggedInUser.get("email")
+        SETTINGS.set("logged_on", True)
+    elif (anonUser is not None):
+        updateSessionUserInfo(anonUser)
+        SETTINGS.set("logged_on", False)
+
+    hasUserAccounts = hasAnyUserAccounts(identityId, authAccounts)
+
+    currentUserStatus = {}
+
+    currentUserStatus["loggedInUser"] = loggedInUser
+    currentUserStatus["hasUserAccounts"] = hasUserAccounts
+    currentUserStatus["email"] = email
+
+    lastRegisterUserCheck = round(time.time())
+    return currentUserStatus
 
 
 

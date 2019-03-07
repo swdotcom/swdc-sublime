@@ -8,10 +8,13 @@
 				"caption": "Code Time",
 				"children":
 				[
-					{ "command": "launch_code_time_metrics", "caption": "Dashboard" },
+					{ "command": "launch_code_time_metrics", "caption": "Code time dashboard" },
+					{ "command": "go_to_software", "caption": "Web dashboard" },
 					{ "command": "pause_kpm_updates", "caption": "Pause code time" },
 					{ "command": "enable_kpm_updates", "caption": "Enable code time" },
-					{ "command": "go_to_software", "caption": "Go to software.com" },
+					{ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" },
+					{ "command": "code_time_logout", "caption": "Log out from Code Time" },
+					{ "command": "code_time_signup", "caption": "Sign up a new account" },
 					{ "command": "software_top_forty", "caption": "Software top 40" },
 				]
 			},

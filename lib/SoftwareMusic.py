@@ -68,7 +68,7 @@ def gatherMusicInfo():
 		if (currentTrackId is not None and (currentTrackId != trackId or isPaused is True)):
 			# update the end time of the previous track and post it
 			currentTrackInfo["end"] = start - 1
-			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo))
+			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo), getItem("jwt"))
 			if (response is None):
 				log("Code Time: error closing previous track")
 			# re-initialize the current track info to an empty object
@@ -79,7 +79,7 @@ def gatherMusicInfo():
 			trackInfo["start"] = start
 			trackInfo["local_start"] = local_start
 			trackInfo["end"] = 0
-			response = requestIt("POST", "/data/music", json.dumps(trackInfo))
+			response = requestIt("POST", "/data/music", json.dumps(trackInfo), getItem("jwt"))
 			if (response is None):
 				log("Code Time: error sending new track")
 
@@ -91,7 +91,7 @@ def gatherMusicInfo():
 			# update the end time since there are no songs coming
 			# in and the previous one is stil available
 			currentTrackInfo["end"] = start - 1
-			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo))
+			response = requestIt("POST", "/data/music", json.dumps(currentTrackInfo), getItem("jwt"))
 			if (response is None):
 				log("Code Time: error closing previous track")
 

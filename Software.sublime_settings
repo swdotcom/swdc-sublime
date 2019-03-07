@@ -3,4 +3,5 @@
 	"software_logging_on": true,
 	"software_api_endpoint": "api.software.com",
 	"software_dashboard_url": "https://app.software.com",
+	"logged_on": false
 }

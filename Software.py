@@ -7,6 +7,7 @@ import webbrowser
 import time
 import json
 import os
+import platform
 import sublime_plugin, sublime
 from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
@@ -26,13 +27,11 @@ def post_json(json_data):
     # send offline data
     sendOfflineData()
 
-    response = requestIt("POST", "/data", json_data)
+    response = requestIt("POST", "/data", json_data, getItem("jwt"))
 
-    if (isUnauthenticated(response) and isUserDeactivated(response) is False):
+    if (isUnauthenticated(response)):
         # save the data to the offline data file
         storePayload(json_data)
-        # check if we need to ask to login
-        chekUserAuthenticationStatus()
 
     PluginData.reset_source_data()
 
@@ -59,7 +58,7 @@ class BackgroundWorker():
 # kpm payload data structure
 #
 class PluginData():
-    __slots__ = ('source', 'type', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'timezone')
+    __slots__ = ('source', 'type', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone')
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {}
     line_counts = {}
@@ -87,6 +86,13 @@ class PluginData():
         except Exception:
             # unable to get it from the time string, use the tzname[0] (1st tuple)
             self.timezone = time.tzname[0]
+
+        # get the os infolksdflkjsdflkj
+        system = platform.system() # 'Windows'
+        release = platform.release() # 'XP'
+        # osVersion = platform.version() # '5.1.2600'
+        # Windows_5.1.2600_XP
+        self.os = system + "_" + release
 
     def json(self):
 
@@ -274,23 +280,45 @@ class PluginData():
 
 class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        launchDashboard()
+        launchWebDashboardUrl()
+
+    def is_enabled(self):
+        global SETTINGS
+        return (SETTINGS.get("logged_on", True) is False)
+
+# code_time_login command
+class CodeTimeLogin(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchLoginUrl()
+
+    def is_enabled(self):
+        global SETTINGS
+        return (SETTINGS.get("logged_on", True) is False)
+
+# code_time_logout command
+class CodeTimeLogout(sublime_plugin.TextCommand):
+    def run(self, edit):
+        global SETTINGS
+        pluginLogout()
+        SETTINGS.set("logged_on", False)
+
+    def is_enabled(self):
+        global SETTINGS
+        return (SETTINGS.get("logged_on", True) is True)
+
+# code_time_signpu command
+class CodeTimeSignup(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchSignupUrl()
+
+    def is_enabled(self):
+        global SETTINGS
+        return (SETTINGS.get("logged_on", True) is False)
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
-        api = '/dashboard'
-        response = requestIt("GET", api, None)
-        content = response.read().decode('utf-8')
-        file = getDashboardFile()
-        with open(file, 'w', encoding='utf-8') as f:
-            f.write(content)
-        sublime.active_window().open_file(file)
-
-        # delete the legacy if it exists
-        legacyFile = file[:file.rindex(".")]
-        if (os.path.exists(legacyFile)):
-            os.remove(legacyFile)
+        launchCodeTimeMetrics()
 
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -486,12 +514,21 @@ def plugin_loaded():
     gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
     gatherRepoCommitsTimer.start()
 
+    initializeUserInfo()
+
+def initializeUserInfo():
+    log("Code Time: updating user info")
+    userStatus = getUserStatus()
+    # re-fetch user info in another 90 seconds
+    checkUserAuthTimer = Timer(90, initializeUserInfo)
+    checkUserAuthTimer.start()
+
 def plugin_unloaded():
     PACKAGE_NAME = __name__.split('.')[0]
     if (events.remove(PACKAGE_NAME)):
         log("Code Time: unlinstalling plugin: %s" % PACKAGE_NAME)
         api = "/integrations/%s" % PLUGIN_ID
-        response = requestIt("DELETE", api, None)
+        response = requestIt("DELETE", api, None, getItem("jwt"))
         if (response is not None):
             log("Code Time: uninstall successfully updated")
 

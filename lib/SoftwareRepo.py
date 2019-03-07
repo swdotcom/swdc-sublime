@@ -123,15 +123,16 @@ def gatherCommits(rootDir):
 						elif (len(addAndDeletes) > 0):
 							deletions = len(addAndDeletes)
 
-						changes = commit["changes"]
-						changes[file] = {
-							'insertions': insertions,
-							'deletions': deletions
-						}
-						totalInsertions = changes["__sftwTotal__"]["insertions"]
-						totalDeletions = changes["__sftwTotal__"]["deletions"]
-						changes["__sftwTotal__"]["insertions"] = totalInsertions + insertions
-						changes["__sftwTotal__"]["deletions"] = totalDeletions + deletions
+						if (commit is not None):
+							changes = commit["changes"]
+							changes[file] = {
+								'insertions': insertions,
+								'deletions': deletions
+							}
+							totalInsertions = changes["__sftwTotal__"]["insertions"]
+							totalDeletions = changes["__sftwTotal__"]["deletions"]
+							changes["__sftwTotal__"]["insertions"] = totalInsertions + insertions
+							changes["__sftwTotal__"]["deletions"] = totalDeletions + deletions
 
 			if (commit is not None):
 				# add to the commits list
@@ -162,7 +163,7 @@ def gatherCommits(rootDir):
 					sendCommits(commitData)
 
 def sendCommits(commitData):
-	response = requestIt("POST", "/commits", json.dumps(commitData))
+	response = requestIt("POST", "/commits", json.dumps(commitData), getItem("jwt"))
 	if (response is not None):
 		responseObjStr = response.read().decode('utf-8')
 		try:
@@ -200,7 +201,7 @@ def getLastCommit(rootDir):
 		qryStr = "identifier=%s&tag=%s&branch=%s" % (encodedIdentifier, encodedTag, encodedBranch)
 		api = "/commits/latest?%s" % qryStr
 
-		response = requestIt("GET", api, None)
+		response = requestIt("GET", api, None, getItem("jwt"))
 
 		if (response is not None):
 			responseObjStr = response.read().decode('utf-8')
@@ -259,7 +260,7 @@ def gatherRepoMembers(rootDir):
 		if (len(members) > 0):
 			repoData['members'] = members
 
-			response = requestIt("POST", "/repo/members", json.dumps(repoData))
+			response = requestIt("POST", "/repo/members", json.dumps(repoData), getItem("jwt"))
 			if (response is not None):
 				responseObjStr = response.read().decode('utf-8')
 				try:
