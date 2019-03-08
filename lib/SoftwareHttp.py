@@ -37,8 +37,7 @@ def isUnauthenticated(response):
 def requestIt(method, api, payload, jwt):
 
     software_settings = sublime.load_settings("Software.sublime_settings")
-    # api_endpoint = software_settings.get("software_api_endpoint", "api.software.com")
-    api_endpoint = "localhost:5000"
+    api_endpoint = software_settings.get("software_api_endpoint", "api.software.com")
 
     if (software_settings.get("software_telemetry_on", True) is False):
         # httpLog("Code Time: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
