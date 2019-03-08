@@ -5,6 +5,7 @@ import json
 import time
 import sublime_plugin, sublime
 import sys
+import uuid
 import platform
 import re, uuid
 import webbrowser
@@ -13,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.3'
+VERSION = '0.6.4'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -319,7 +320,6 @@ def launchSignupUrl():
 def launchWebDashboardUrl():
     software_settings = sublime.load_settings("Software.sublime_settings")
     webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
-    log("web url: %s" % webUrl)
     webbrowser.open(webUrl)
 
 
@@ -363,6 +363,12 @@ def getAppJwt():
                     log("Code Time: Unable to retrieve app token: %s" % ex)
     return None
 
+# crate a uuid token to establish a connection
+def createToken():
+    # return os.urandom(16).encode('hex')
+    uid = uuid.uuid4()
+    return uid.hex
+
 def createAnonymousUser(identityId):
     appJwt = getAppJwt()
     serverAvailable = checkOnline()
@@ -385,21 +391,25 @@ def createAnonymousUser(identityId):
         payload["email"] = email
         payload["plugin_token"] = plugin_token
         payload["timezone"] = timezone
-        encodedIdentityId = quote_plus(identityId) 
-        api = "/data/onboard?addr=" + identityId
-        response = requestIt("POST", api, payload, appJwt)
+        encodedIdentityId = quote_plus(identityId)
 
-        if (response is not None and isResponsOk(response)):
-            try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                jwt = responseObj.get("jwt", None)
-                setItem("jwt", jwt)
-                user = responseObj.get("user", None)
-                setItem("user", user)
-                setItem("sublime_lastUpdateTime", round(time.time()))
-                return None
-            except Exception as ex:
-                log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+        api = "/data/onboard?addr=" + identityId
+        try:
+            response = requestIt("POST", api, json.dumps(payload), appJwt)
+
+            if (response is not None and isResponsOk(response)):
+                try:
+                    responseObj = json.loads(response.read().decode('utf-8'))
+                    jwt = responseObj.get("jwt", None)
+                    setItem("jwt", jwt)
+                    user = responseObj.get("user", None)
+                    setItem("user", user)
+                    setItem("sublime_lastUpdateTime", round(time.time()))
+                    return None
+                except Exception as ex:
+                    log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+        except Exception as ex:
+            log("Code Time: Unable to complete anonymous user creation: %s" % ex)
 
 
 def getAuthenticatedPluginAccounts(identityId):
@@ -476,6 +486,7 @@ def getUserStatus():
     identityId = getIdentity()
     
     authAccounts = getAuthenticatedPluginAccounts(identityId)
+
     loggedInUser = getLoggedInUser(identityId, authAccounts)
     anonUser = getAnonymousUser(identityId, authAccounts)
     if (anonUser is None):

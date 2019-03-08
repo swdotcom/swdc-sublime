@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from threading import Thread, Timer, Event
-import uuid
 import time
 import json
 import math
@@ -182,12 +181,6 @@ def humanizeMinutes(minutes):
         humanizedStr = '{:1.0f}'.format(minutes) + " min"
 
     return humanizedStr
-
-# crate a uuid token to establish a connection
-def createToken():
-    # return os.urandom(16).encode('hex')
-    uid = uuid.uuid4()
-    return uid.hex
 
 def handlKpmClickedEvent():
     launchCodeTimeMetrics()
