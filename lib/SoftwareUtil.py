@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.5'
+VERSION = '0.6.6'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -92,7 +92,7 @@ def getDashboardFile():
     return os.path.join(file, 'CodeTime.txt')
 
 # execute the applescript command
-def runTrackCmd(cmd, args):
+def runComand(cmd, args):
     p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(cmd)
     return stdout.decode('utf-8').strip()
@@ -103,7 +103,7 @@ def getItunesTrackState():
         '''
     try:
         cmd = script.encode('latin-1')
-        result = runTrackCmd(cmd, ['osascript', '-'])
+        result = runComand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
         log("exception getting track state: %s " % e)
@@ -116,7 +116,7 @@ def getSpotifyTrackState():
         '''
     try:
         cmd = script.encode('latin-1')
-        result = runTrackCmd(cmd, ['osascript', '-'])
+        result = runComand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
         log("exception getting track state: %s " % e)
@@ -202,7 +202,7 @@ def getMacTrackInfo():
     '''
     try:
         cmd = script.encode('latin-1')
-        result = runTrackCmd(cmd, ['osascript', '-'])
+        result = runComand(cmd, ['osascript', '-'])
         result = result.strip('\r\n')
         result = result.replace('"', '')
         result = result.replace('\'', '')
@@ -270,10 +270,6 @@ def checkOnline():
 
 def getIdentity():
     homedir = os.path.expanduser('~')
-    # python gets the create time in seconds
-    # convert it to milliseconds as the other plugins are using millis
-    createTimeMs = os.stat(homedir).st_ctime
-    createTimeMs *= 1000
 
     # strip out the username from the homedir
     username = os.path.basename(homedir)
@@ -441,13 +437,24 @@ def getLoggedInUser(identityId, authAccounts):
 
     return None
 
+
+def isMacEmail(email):
+    if (email is None):
+        return False
+    macMatch = re.search(r'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', email, re.I)
+    macPairMatch = re.search(r'([a-fA-F0-9]{2}[:\\.-]?){5}[a-fA-F0-9]{2}', email, re.I)
+    macTripleMatch = re.search(r'([a-fA-F0-9]{3}[:\\.-]?){3}[a-fA-F0-9]{3}', email, re.I)
+    if (macMatch is not None
+        or macPairMatch is not None
+        or macTripleMatch is not None):
+        return True
+    return False
+
 def hasAnyUserAccounts(identityId, authAccounts):
     if (authAccounts):
         for account in authAccounts:
-            userEmail = account.get("email", "")
-            userMacAddr = account.get("mac_addr", "")
-            userMacAddrShare = account.get("mac_addr_share", "")
-            if (userEmail != userMacAddr and userEmail != identityId and userEmail != userMacAddrShare):
+            userEmail = account.get("email", None)
+            if (isMacEmail(userEmail) is False):
                 return True
 
     return False
@@ -455,13 +462,11 @@ def hasAnyUserAccounts(identityId, authAccounts):
 def getAnonymousUser(identityId, authAccounts):
     if (authAccounts):
         for account in authAccounts:
-            userEmail = account.get("email", "")
-            userMacAddr = account.get("mac_addr", "")
-            userMacAddrShare = account.get("mac_addr_share", "")
-            if (userEmail == userMacAddr or userEmail == identityId or userEmail == userMacAddrShare):
-                return account
+            userEmail = account.get("email", None)
+            if (isMacEmail(userEmail) is True):
+                return True
 
-    return None
+    return False
 
 def updateSessionUserInfo(user):
     userObj = {}

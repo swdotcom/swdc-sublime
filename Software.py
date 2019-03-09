@@ -517,7 +517,6 @@ def plugin_loaded():
     initializeUserInfo()
 
 def initializeUserInfo():
-    log("Code Time: updating user info")
     userStatus = getUserStatus()
     # re-fetch user info in another 90 seconds
     checkUserAuthTimer = Timer(90, initializeUserInfo)
