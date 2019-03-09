@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.6'
+VERSION = '0.6.7'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -257,7 +257,6 @@ def getResourceInfo(rootDir):
         else:
             return {}
     except Exception as e:
-        log("Unable to locate git repo info: %s" % e)
         return {}
 
 def checkOnline():

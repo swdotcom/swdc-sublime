@@ -87,17 +87,15 @@ class PluginData():
             # unable to get it from the time string, use the tzname[0] (1st tuple)
             self.timezone = time.tzname[0]
 
-        # get the os infolksdflkjsdflkj
-        system = platform.system() # 'Windows'
-        release = platform.release() # 'XP'
-        # osVersion = platform.version() # '5.1.2600'
-        # Windows_5.1.2600_XP
+        # get the os info
+        system = platform.system()
+        release = platform.release()
         self.os = system + "_" + release
 
     def json(self):
 
-        if self.project['directory'] == 'None':
-            self.project = None
+        # if self.project['directory'] == 'Unnamed':
+        #     self.project = None
 
         dict_data = {key: getattr(self, key, None)
                      for key in self.__slots__}
@@ -167,14 +165,14 @@ class PluginData():
             return return_data
 
         fileName = view.file_name()
-        if fileName is None:
-            return return_data
+        if (fileName is None):
+            fileName = "Untitled"
 
         sublime_variables = view.window().extract_variables()
         project = {}
 
         # set it to none as a default
-        projectFolder = 'None'
+        projectFolder = 'Unnamed'
 
         # set the project folder
         if 'folder' in sublime_variables:
@@ -183,7 +181,7 @@ class PluginData():
             projectFolder = sublime_variables['file_path']
 
         # if we have a valid project folder, set the project name from it
-        if projectFolder != 'None':
+        if projectFolder != 'Unnamed':
             project['directory'] = projectFolder
             if 'project_name' in sublime_variables:
                 project['name'] = sublime_variables['project_name']
@@ -194,7 +192,7 @@ class PluginData():
                     projectName = projectFolder[projectNameIdx + 1:]
                     project['name'] = projectName
         else:
-            project['directory'] = 'None'
+            project['directory'] = 'Unnamed'
 
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
@@ -244,7 +242,7 @@ class PluginData():
             return
 
         if fileName is None or fileName == '':
-            fileName is 'None'
+            fileName = 'Untitled'
         
         # create the new FileInfo, which will contain a dictionary
         # of fileName and it's metrics
@@ -353,6 +351,8 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 class EventListener(sublime_plugin.EventListener):
     def on_load_async(self, view):
         fileName = view.file_name()
+        if (fileName is None):
+            fileName = "Untitled"
 
         active_data = PluginData.get_active_data(view)
 
@@ -374,6 +374,8 @@ class EventListener(sublime_plugin.EventListener):
 
     def on_close(self, view):
         fileName = view.file_name()
+        if (fileName is None):
+            fileName = "Untitled"
 
         active_data = PluginData.get_active_data(view)
 
@@ -402,6 +404,8 @@ class EventListener(sublime_plugin.EventListener):
 
         # add the count for the file
         fileName = view.file_name()
+        if (fileName is None):
+            fileName = "Untitled"
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
         if fileInfoData is None:
             return
