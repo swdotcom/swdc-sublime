@@ -19,9 +19,6 @@ SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
 LOGIN_LABEL = "Log in"
 
-fetchingUserFromToken = False
-fetchingKpmData = False
-
 # store the payload offline
 def storePayload(payload):
     # append payload to software data store file
@@ -88,79 +85,73 @@ def chekUserAuthenticationStatus():
 
 
 #
-# Fetch and display the daily KPM info.
+# Fetch and display the daily KPM info
 #
 def fetchDailyKpmSessionInfo():
-    global fetchingKpmData
+    # send in the start of the day in seconds
+    today = datetime.now()
+    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
+    fromSeconds = round(today.timestamp())
 
-    isDeactivated = False
+    # api to fetch the session kpm info
+    api = '/sessions?summary=true'
+    response = requestIt("GET", api, None, getItem("jwt"))
 
-    if (fetchingKpmData is False):
+    if (response is not None and isResponsOk(response)):
+        sessions = json.loads(response.read().decode('utf-8'))
 
-        fetchingKpmData = True
+        # i.e.
+        # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
+        # but should be...
+        # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
 
-        # send in the start of the day in seconds
-        today = datetime.now()
-        today = today.replace(hour=0, minute=0, second=0, microsecond=0)
-        fromSeconds = round(today.timestamp())
-
-        # api to fetch the session kpm info
-        api = '/sessions?summary=true'
-        response = requestIt("GET", api, None, getItem("jwt"))
-
-        fetchingKpmData = False
-
-        if (response is not None and isResponsOk(response)):
-            sessions = json.loads(response.read().decode('utf-8'))
-            # i.e.
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
-            # but should be...
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
-
+        avgKpmStr = "0"
+        try:
+            avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
+        except Exception:
             avgKpmStr = "0"
-            try:
-                avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
-            except Exception:
-                avgKpmStr = "0"
 
+        currentSessionMinutes = 0
+        try:
+            currentSessionMinutes = int(sessions.get("currentSessionMinutes", 0))
+        except Exception:
             currentSessionMinutes = 0
-            try:
-                currentSessionMinutes = int(sessions.get("currentSessionMinutes", 0))
-            except Exception:
-                currentSessionMinutes = 0
 
+        sessionMinGoalPercent = 0.0
+        try:
+            if (sessions.get("currentSessionGoalPercent") is not None):
+                sessionMinGoalPercent = float(sessions.get("currentSessionGoalPercent", 0.0))
+        except Exception:
             sessionMinGoalPercent = 0.0
-            try:
-                if (sessions.get("currentSessionGoalPercent") is not None):
-                    sessionMinGoalPercent = float(sessions.get("currentSessionGoalPercent", 0.0))
-            except Exception:
-                sessionMinGoalPercent = 0.0
 
+        currentDayMinutes = 0
+        try:
+            currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
+        except Exception:
             currentDayMinutes = 0
-            try:
-                currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
-            except Exception:
-                currentDayMinutes = 0
+        averageDailyMinutes = 0
+        try:
+            averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
+        except Exception:
             averageDailyMinutes = 0
-            try:
-                averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
-            except Exception:
-                averageDailyMinutes = 0
-            
-            currentSessionTime = humanizeMinutes(currentSessionMinutes)
-            currentDayTime = humanizeMinutes(currentDayMinutes)
-            averageDailyTime = humanizeMinutes(averageDailyMinutes)
+        
+        currentSessionTime = humanizeMinutes(currentSessionMinutes)
+        currentDayTime = humanizeMinutes(currentDayMinutes)
+        averageDailyTime = humanizeMinutes(averageDailyMinutes)
 
-            inFlowIcon = ""
-            if (currentDayMinutes > averageDailyMinutes):
-                inFlowIcon = "🚀"
+        inFlowIcon = ""
+        if (currentDayMinutes > averageDailyMinutes):
+            inFlowIcon = "🚀"
 
-            statusMsg = "Code time:" + inFlowIcon + "" + currentDayTime
-            if (averageDailyMinutes > 0):
-                statusMsg += " | Avg:" + averageDailyTime
+        statusMsg = "Code time: " + inFlowIcon + "" + currentDayTime
+        if (averageDailyMinutes > 0):
+            statusMsg += " | Avg:" + averageDailyTime
 
-            showStatus(statusMsg)
-            fetchCodeTimeMetrics()
+        showStatus(statusMsg)
+        fetchCodeTimeMetrics()
+
+    fetchDailyKpmTimer = Timer(60, fetchDailyKpmSessionInfo)
+    fetchDailyKpmTimer.start()
 
 def humanizeMinutes(minutes):
     minutes = int(minutes)
