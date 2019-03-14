@@ -282,32 +282,12 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
 
     def is_enabled(self):
         global SETTINGS
-        return (SETTINGS.get("logged_on", True) is False)
+        return (SETTINGS.get("logged_on", True) is True)
 
 # code_time_login command
 class CodeTimeLogin(sublime_plugin.TextCommand):
     def run(self, edit):
         launchLoginUrl()
-
-    def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("logged_on", True) is False)
-
-# code_time_logout command
-class CodeTimeLogout(sublime_plugin.TextCommand):
-    def run(self, edit):
-        global SETTINGS
-        pluginLogout()
-        SETTINGS.set("logged_on", False)
-
-    def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("logged_on", True) is True)
-
-# code_time_signpu command
-class CodeTimeSignup(sublime_plugin.TextCommand):
-    def run(self, edit):
-        launchSignupUrl()
 
     def is_enabled(self):
         global SETTINGS
@@ -506,7 +486,7 @@ def plugin_loaded():
     sendOfflineDataTimer = Timer(20, sendOfflineData)
     sendOfflineDataTimer.start()
 
-    fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
+    fetchDailyKpmTimer = Timer(6, fetchDailyKpmSessionInfo)
     fetchDailyKpmTimer.start()
 
     gatherMusicTimer = Timer(30, gatherMusicInfo)

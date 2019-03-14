@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.9'
+VERSION = '0.7.0'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -23,11 +23,30 @@ runningResourceCmd = False
 
 # log the message
 def log(message):
-
     software_settings = sublime.load_settings("Software.sublime_settings")
     if (software_settings.get("software_logging_on", True)):
         print(message)
 
+def getUrlEndpoint():
+    return software_settings.get("software_dashboard_url", "https://app.software.com")
+
+def getOsUsername():
+
+    homedir = os.path.expanduser('~')
+    username = os.path.basename(homedir)
+
+    if (username is None or username == ""):
+        username = os.environ.get("USER")
+    
+    return username
+
+def getTimezone():
+    timezone = ""
+    try:
+        timezone = time.strftime('%Z')
+    except Exception:
+        timezone = time.tzname[0]
+    return timezone
 
 # fetch a value from the .software/sesion.json file
 def getItem(key):
@@ -258,24 +277,6 @@ def checkOnline():
     else:
         return False
 
-def getIdentity():
-    homedir = os.path.expanduser('~')
-
-    # strip out the username from the homedir
-    username = os.path.basename(homedir)
-
-    identityId = (':'.join(re.findall('..', '%012x' % uuid.getnode())))
-
-    parts = []
-    if (username):
-        parts.append(username)
-    if (identityId):
-        parts.append(identityId)
-
-    identityId = '_'.join(parts)
-
-    return identityId
-
 def refetchUserStatusLazily(tryCountUntilFoundUser):
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedInUser", None)
@@ -289,25 +290,16 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
 
 def launchLoginUrl():
     software_settings = sublime.load_settings("Software.sublime_settings")
-    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
-    identityId = getIdentity()
-    webUrl += "/login?addr=" + identityId
+    webUrl = getUrlEndpoint()
+    jwt = getItem("jwt")
+    webUrl += "/onboarding?token=" + jwt
     webbrowser.open(webUrl)
-    refetchUserStatusLazily(6)
-
-def launchSignupUrl():
-    software_settings = sublime.load_settings("Software.sublime_settings")
-    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
-    identityId = getIdentity()
-    webUrl += "/onboarding?addr=" + identityId
-    webbrowser.open(webUrl)
-    refetchUserStatusLazily(12)
+    refetchUserStatusLazily(10)
 
 def launchWebDashboardUrl():
     software_settings = sublime.load_settings("Software.sublime_settings")
-    webUrl = software_settings.get("software_dashboard_url", "https://app.software.com")
+    webUrl = getUrlEndpoint()
     webbrowser.open(webUrl)
-
 
 def fetchCodeTimeMetrics():
     api = '/dashboard'
@@ -322,29 +314,22 @@ def launchCodeTimeMetrics():
     file = getDashboardFile()
     sublime.active_window().open_file(file)
 
-def pluginLogout():
-    api = "/users/plugin/logout"
-    response = requestIt("POST", api, None, getItem("jwt"))
-    getUserStatus()
-
 def getAppJwt():
     setItem("app_jwt", None)
     serverAvailable = checkOnline()
     if (serverAvailable):
-        identityId = getIdentity()
-        if (identityId):
-            encodedIdentityId = quote_plus(identityId) 
-            api = "/data/token?addr=" + identityId
-            response = requestIt("GET", api, None, None)
-            if (response is not None):
-                responseObjStr = response.read().decode('utf-8')
-                try:
-                    responseObj = json.loads(responseObjStr)
-                    appJwt = responseObj.get("jwt", None)
-                    if (appJwt is not None):
-                        return appJwt
-                except Exception as ex:
-                    log("Code Time: Unable to retrieve app token: %s" % ex)
+        now = round(time.time())
+        api = "/data/apptoken?token=" + str(now)
+        response = requestIt("GET", api, None, None)
+        if (response is not None):
+            responseObjStr = response.read().decode('utf-8')
+            try:
+                responseObj = json.loads(responseObjStr)
+                appJwt = responseObj.get("jwt", None)
+                if (appJwt is not None):
+                    return appJwt
+            except Exception as ex:
+                log("Code Time: Unable to retrieve app token: %s" % ex)
     return None
 
 # crate a uuid token to establish a connection
@@ -353,31 +338,17 @@ def createToken():
     uid = uuid.uuid4()
     return uid.hex
 
-def createAnonymousUser(identityId):
+def createAnonymousUser(serverAvailable):
     appJwt = getAppJwt()
-    serverAvailable = checkOnline()
-
     if (serverAvailable and appJwt):
-        plugin_token = getItem("token")
-        if (plugin_token is None):
-            plugin_token = createToken()
-            setItem("token", plugin_token)
-
-        email = identityId
-
-        timezone = ""
-        try:
-            timezone = time.strftime('%Z')
-        except Exception:
-            timezone = time.tzname[0]
+        username = getOsUsername()
+        timezone = getTimezone()
 
         payload = {}
-        payload["email"] = email
-        payload["plugin_token"] = plugin_token
+        payload["username"] = username
         payload["timezone"] = timezone
-        encodedIdentityId = quote_plus(identityId)
 
-        api = "/data/onboard?addr=" + identityId
+        api = "/data/onboard"
         try:
             response = requestIt("POST", api, json.dumps(payload), appJwt)
 
@@ -386,114 +357,59 @@ def createAnonymousUser(identityId):
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
                     setItem("jwt", jwt)
-                    user = responseObj.get("user", None)
-                    setItem("user", user)
-                    setItem("sublime_lastUpdateTime", round(time.time()))
-                    return None
+                    return
                 except Exception as ex:
                     log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
         except Exception as ex:
             log("Code Time: Unable to complete anonymous user creation: %s" % ex)
 
-
-def getAuthenticatedPluginAccounts(identityId):
+def isLoggedOn(serverAvailable):
     jwt = getItem("jwt")
-    encodedIdentityId = quote_plus(identityId) 
-    serverAvailable = checkOnline()
-    tokenStr = "token=" + identityId
-    if (jwt and serverAvailable and identityId):
-        api = "/users/plugin/accounts?" + tokenStr
-        response = requestIt("GET", api, None, getItem("jwt"))
+    if (serverAvailable):
+        api = "/users/plugin/state"
+        response = requestIt("GET", api, None, jwt)
         if (response is not None and isResponsOk(response)):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
-                return responseObj.get("users", None)
+                
+                state = responseObj.get("state", None)
+                if (state is not None and state == "OK"):
+                    email = responseObj.get("emai", None)
+                    setItem("name", email)
+                    pluginJwt = responseObj.get("jwt", None)
+                    if (pluginJwt is not None and pluginJwt != jwt):
+                        setItem("jwt", pluginJwt)
+
+                    # state is ok, return True
+                    return True
             except Exception as ex:
-                log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+                log("Code Time: Unable to retrieve logged on response: %s" % ex)
 
-    return None
-
-def getLoggedInUser(authAccounts):
-    if (authAccounts):
-        for account in authAccounts:
-            userEmail = account.get("email", None)
-            if (isMacEmail(userEmail) is False):
-                return account
-
-    return None
-
-
-def isMacEmail(email):
-    if (email is None):
-        return False
-    macMatch = re.search(r'([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})', email, re.I)
-    macPairMatch = re.search(r'([a-fA-F0-9]{2}[:\\.-]?){5}[a-fA-F0-9]{2}', email, re.I)
-    macTripleMatch = re.search(r'([a-fA-F0-9]{3}[:\\.-]?){3}[a-fA-F0-9]{3}', email, re.I)
-    if (macMatch is not None
-        or macPairMatch is not None
-        or macTripleMatch is not None):
-        return True
+    setItem("name", None)
     return False
 
-def hasAnyUserAccounts(authAccounts):
-    if (authAccounts):
-        for account in authAccounts:
-            userEmail = account.get("email", None)
-            if (isMacEmail(userEmail) is False):
-                return True
-
-    return False
-
-def getAnonymousUser(authAccounts):
-    if (authAccounts):
-        for account in authAccounts:
-            userEmail = account.get("email", None)
-            if (isMacEmail(userEmail) is True):
-                return account
-
-    return None
-
-def updateSessionUserInfo(user):
-    userObj = {}
-    userObj["id"] = user.get("id")
-    setItem("jwt", user.get("plugin_jwt"))
-    setItem("user", userObj)
-    setItem("sublime_lastUpdateTime", round(time.time()))
 
 def getUserStatus():
     global SETTINGS
 
+    getOsUsername()
+
     SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
-    identityId = getIdentity()
-    
-    authAccounts = getAuthenticatedPluginAccounts(identityId)
+    jwt = getItem("jwt")
+    serverAvailable = checkOnline()
 
-    loggedInUser = getLoggedInUser(authAccounts)
-    anonUser = getAnonymousUser(authAccounts)
-    if (anonUser is None):
+    # initialize an anonymous user if we don't have a jwt
+    if (jwt is None):
         # create the anonymous user
-        createAnonymousUser(identityId)
-        authAccounts = getAuthenticatedPluginAccounts(identityId)
-        anonUser = getAnonymousUser(authAccounts)
+        createAnonymousUser(serverAvailable)
 
-    email = None
-
-    if (loggedInUser is not None):
-        updateSessionUserInfo(loggedInUser)
-        email = loggedInUser.get("email")
-        SETTINGS.set("logged_on", True)
-    elif (anonUser is not None):
-        updateSessionUserInfo(anonUser)
-        SETTINGS.set("logged_on", False)
-
-    hasUserAccounts = hasAnyUserAccounts(authAccounts)
-
+    # check if they're logged in or not
+    loggedOn = isLoggedOn(serverAvailable)
+    
+    SETTINGS.set("logged_on", loggedOn)
     currentUserStatus = {}
-
-    currentUserStatus["loggedInUser"] = loggedInUser
-    currentUserStatus["hasUserAccounts"] = hasUserAccounts
-    currentUserStatus["email"] = email
+    currentUserStatus["loggedOn"] = loggedOn
 
     return currentUserStatus
 

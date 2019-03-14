@@ -81,8 +81,7 @@ def chekUserAuthenticationStatus():
         clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
         if (clickAction):
             # launch the login view
-            launchSignupUrl()
-
+            launchLoginUrl()
 
 #
 # Fetch and display the daily KPM info
