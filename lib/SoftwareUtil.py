@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -28,10 +28,10 @@ def log(message):
         print(message)
 
 def getUrlEndpoint():
+    software_settings = sublime.load_settings("Software.sublime_settings")
     return software_settings.get("software_dashboard_url", "https://app.software.com")
 
 def getOsUsername():
-
     homedir = os.path.expanduser('~')
     username = os.path.basename(homedir)
 
