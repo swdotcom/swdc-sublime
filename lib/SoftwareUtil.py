@@ -14,15 +14,12 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.6.8'
+VERSION = '0.6.9'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
 
 runningResourceCmd = False
-currentUserStatus = None
-lastRegisterUserCheck = 0
-
 
 # log the message
 def log(message):
@@ -30,12 +27,6 @@ def log(message):
     software_settings = sublime.load_settings("Software.sublime_settings")
     if (software_settings.get("software_logging_on", True)):
         print(message)
-
-def clearUserStatusCache():
-    global currentUserStatus
-    global lastRegisterUserCheck
-    currentUserStatus = None
-    lastRegisterUserCheck = 0
 
 
 # fetch a value from the .software/sesion.json file
@@ -334,8 +325,6 @@ def launchCodeTimeMetrics():
 def pluginLogout():
     api = "/users/plugin/logout"
     response = requestIt("POST", api, None, getItem("jwt"))
-
-    clearUserStatusCache()
     getUserStatus()
 
 def getAppJwt():
@@ -424,14 +413,11 @@ def getAuthenticatedPluginAccounts(identityId):
 
     return None
 
-def getLoggedInUser(identityId, authAccounts):
+def getLoggedInUser(authAccounts):
     if (authAccounts):
         for account in authAccounts:
-            userEmail = account.get("email", "")
-            userMacAddr = account.get("mac_addr", "")
-            userMacAddrShare = account.get("mac_addr_share", "")
-            if (userEmail != userMacAddr and userEmail != identityId and userEmail != userMacAddrShare
-                and userMacAddr == identityId):
+            userEmail = account.get("email", None)
+            if (isMacEmail(userEmail) is False):
                 return account
 
     return None
@@ -449,7 +435,7 @@ def isMacEmail(email):
         return True
     return False
 
-def hasAnyUserAccounts(identityId, authAccounts):
+def hasAnyUserAccounts(authAccounts):
     if (authAccounts):
         for account in authAccounts:
             userEmail = account.get("email", None)
@@ -458,14 +444,14 @@ def hasAnyUserAccounts(identityId, authAccounts):
 
     return False
 
-def getAnonymousUser(identityId, authAccounts):
+def getAnonymousUser(authAccounts):
     if (authAccounts):
         for account in authAccounts:
             userEmail = account.get("email", None)
             if (isMacEmail(userEmail) is True):
-                return True
+                return account
 
-    return False
+    return None
 
 def updateSessionUserInfo(user):
     userObj = {}
@@ -476,28 +462,20 @@ def updateSessionUserInfo(user):
 
 def getUserStatus():
     global SETTINGS
-    global currentUserStatus
-    global lastRegisterUserCheck
 
     SETTINGS = sublime.load_settings(SETTINGS_FILE)
-    
-    nowTime = round(time.time())
-
-    if (currentUserStatus is not None and lastRegisterUserCheck is not None):
-        if (nowTime - lastRegisterUserCheck <= 5):
-            return currentUserStatus
 
     identityId = getIdentity()
     
     authAccounts = getAuthenticatedPluginAccounts(identityId)
 
-    loggedInUser = getLoggedInUser(identityId, authAccounts)
-    anonUser = getAnonymousUser(identityId, authAccounts)
+    loggedInUser = getLoggedInUser(authAccounts)
+    anonUser = getAnonymousUser(authAccounts)
     if (anonUser is None):
         # create the anonymous user
         createAnonymousUser(identityId)
         authAccounts = getAuthenticatedPluginAccounts(identityId)
-        anonUser = getAnonymousUser(identityId, authAccounts)
+        anonUser = getAnonymousUser(authAccounts)
 
     email = None
 
@@ -509,7 +487,7 @@ def getUserStatus():
         updateSessionUserInfo(anonUser)
         SETTINGS.set("logged_on", False)
 
-    hasUserAccounts = hasAnyUserAccounts(identityId, authAccounts)
+    hasUserAccounts = hasAnyUserAccounts(authAccounts)
 
     currentUserStatus = {}
 
@@ -517,7 +495,6 @@ def getUserStatus():
     currentUserStatus["hasUserAccounts"] = hasUserAccounts
     currentUserStatus["email"] = email
 
-    lastRegisterUserCheck = round(time.time())
     return currentUserStatus
 
 
