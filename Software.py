@@ -501,7 +501,16 @@ def plugin_loaded():
     initializeUserInfo()
 
 def initializeUserInfo():
+    jwt = getItem("jwt")
+    initializing = False
+    if (jwt is None):
+        initializing = True
+
     userStatus = getUserStatus()
+
+    if (initializing is True):
+        chekUserAuthenticationStatus()
+
     # re-fetch user info in another 90 seconds
     checkUserAuthTimer = Timer(90, initializeUserInfo)
     checkUserAuthTimer.start()

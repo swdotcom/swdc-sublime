@@ -61,22 +61,9 @@ def sendOfflineData():
 
 def chekUserAuthenticationStatus():
     serverAvailable = checkOnline()
-    userStatus = getUserStatus()
 
-    lastUpdateTime = getItem("sublime_lastUpdateTime")
-    if (lastUpdateTime is None):
-        lastUpdateTime = 0
-
-    timeDiffSinceUpdate = round(time.time()) - int(lastUpdateTime)
-    intialAuthCheck = False
-    if (timeDiffSinceUpdate < ONE_MINUTE_IN_SEC):
-        initialAuthCheck = True
-    hasUserAccounts = userStatus.get("hasUserAccounts", False)
-
-    if (serverAvailable and not authenticated and intialAuthCheck and not hasUserAccounts):
-
+    if (serverAvailable):
         # set the last update time so we don't try to ask too frequently
-        setItem("sublime_lastUpdateTime", round(time.time()))
         infoMsg = "To see your coding data in Code Time, please log in to your account."
         clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
         if (clickAction):

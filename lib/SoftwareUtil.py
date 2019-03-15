@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
