@@ -24,7 +24,7 @@ def showStatus(msg):
         httpLog(msg)
 
 def isResponsOk(response):
-    if (response is None or (response is not None and int(response.status) < 300)):
+    if (response is not None and int(response.status) < 300):
         return True
     return False
 

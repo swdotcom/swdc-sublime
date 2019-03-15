@@ -70,6 +70,9 @@ def chekUserAuthenticationStatus():
             # launch the login view
             launchLoginUrl()
 
+def handlKpmClickedEvent():
+    launchCodeTimeMetrics()
+
 #
 # Fetch and display the daily KPM info
 #
@@ -158,9 +161,6 @@ def humanizeMinutes(minutes):
         humanizedStr = '{:1.0f}'.format(minutes) + " min"
 
     return humanizedStr
-
-def handlKpmClickedEvent():
-    launchCodeTimeMetrics()
 
 
 

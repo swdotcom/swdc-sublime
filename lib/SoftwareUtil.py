@@ -13,8 +13,8 @@ from urllib.parse import quote_plus
 from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
-
-VERSION = '0.7.2'
+# the plugin version
+VERSION = '0.7.3'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -315,7 +315,6 @@ def launchCodeTimeMetrics():
     sublime.active_window().open_file(file)
 
 def getAppJwt():
-    setItem("app_jwt", None)
     serverAvailable = checkOnline()
     if (serverAvailable):
         now = round(time.time())
@@ -368,7 +367,9 @@ def isLoggedOn(serverAvailable):
     if (serverAvailable):
         api = "/users/plugin/state"
         response = requestIt("GET", api, None, jwt)
-        if (response is not None and isResponsOk(response)):
+
+        responseOk = isResponsOk(response)
+        if (responseOk is True):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
                 
@@ -382,8 +383,13 @@ def isLoggedOn(serverAvailable):
 
                     # state is ok, return True
                     return True
+                elif (state is not None and state != "ANONYMOUS"):
+                    setItem("jwt", None)
+
             except Exception as ex:
                 log("Code Time: Unable to retrieve logged on response: %s" % ex)
+        elif (responseOk is False):
+            setItem("jwt", None)
 
     setItem("name", None)
     return False
@@ -406,6 +412,12 @@ def getUserStatus():
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
+
+    # the jwt may have been nulled out
+    jwt = getItem("jwt");
+    if (jwt is None):
+        # create an anonymous user
+        createAnonymousUser(serverAvailable)
     
     SETTINGS.set("logged_on", loggedOn)
     currentUserStatus = {}
