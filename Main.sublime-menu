@@ -9,11 +9,11 @@
 				"children":
 				[
 					{ "command": "launch_code_time_metrics", "caption": "Code time dashboard" },
+					{ "command": "software_top_forty", "caption": "Software top 40" },
 					{ "command": "go_to_software", "caption": "Web dashboard" },
+					{ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" },
 					{ "command": "pause_kpm_updates", "caption": "Pause code time" },
 					{ "command": "enable_kpm_updates", "caption": "Enable code time" },
-					{ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" },
-					{ "command": "software_top_forty", "caption": "Software top 40" },
 				]
 			},
 		]
