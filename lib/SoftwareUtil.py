@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.3'
+VERSION = '0.7.4'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -301,8 +301,21 @@ def launchWebDashboardUrl():
     webUrl = getUrlEndpoint()
     webbrowser.open(webUrl)
 
+def isMac():
+    if sys.platform == "darwin":
+        return True
+    return False
+
+def isWindows():
+    if sys.platform == "win32":
+        return True
+    return False
+
 def fetchCodeTimeMetrics():
-    api = '/dashboard'
+    islinux = "true"
+    if isWindows() is True or isMac() is True:
+        islinux = "false"
+    api = '/dashboard?linux=' + islinux
     response = requestIt("GET", api, None, getItem("jwt"))
     content = response.read().decode('utf-8')
     file = getDashboardFile()
