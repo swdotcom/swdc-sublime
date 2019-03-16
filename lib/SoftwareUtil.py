@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.4'
+VERSION = '0.7.5'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -375,9 +375,36 @@ def createAnonymousUser(serverAvailable):
         except Exception as ex:
             log("Code Time: Unable to complete anonymous user creation: %s" % ex)
 
+def getUser(serverAvailable):
+    jwt = getItem("jwt");
+    if (jwt and serverAvailable):
+        api = "/users/me"
+        response = requestIt("GET", api, None, jwt)
+        if (isResponsOk(response)):
+            try:
+                responseObj = json.loads(response.read().decode('utf-8'))
+                user = responseObj.get("data", None)
+                return user
+            except Exception as ex:
+                log("Code Time: Unable to retrieve user: %s" % ex)
+    return None;
+
+def validateEmail(email):
+    match = re.findall('\S+@\S+', email)
+    if match:
+        return True
+    return False
+
 def isLoggedOn(serverAvailable):
     jwt = getItem("jwt")
     if (serverAvailable):
+
+        user = getUser(serverAvailable);
+        if (user is not None and validateEmail(user.get("email", None))):
+            setItem("name", user.get("email"))
+            setItem("jwt", user.get("plugin_jwt"))
+            return True
+
         api = "/users/plugin/state"
         response = requestIt("GET", api, None, jwt)
 
