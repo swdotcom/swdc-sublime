@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.5'
+VERSION = '0.7.6'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -423,13 +423,11 @@ def isLoggedOn(serverAvailable):
 
                     # state is ok, return True
                     return True
-                elif (state is not None and state != "ANONYMOUS"):
+                elif (state is not None and state == "NOT_FOUND"):
                     setItem("jwt", None)
 
             except Exception as ex:
                 log("Code Time: Unable to retrieve logged on response: %s" % ex)
-        elif (responseOk is False):
-            setItem("jwt", None)
 
     setItem("name", None)
     return False
