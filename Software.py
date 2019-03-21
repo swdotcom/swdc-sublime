@@ -7,7 +7,6 @@ import webbrowser
 import time
 import json
 import os
-import platform
 import sublime_plugin, sublime
 from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
@@ -58,7 +57,7 @@ class BackgroundWorker():
 # kpm payload data structure
 #
 class PluginData():
-    __slots__ = ('source', 'type', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone')
+    __slots__ = ('source', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone')
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {}
     line_counts = {}
@@ -66,7 +65,6 @@ class PluginData():
 
     def __init__(self, project):
         self.source = {}
-        self.type = 'Events'
         self.start = 0
         self.local_start = 0
         self.timezone = ''
@@ -87,10 +85,7 @@ class PluginData():
             # unable to get it from the time string, use the tzname[0] (1st tuple)
             self.timezone = time.tzname[0]
 
-        # get the os info
-        system = platform.system()
-        release = platform.release()
-        self.os = system + "_" + release
+        self.os = getOs()
 
     def json(self):
 
@@ -492,11 +487,8 @@ def plugin_loaded():
     gatherMusicTimer = Timer(30, gatherMusicInfo)
     gatherMusicTimer.start()
 
-    gatherRepoMembersTimer = Timer(60, processRepoMemberInfo)
-    gatherRepoMembersTimer.start()
-
-    gatherRepoCommitsTimer = Timer(45, processRepoCommitsInfo)
-    gatherRepoCommitsTimer.start()
+    hourlyTimer = Timer(45, hourlyTimerHandler)
+    hourlyTimer.start()
 
     initializeUserInfo()
 
@@ -506,13 +498,22 @@ def initializeUserInfo():
     if (jwt is None):
         initializing = True
 
-    userStatus = getUserStatus()
+    getUserStatus()
 
     if (initializing is True):
         chekUserAuthenticationStatus()
 
+    sendHeartbeat()
+
     # re-fetch user info in another 90 seconds
-    checkUserAuthTimer = Timer(90, initializeUserInfo)
+    checkUserAuthTimer = Timer(90, userStatusHandler)
+    checkUserAuthTimer.start()
+
+def userStatusHandler():
+    getUserStatus()
+    
+    # re-fetch user info in another 90 seconds
+    checkUserAuthTimer = Timer(90, userStatusHandler)
     checkUserAuthTimer.start()
 
 def plugin_unloaded():
@@ -524,20 +525,29 @@ def plugin_unloaded():
         if (response is not None):
             log("Code Time: uninstall successfully updated")
 
-def processRepoMemberInfo():
+# gather the git commits, repo members, heatbeat ping
+def hourlyTimerHandler():
     global PROJECT_DIR
-    gatherRepoMembers(PROJECT_DIR)
-    # fetch the repo member info in 1 hour
-    gatherRepoMembersTimer = Timer(60 * 60, processRepoMemberInfo)
-    gatherRepoMembersTimer.start()
 
-# gather the git commits
-def processRepoCommitsInfo():
+    sendHeartbeat()
+
+    processCommitsTimer = Timer(60, processCommits)
+    processCommitsTimer.start()
+
+    processRepoMembersTimer = Timer(120, processRepoMembers)
+    processRepoMembersTimer.start()
+
+    # run the handler in another hour
+    hourlyTimer = Timer(60 * 60, hourlyTimerHandler)
+    hourlyTimer.start()
+
+def processCommits():
     global PROJECT_DIR
     gatherCommits(PROJECT_DIR)
-    # fetch the repo commits info in 1 hour and 1 minute
-    gatherRepoCommitsTimer = Timer(60 * 60 + 60, processRepoCommitsInfo)
-    gatherRepoCommitsTimer.start()
+
+def processRepoMembers():
+    global PROJECT_DIR
+    gatherRepoMembers(PROJECT_DIR)
 
 def plugin_unloaded():
     PluginData.send_all_datas()

@@ -14,12 +14,13 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.6'
+VERSION = '0.7.7'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
 
 runningResourceCmd = False
+loggedInCacheState = False
 
 # log the message
 def log(message):
@@ -39,6 +40,11 @@ def getOsUsername():
         username = os.environ.get("USER")
     
     return username
+
+def getOs():
+    system = platform.system()
+    release = platform.release()
+    return system + "_" + release
 
 def getTimezone():
     timezone = ""
@@ -376,7 +382,7 @@ def createAnonymousUser(serverAvailable):
             log("Code Time: Unable to complete anonymous user creation: %s" % ex)
 
 def getUser(serverAvailable):
-    jwt = getItem("jwt");
+    jwt = getItem("jwt")
     if (jwt and serverAvailable):
         api = "/users/me"
         response = requestIt("GET", api, None, jwt)
@@ -387,7 +393,7 @@ def getUser(serverAvailable):
                 return user
             except Exception as ex:
                 log("Code Time: Unable to retrieve user: %s" % ex)
-    return None;
+    return None
 
 def validateEmail(email):
     match = re.findall('\S+@\S+', email)
@@ -397,9 +403,9 @@ def validateEmail(email):
 
 def isLoggedOn(serverAvailable):
     jwt = getItem("jwt")
-    if (serverAvailable):
+    if (serverAvailable and jwt is not None):
 
-        user = getUser(serverAvailable);
+        user = getUser(serverAvailable)
         if (user is not None and validateEmail(user.get("email", None))):
             setItem("name", user.get("email"))
             setItem("jwt", user.get("plugin_jwt"))
@@ -435,6 +441,7 @@ def isLoggedOn(serverAvailable):
 
 def getUserStatus():
     global SETTINGS
+    global loggedInCacheState
 
     getOsUsername()
 
@@ -452,7 +459,7 @@ def getUserStatus():
     loggedOn = isLoggedOn(serverAvailable)
 
     # the jwt may have been nulled out
-    jwt = getItem("jwt");
+    jwt = getItem("jwt")
     if (jwt is None):
         # create an anonymous user
         createAnonymousUser(serverAvailable)
@@ -461,7 +468,33 @@ def getUserStatus():
     currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 
+    if (loggedOn is True and loggedInCacheState != loggedOn):
+        log("Code Time: Logged on")
+        sendHeartbeat()
+
+    loggedInCacheState = loggedOn
+
     return currentUserStatus
+
+def sendHeartbeat():
+    jwt = getItem("jwt")
+    serverAvailable = checkOnline()
+    if (jwt is not None and serverAvailable):
+
+        payload = {}
+        payload["pluginId"] = PLUGIN_ID
+        payload["os"] = getOs()
+        payload["start"] = round(time.time())
+        payload["version"] = VERSION
+
+        api = "/data/heartbeat"
+        try:
+            response = requestIt("POST", api, json.dumps(payload), jwt)
+
+            if (response is not None and isResponsOk(response) is False):
+                log("Code Time: Unable to send heartbeat ping")
+        except Exception as ex:
+            log("Code Time: Unable to send heartbeat: %s" % ex)
 
 
 
