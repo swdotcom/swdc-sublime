@@ -154,6 +154,16 @@ class PluginData():
                         keystrokeCountObj.timezone = ''
 
     @staticmethod
+    def create_empty_payload(fileName, projectName):
+        project = {}
+        project['directory'] = projectName
+        project['name'] = projectName
+        return_data = PluginData(project)
+        PluginData.active_datas[project['directory']] = return_data
+        PluginData.get_file_info_and_initialize_if_none(return_data, fileName)
+        return return_data
+
+    @staticmethod
     def get_active_data(view):
         return_data = None
         if view is None or view.window() is None:
@@ -210,6 +220,7 @@ class PluginData():
             PluginData.send_timer.start()
 
         return return_data
+
 
     @staticmethod
     def get_existing_file_info(fileName):
@@ -270,6 +281,16 @@ class PluginData():
             fileInfoData = PluginData.get_existing_file_info(fileName)
 
         return fileInfoData
+
+    @staticmethod
+    def send_initial_payload():
+        fileName = "Untitled"
+        active_data = PluginData.create_empty_payload(fileName, "Unnamed")
+        PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
+        fileInfoData = PluginData.get_existing_file_info(fileName)
+        fileInfoData['add'] = 1
+        active_data.keystrokes = 1
+        PluginData.send_all_datas()
 
 class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -502,6 +523,7 @@ def initializeUserInfo():
 
     if (initializing is True):
         chekUserAuthenticationStatus()
+        PluginData.send_initial_payload()
 
     sendHeartbeat()
 

@@ -14,7 +14,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.7'
+VERSION = '0.7.8'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -304,7 +304,7 @@ def launchLoginUrl():
 
 def launchWebDashboardUrl():
     software_settings = sublime.load_settings("Software.sublime_settings")
-    webUrl = getUrlEndpoint()
+    webUrl = getUrlEndpoint() + "/login"
     webbrowser.open(webUrl)
 
 def isMac():

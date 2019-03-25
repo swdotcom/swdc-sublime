@@ -57,7 +57,7 @@ def requestIt(method, api, payload, jwt):
         if (jwt is not None):
             headers['Authorization'] = jwt
         elif (method is 'POST' and jwt is None):
-            httpLog("Code Time: no auth token available to post kpm data")
+            httpLog("Code Time: no auth token available to post kpm data: %s" % payload)
             return None
 
         # make the request
