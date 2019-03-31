@@ -59,7 +59,7 @@ def sendOfflineData():
             if (isResponsOk(response)):
                 os.remove(dataStoreFile)
 
-def chekUserAuthenticationStatus():
+def showLoginPrompt():
     serverAvailable = checkOnline()
 
     if (serverAvailable):

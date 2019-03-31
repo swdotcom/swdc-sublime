@@ -21,6 +21,9 @@ SETTINGS = {}
 
 PROJECT_DIR = None
 
+check_online_interval_sec = 60 * 10;
+retry_counter = 0;
+
 # update the kpm in
 def post_json(json_data):
     # send offline data
@@ -487,6 +490,31 @@ class EventListener(sublime_plugin.EventListener):
 # Iniates the plugin tasks once the it's loaded into Sublime.
 #
 def plugin_loaded():
+    initializeUser()
+
+def initializeUser():
+    # check if the session file is there
+    serverAvailable = checkOnline()
+    fileExists = softwareSessionFileExists()
+    if (fileExists is False):
+        if (serverAvailable is False):
+            if (retry_counter == 0):
+                showOfflinePrompt()
+            initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
+            initializeUserTimer.start()
+        else:
+            result = createAnonymousUser(serverAvailable)
+            if (result is None):
+                if (retry_counter == 0):
+                    showOfflinePrompt()
+                initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
+                initializeUserTimer.start()
+            else:
+                initializePlugin(True)
+    else:
+        initializePlugin(False)
+
+def initializePlugin(initializedAnonUser):
     PACKAGE_NAME = __name__.split('.')[0]
     log('Code Time: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
     showStatus("Code Time")
@@ -511,21 +539,16 @@ def plugin_loaded():
     hourlyTimer = Timer(45, hourlyTimerHandler)
     hourlyTimer.start()
 
-    initializeUserInfo()
+    initializeUserInfo(initializedAnonUser)
 
-def initializeUserInfo():
-    jwt = getItem("jwt")
-    initializing = False
-    if (jwt is None):
-        initializing = True
-
+def initializeUserInfo(initializedAnonUser):
     getUserStatus()
 
-    if (initializing is True):
-        chekUserAuthenticationStatus()
+    if (initializedAnonUser is True):
+        showLoginPrompt()
         PluginData.send_initial_payload()
 
-    sendHeartbeat()
+    sendHeartbeat("INITIALIZED")
 
     # re-fetch user info in another 90 seconds
     checkUserAuthTimer = Timer(90, userStatusHandler)
@@ -551,7 +574,7 @@ def plugin_unloaded():
 def hourlyTimerHandler():
     global PROJECT_DIR
 
-    sendHeartbeat()
+    sendHeartbeat("HOURLY")
 
     processCommitsTimer = Timer(60, processCommits)
     processCommitsTimer.start()
@@ -574,6 +597,10 @@ def processRepoMembers():
 def plugin_unloaded():
     PluginData.send_all_datas()
     PluginData.background_worker.queue.join()
+
+def showOfflinePrompt():
+    infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
+    sublime.message_dialog(infoMsg)
 
 
 

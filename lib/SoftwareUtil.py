@@ -3,6 +3,7 @@ from threading import Thread, Timer, Event
 import os
 import json
 import time
+import socket
 import sublime_plugin, sublime
 import sys
 import uuid
@@ -14,10 +15,12 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.7.8'
+VERSION = '0.7.9'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
+
+sessionMap = {}
 
 runningResourceCmd = False
 loggedInCacheState = False
@@ -54,8 +57,17 @@ def getTimezone():
         timezone = time.tzname[0]
     return timezone
 
+def getHostname():
+    try:
+        return socket.gethostname()
+    except Exception:
+        return os.uname().nodename
+
 # fetch a value from the .software/sesion.json file
 def getItem(key):
+    val = sessionMap.get(key, None)
+    if (val is not None):
+        return val
     jsonObj = getSoftwareSessionAsJson()
 
     # return a default of None if key isn't found
@@ -65,6 +77,7 @@ def getItem(key):
 
 # get an item from the session json file
 def setItem(key, value):
+    sessionMap[key] = value
     jsonObj = getSoftwareSessionAsJson()
     jsonObj[key] = value
 
@@ -82,6 +95,11 @@ def storePayload(payload):
     with open(dataStoreFile, "a") as dsFile:
         dsFile.write(payload + "\n")
 
+def softwareSessionFileExists():
+    file = getSoftwareDir(False)
+    sessionFile = os.path.join(file, 'session.json')
+    return os.path.isfile(sessionFile)
+
 def getSoftwareSessionAsJson():
     try:
         with open(getSoftwareSessionFile()) as sessionFile:
@@ -90,25 +108,26 @@ def getSoftwareSessionAsJson():
         return {}
 
 def getSoftwareSessionFile():
-    file = getSoftwareDir()
+    file = getSoftwareDir(True)
     return os.path.join(file, 'session.json')
 
 def getSoftwareDataStoreFile():
-    file = getSoftwareDir()
+    file = getSoftwareDir(True)
     return os.path.join(file, 'data.json')
 
-def getSoftwareDir():
+def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')
     softwareDataDir = os.path.join(softwareDataDir, '.software')
-    os.makedirs(softwareDataDir, exist_ok=True)
+    if (autoCreate is True):
+        os.makedirs(softwareDataDir, exist_ok=True)
     return softwareDataDir
 
 def getDashboardFile():
-    file = getSoftwareDir()
+    file = getSoftwareDir(True)
     return os.path.join(file, 'CodeTime.txt')
 
 # execute the applescript command
-def runComand(cmd, args):
+def runCommand(cmd, args = []):
     p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(cmd)
     return stdout.decode('utf-8').strip()
@@ -119,7 +138,7 @@ def getItunesTrackState():
         '''
     try:
         cmd = script.encode('latin-1')
-        result = runComand(cmd, ['osascript', '-'])
+        result = runCommand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
         log("exception getting track state: %s " % e)
@@ -132,7 +151,7 @@ def getSpotifyTrackState():
         '''
     try:
         cmd = script.encode('latin-1')
-        result = runComand(cmd, ['osascript', '-'])
+        result = runCommand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
         log("exception getting track state: %s " % e)
@@ -218,7 +237,7 @@ def getMacTrackInfo():
     '''
     try:
         cmd = script.encode('latin-1')
-        result = runComand(cmd, ['osascript', '-'])
+        result = runCommand(cmd, ['osascript', '-'])
         result = result.strip('\r\n')
         result = result.replace('"', '')
         result = result.replace('\'', '')
@@ -361,10 +380,13 @@ def createAnonymousUser(serverAvailable):
     if (serverAvailable and appJwt):
         username = getOsUsername()
         timezone = getTimezone()
+        hostname = getHostname()
 
         payload = {}
         payload["username"] = username
         payload["timezone"] = timezone
+        payload["hostname"] = hostname
+        payload["creation_annotation"] = "NO_SESSION_FILE";
 
         api = "/data/onboard"
         try:
@@ -375,11 +397,12 @@ def createAnonymousUser(serverAvailable):
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
                     setItem("jwt", jwt)
-                    return
+                    return jwt
                 except Exception as ex:
                     log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
         except Exception as ex:
             log("Code Time: Unable to complete anonymous user creation: %s" % ex)
+    return None
 
 def getUser(serverAvailable):
     jwt = getItem("jwt")
@@ -447,22 +470,10 @@ def getUserStatus():
 
     SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
-    jwt = getItem("jwt")
     serverAvailable = checkOnline()
-
-    # initialize an anonymous user if we don't have a jwt
-    if (jwt is None):
-        # create the anonymous user
-        createAnonymousUser(serverAvailable)
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
-
-    # the jwt may have been nulled out
-    jwt = getItem("jwt")
-    if (jwt is None):
-        # create an anonymous user
-        createAnonymousUser(serverAvailable)
     
     SETTINGS.set("logged_on", loggedOn)
     currentUserStatus = {}
@@ -470,13 +481,13 @@ def getUserStatus():
 
     if (loggedOn is True and loggedInCacheState != loggedOn):
         log("Code Time: Logged on")
-        sendHeartbeat()
+        sendHeartbeat("STATE_CHANGE:LOGGED_IN:true")
 
     loggedInCacheState = loggedOn
 
     return currentUserStatus
 
-def sendHeartbeat():
+def sendHeartbeat(reason):
     jwt = getItem("jwt")
     serverAvailable = checkOnline()
     if (jwt is not None and serverAvailable):
@@ -486,6 +497,10 @@ def sendHeartbeat():
         payload["os"] = getOs()
         payload["start"] = round(time.time())
         payload["version"] = VERSION
+        payload["hostname"] = getHostname()
+        payload["trigger_annotaion"] = reason
+
+        log("heartbeat payload: %s" % json.dumps(payload));
 
         api = "/data/heartbeat"
         try:
