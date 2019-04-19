@@ -14,6 +14,7 @@
 					{ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" },
 					{ "command": "pause_kpm_updates", "caption": "Pause code time" },
 					{ "command": "enable_kpm_updates", "caption": "Enable code time" },
+					{ "command": "toggle_status_bar_metrics", "caption": "Show/hide status bar metrics" },
 				]
 			},
 		]

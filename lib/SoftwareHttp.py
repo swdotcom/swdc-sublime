@@ -6,17 +6,40 @@ import json
 import sublime_plugin, sublime
 
 USER_AGENT = 'Code Time Sublime Plugin'
+lastMsg = None
 
 def httpLog(message):
-
     software_settings = sublime.load_settings("Software.sublime_settings")
     if (software_settings.get("software_logging_on", True)):
         print(message)
 
+def toggleStatus():
+    global lastMsg
+    software_settings = sublime.load_settings("Software.sublime_settings")
+    showStatusVal = software_settings.get("show_code_time_status", True)
+    
+    if (showStatusVal is True):
+        showStatus(lastMsg)
+    else:
+        showStatus("Code Time")
+
 # update the status bar message
 def showStatus(msg):
+    global lastMsg
     try:
         active_window = sublime.active_window()
+
+        software_settings = sublime.load_settings("Software.sublime_settings")
+        showStatusVal = software_settings.get("show_code_time_status", True)
+
+        if (showStatusVal is False):
+            if (msg != "Code Time"):
+                # update the lastMsg
+                lastMsg = msg
+            msg = "Code Time"
+        else:
+            lastMsg = msg
+
         if active_window:
             for view in active_window.views():
                 view.set_status('software.com', msg)

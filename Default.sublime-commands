@@ -1,5 +1,6 @@
 [
 	{ "command": "launch_code_time_metrics", "caption": "Code Time: Dashboard" },
 	{ "command": "go_to_software", "caption": "Code Time: Go to software.com" },
-	{ "command": "software_top_forty", "caption": "Code Time: Software top 40" }
+	{ "command": "software_top_forty", "caption": "Code Time: Software top 40" },
+	{ "command": "toggle_status_bar_metrics", "caption": "Code Time: Show/hide status bar metrics" },
 ]

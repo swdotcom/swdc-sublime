@@ -21,8 +21,8 @@ SETTINGS = {}
 
 PROJECT_DIR = None
 
-check_online_interval_sec = 60 * 10;
-retry_counter = 0;
+check_online_interval_sec = 60 * 10
+retry_counter = 0
 
 # update the kpm in
 def post_json(json_data):
@@ -321,6 +321,19 @@ class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
 
+class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
+    def run(self, edit):
+        global SETTINGS
+        log("toggling status bar metrics")
+
+        showStatusVal = SETTINGS.get("show_code_time_status", True)
+        if (showStatusVal):
+            SETTINGS.set("show_code_time_status", False)
+        else:
+            SETTINGS.set("show_code_time_status", True)
+
+        toggleStatus()
+
 
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
@@ -579,9 +592,6 @@ def hourlyTimerHandler():
     processCommitsTimer = Timer(60, processCommits)
     processCommitsTimer.start()
 
-    processRepoMembersTimer = Timer(120, processRepoMembers)
-    processRepoMembersTimer.start()
-
     # run the handler in another hour
     hourlyTimer = Timer(60 * 60, hourlyTimerHandler)
     hourlyTimer.start()
@@ -589,10 +599,6 @@ def hourlyTimerHandler():
 def processCommits():
     global PROJECT_DIR
     gatherCommits(PROJECT_DIR)
-
-def processRepoMembers():
-    global PROJECT_DIR
-    gatherRepoMembers(PROJECT_DIR)
 
 def plugin_unloaded():
     PluginData.send_all_datas()

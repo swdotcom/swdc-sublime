@@ -132,7 +132,7 @@ def fetchDailyKpmSessionInfo():
         if (currentDayMinutes > averageDailyMinutes):
             inFlowIcon = "🚀"
 
-        statusMsg = "Code time: " + inFlowIcon + "" + currentDayTime
+        statusMsg = inFlowIcon + "" + currentDayTime
         if (averageDailyMinutes > 0):
             statusMsg += " | Avg:" + averageDailyTime
 
