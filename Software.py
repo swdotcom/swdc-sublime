@@ -577,7 +577,7 @@ def userStatusHandler():
     checkUserAuthTimer.start()
 
 def plugin_unloaded():
-    PluginData.send_all_datas()
+    # clean up the background worker
     PluginData.background_worker.queue.join()
 
 # gather the git commits, repo members, heatbeat ping
