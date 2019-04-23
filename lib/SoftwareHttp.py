@@ -7,6 +7,7 @@ import sublime_plugin, sublime
 
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
+windowView = None
 
 def httpLog(message):
     software_settings = sublime.load_settings("Software.sublime_settings")
@@ -40,9 +41,10 @@ def showStatus(msg):
         else:
             lastMsg = msg
 
-        if active_window:
+        if (active_window is not None):
             for view in active_window.views():
-                view.set_status('software.com', msg)
+                if (view is not None):
+                    view.set_status('software.com', msg)
     except RuntimeError:
         httpLog(msg)
 
@@ -93,8 +95,6 @@ def requestIt(method, api, payload, jwt):
 
         # send the request
         connection.request(method, api, payload, headers)
-
-        # httpLog("Code Time: completed api request: %s" % connection);
 
         response = connection.getresponse()
         # httpLog("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)

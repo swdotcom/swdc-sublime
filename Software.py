@@ -383,6 +383,7 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileinfo, update the metric
         fileInfoData['open'] += 1
         log('Code Time: opened file %s' % fileName)
+        fetchDailyKpmSessionInfo()
 
     def on_close(self, view):
         fileName = view.file_name()
@@ -406,6 +407,7 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % fileName)
+        fetchDailyKpmSessionInfo()
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -575,13 +577,8 @@ def userStatusHandler():
     checkUserAuthTimer.start()
 
 def plugin_unloaded():
-    PACKAGE_NAME = __name__.split('.')[0]
-    if (events.remove(PACKAGE_NAME)):
-        log("Code Time: unlinstalling plugin: %s" % PACKAGE_NAME)
-        api = "/integrations/%s" % PLUGIN_ID
-        response = requestIt("DELETE", api, None, getItem("jwt"))
-        if (response is not None):
-            log("Code Time: uninstall successfully updated")
+    PluginData.send_all_datas()
+    PluginData.background_worker.queue.join()
 
 # gather the git commits, repo members, heatbeat ping
 def hourlyTimerHandler():
@@ -599,10 +596,6 @@ def hourlyTimerHandler():
 def processCommits():
     global PROJECT_DIR
     gatherCommits(PROJECT_DIR)
-
-def plugin_unloaded():
-    PluginData.send_all_datas()
-    PluginData.background_worker.queue.join()
 
 def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
