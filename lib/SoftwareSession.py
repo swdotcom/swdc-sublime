@@ -97,34 +97,24 @@ def fetchDailyKpmSessionInfo():
         avgKpmStr = "0"
         try:
             avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
-        except Exception:
+        except Exception as ex:
             avgKpmStr = "0"
-
-        currentSessionMinutes = 0
-        try:
-            currentSessionMinutes = int(sessions.get("currentSessionMinutes", 0))
-        except Exception:
-            currentSessionMinutes = 0
-
-        sessionMinGoalPercent = 0.0
-        try:
-            if (sessions.get("currentSessionGoalPercent") is not None):
-                sessionMinGoalPercent = float(sessions.get("currentSessionGoalPercent", 0.0))
-        except Exception:
-            sessionMinGoalPercent = 0.0
+            print("Code Time: Average KPM exception: %s" % ex)
 
         currentDayMinutes = 0
         try:
             currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
-        except Exception:
+        except Exception as ex:
             currentDayMinutes = 0
+            print("Code Time: Current Day exception: %s" % ex)
+            
         averageDailyMinutes = 0
         try:
             averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
-        except Exception:
+        except Exception as ex:
             averageDailyMinutes = 0
+            print("Code Time: Average Daily Minutes exception: %s" % ex)
         
-        currentSessionTime = humanizeMinutes(currentSessionMinutes)
         currentDayTime = humanizeMinutes(currentDayMinutes)
         averageDailyTime = humanizeMinutes(averageDailyMinutes)
 
@@ -139,8 +129,8 @@ def fetchDailyKpmSessionInfo():
         showStatus(statusMsg)
         fetchCodeTimeMetrics()
 
-    fetchDailyKpmTimer = Timer(60, fetchDailyKpmSessionInfo)
-    fetchDailyKpmTimer.start()
+    # fetchDailyKpmTimer = Timer(60, fetchDailyKpmSessionInfo)
+    # fetchDailyKpmTimer.start()
 
 def humanizeMinutes(minutes):
     minutes = int(minutes)

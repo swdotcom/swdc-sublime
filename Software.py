@@ -31,6 +31,10 @@ def post_json(json_data):
 
     response = requestIt("POST", "/data", json_data, getItem("jwt"))
 
+    # update status bar after data is sent
+    fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
+    fetchDailyKpmTimer.start()
+
     if (isUnauthenticated(response)):
         # save the data to the offline data file
         storePayload(json_data)
@@ -383,7 +387,9 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileinfo, update the metric
         fileInfoData['open'] += 1
         log('Code Time: opened file %s' % fileName)
-        fetchDailyKpmSessionInfo()
+
+        # show last status message
+        toggleStatus() 
 
     def on_close(self, view):
         fileName = view.file_name()
@@ -407,7 +413,9 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % fileName)
-        # fetchDailyKpmSessionInfo()
+        
+        # show last status message
+        toggleStatus() 
 
     def on_modified_async(self, view):
         global PROJECT_DIR
