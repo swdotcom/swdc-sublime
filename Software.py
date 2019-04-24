@@ -407,7 +407,7 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % fileName)
-        fetchDailyKpmSessionInfo()
+        # fetchDailyKpmSessionInfo()
 
     def on_modified_async(self, view):
         global PROJECT_DIR
