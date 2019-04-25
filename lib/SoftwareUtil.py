@@ -15,7 +15,7 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 
 # the plugin version
-VERSION = '0.8.4'
+VERSION = '0.8.5'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
 SETTINGS = {}
@@ -50,12 +50,30 @@ def getOs():
     return system + "_" + release
 
 def getTimezone():
-    timezone = ""
     try:
-        timezone = time.strftime('%Z')
+        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+            # no DST
+            timezone = time.tzname[0]
+        else:
+            # we're in DST
+            timezone = time.tzname[1]
     except Exception:
-        timezone = time.tzname[0]
+        keystrokeCountObj.timezone = ''
     return timezone
+
+def getLocalStart():
+    now = round(time.time()) - 60
+    local_start = now - time.timezone
+    try:
+        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+            # no DST, use the local_start based on time.timezone
+            pass
+        else:
+            # we're in DST, add 1
+            local_start += (60 * 60)
+    except Exception:
+        pass
+    return local_start
 
 def getHostname():
     try:

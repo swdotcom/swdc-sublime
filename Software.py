@@ -79,19 +79,10 @@ class PluginData():
         self.project = project
         self.pluginId = PLUGIN_ID
         self.version = VERSION
-        # set the start and local_start
         now = round(time.time()) - 60
         self.start = now
-        # update the local_start using the time.timezone (i.e. 8 hour offset will be 28800)
-        self.local_start = now - time.timezone
-
-        try:
-            # get the offset and timezone from the time value
-            self.timezone = time.strftime('%Z')
-        except Exception:
-            # unable to get it from the time string, use the tzname[0] (1st tuple)
-            self.timezone = time.tzname[0]
-
+        self.local_start = getLocalStart()
+        self.timezone = getTimezone()
         self.os = getOs()
 
     def json(self):
@@ -143,22 +134,8 @@ class PluginData():
                 keystrokeCountObj.project['identifier'] = None
                 now = round(time.time()) - 60
                 keystrokeCountObj.start = now
-                keystrokeCountObj.local_start = now - time.timezone
-
-                try:
-                    # get the offset and timezone from the time value
-                    keystrokeCountObj.timezone = time.strftime('%Z')
-                except Exception:
-                    # failed getting timezone and offset from time, use tzname
-                    try:
-                        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
-                            keystrokeCountObj.timezone = time.tzname[0]
-                        else:
-                            keystrokeCountObj.timezone = time.tzname[1]
-                            # add an hour to the local_start since we're in DST
-                            keystrokeCountObj.local_start += (60 * 60)
-                    except Exception:
-                        keystrokeCountObj.timezone = ''
+                keystrokeCountObj.local_start = getLocalStart()
+                keystrokeCountObj.timezone = getTimezone()
 
     @staticmethod
     def create_empty_payload(fileName, projectName):
