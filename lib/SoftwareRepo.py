@@ -36,6 +36,8 @@ def gatherCommits(rootDir):
 			if (latestCommitTs is not None):
 				sinceOption = "--since=%s" % int(latestCommitTs)
 				cmdList.append(sinceOption)
+		else:
+			cmdList.append("--max-count=100")
 
 		latestCommitId = None
 		if (latestCommit is not None):
