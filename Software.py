@@ -16,8 +16,8 @@ from .lib.SoftwareRepo import *
 
 DEFAULT_DURATION = 60
 
-SETTINGS_FILE = 'Software.sublime_settings'
-SETTINGS = {}
+# SETTINGS_FILE = 'Software.sublime_settings'
+# SETTINGS = {}
 
 PROJECT_DIR = None
 
@@ -281,8 +281,7 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
         launchWebDashboardUrl()
 
     def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("logged_on", True) is True)
+        return (getValue("logged_on", True) is True)
 
 # code_time_login command
 class CodeTimeLogin(sublime_plugin.TextCommand):
@@ -290,8 +289,7 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
         launchLoginUrl()
 
     def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("logged_on", True) is False)
+        return (getValue("logged_on", True) is False)
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
@@ -304,14 +302,13 @@ class SoftwareTopForty(sublime_plugin.TextCommand):
 
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
-        global SETTINGS
         log("toggling status bar metrics")
 
-        showStatusVal = SETTINGS.get("show_code_time_status", True)
+        showStatusVal = getValue("show_code_time_status", True)
         if (showStatusVal):
-            SETTINGS.set("show_code_time_status", False)
+            setValue("show_code_time_status", False)
         else:
-            SETTINGS.set("show_code_time_status", True)
+            setValue("show_code_time_status", True)
 
         toggleStatus()
 
@@ -319,26 +316,22 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        global SETTINGS
         log("software kpm metrics paused")
         showStatus("Paused")
-        SETTINGS.set("software_telemetry_on", False)
+        setValue("software_telemetry_on", False)
 
     def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("software_telemetry_on", True) is True)
+        return (getValue("software_telemetry_on", True) is True)
 
 # Command to re-enable kpm metrics
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        global SETTINGS
         log("software kpm metrics enabled")
         showStatus("Code Time")
-        SETTINGS.set("software_telemetry_on", True)
+        setValue("software_telemetry_on", True)
 
     def is_enabled(self):
-        global SETTINGS
-        return (SETTINGS.get("software_telemetry_on", True) is False)
+        return (getValue("software_telemetry_on", True) is False)
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
@@ -518,10 +511,6 @@ def initializePlugin(initializedAnonUser):
     PACKAGE_NAME = __name__.split('.')[0]
     log('Code Time: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
     showStatus("Code Time")
-
-    global SETTINGS
-
-    SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     setItem("sublime_lastUpdateTime", None)
 

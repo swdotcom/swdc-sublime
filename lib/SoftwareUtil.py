@@ -18,22 +18,30 @@ from .SoftwareHttp import *
 VERSION = '0.8.5'
 PLUGIN_ID = 1
 SETTINGS_FILE = 'Software.sublime_settings'
-SETTINGS = {}
+SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
 sessionMap = {}
 
 runningResourceCmd = False
 loggedInCacheState = False
 
+def getValue(key, defaultValue):
+    global SETTINGS
+    print("Got value!")
+    return SETTINGS.get(key, defaultValue)
+
+def setValue(key, value):
+    global SETTINGS
+    print("Set value!")
+    return SETTINGS.set(key, value)
+
 # log the message
 def log(message):
-    software_settings = sublime.load_settings("Software.sublime_settings")
-    if (software_settings.get("software_logging_on", True)):
+    if (getValue("software_logging_on", True)):
         print(message)
 
 def getUrlEndpoint():
-    software_settings = sublime.load_settings("Software.sublime_settings")
-    return software_settings.get("software_dashboard_url", "https://app.software.com")
+    return getValue("software_dashboard_url", "https://app.software.com")
 
 def getOsUsername():
     homedir = os.path.expanduser('~')
@@ -332,7 +340,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
     t.start()
 
 def launchLoginUrl():
-    software_settings = sublime.load_settings("Software.sublime_settings")
     webUrl = getUrlEndpoint()
     jwt = getItem("jwt")
     webUrl += "/onboarding?token=" + jwt
@@ -340,7 +347,6 @@ def launchLoginUrl():
     refetchUserStatusLazily(10)
 
 def launchWebDashboardUrl():
-    software_settings = sublime.load_settings("Software.sublime_settings")
     webUrl = getUrlEndpoint() + "/login"
     webbrowser.open(webUrl)
 
@@ -481,19 +487,17 @@ def isLoggedOn(serverAvailable):
 
 
 def getUserStatus():
-    global SETTINGS
     global loggedInCacheState
 
     getOsUsername()
-
-    SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     serverAvailable = checkOnline()
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
+
+    setValue("logged_on", loggedOn)
     
-    SETTINGS.set("logged_on", loggedOn)
     currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 
