@@ -17,7 +17,7 @@ from .lib.SoftwareRepo import *
 DEFAULT_DURATION = 60
 
 # SETTINGS_FILE = 'Software.sublime_settings'
-# SETTINGS = {}
+SETTINGS = {}
 
 PROJECT_DIR = None
 
@@ -527,6 +527,10 @@ def initializePlugin(initializedAnonUser):
 
     hourlyTimer = Timer(45, hourlyTimerHandler)
     hourlyTimer.start()
+
+    updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
+    updateOnlineStatusTimer.start()
+    print("Online status timer initialized")
 
     initializeUserInfo(initializedAnonUser)
 

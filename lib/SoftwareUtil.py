@@ -35,6 +35,16 @@ def setValue(key, value):
     print("Set value!")
     return SETTINGS.set(key, value)
 
+def updateOnlineStatus():
+    online = checkOnline()
+    print("Checking online status")
+    if (online is True):
+        setValue("online", True)
+        print(getValue("online", True))
+    else:
+        setValue("online", False)
+        print(getValue("online", True))
+
 # log the message
 def log(message):
     if (getValue("software_logging_on", True)):
