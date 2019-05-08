@@ -550,6 +550,10 @@ def initializePlugin(initializedAnonUser):
     hourlyTimer = Timer(45, hourlyTimerHandler)
     hourlyTimer.start()
 
+    setOnlineStatusTimer = Timer(5, setOnlineStatus)
+    setOnlineStatusTimer.start()
+    # print("Online status timer initialized")
+
     initializeUserInfo(initializedAnonUser)
 
 def initializeUserInfo(initializedAnonUser):
@@ -597,21 +601,18 @@ def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
     sublime.message_dialog(infoMsg)
 
+def setOnlineStatus():
+    online = checkOnline()
+    log("Code Time: Checking online status...")
+    if (online is True):
+        setValue("online", True)
+        log("Code Time: Online")
+        # log(getValue("online", True))
+    else:
+        setValue("online", False)
+        log("Code Time: Offline")
+        # log(getValue("online", True))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # run the check in another minute
+    setOnlineStatusTimer = Timer(60, setOnlineStatus)
+    setOnlineStatusTimer.start()
