@@ -363,13 +363,20 @@ def fetchCodeTimeMetrics():
         islinux = "false"
     api = '/dashboard?linux=' + islinux
     response = requestIt("GET", api, None, getItem("jwt"))
-    content = response.read().decode('utf-8')
-    file = getDashboardFile()
-    with open(file, 'w', encoding='utf-8') as f:
-        f.write(content)
+    try:
+        content = response.read().decode('utf-8')
+        file = getDashboardFile()
+        with open(file, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as ex:
+        log("Code Time: Unable to write local dashboard: %s" % ex)
 
 def launchCodeTimeMetrics():
-    fetchCodeTimeMetrics()
+    online = getValue("online", True)
+    if (online):
+        fetchCodeTimeMetrics()
+    else:
+        log("Code Time: could not fetch latest metrics")
     file = getDashboardFile()
     sublime.active_window().open_file(file)
 

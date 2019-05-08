@@ -9,6 +9,7 @@ import os
 import sublime_plugin, sublime
 from .SoftwareHttp import *
 from .SoftwareUtil import *
+from .SoftwareSettings import *
 
 # Constants
 DASHBOARD_KEYMAP_MSG = "⚠️Code Time ctrl+alt+o"
@@ -82,52 +83,56 @@ def fetchDailyKpmSessionInfo():
     today = today.replace(hour=0, minute=0, second=0, microsecond=0)
     fromSeconds = round(today.timestamp())
 
-    # api to fetch the session kpm info
-    api = '/sessions?summary=true'
-    response = requestIt("GET", api, None, getItem("jwt"))
+    online = getValue("online", True)
+    if (online):
+        # api to fetch the session kpm info
+        api = '/sessions?summary=true'
+        response = requestIt("GET", api, None, getItem("jwt"))
 
-    if (response is not None and isResponsOk(response)):
-        sessions = json.loads(response.read().decode('utf-8'))
+        if (response is not None and isResponsOk(response)):
+            sessions = json.loads(response.read().decode('utf-8'))
 
-        # i.e.
-        # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
-        # but should be...
-        # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
+            # i.e.
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
+            # but should be...
+            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
 
-        avgKpmStr = "0"
-        try:
-            avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
-        except Exception as ex:
             avgKpmStr = "0"
-            print("Code Time: Average KPM exception: %s" % ex)
+            try:
+                avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
+            except Exception as ex:
+                avgKpmStr = "0"
+                print("Code Time: Average KPM exception: %s" % ex)
 
-        currentDayMinutes = 0
-        try:
-            currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
-        except Exception as ex:
             currentDayMinutes = 0
-            print("Code Time: Current Day exception: %s" % ex)
-            
-        averageDailyMinutes = 0
-        try:
-            averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
-        except Exception as ex:
+            try:
+                currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
+            except Exception as ex:
+                currentDayMinutes = 0
+                print("Code Time: Current Day exception: %s" % ex)
+                
             averageDailyMinutes = 0
-            print("Code Time: Average Daily Minutes exception: %s" % ex)
-        
-        currentDayTime = humanizeMinutes(currentDayMinutes)
-        averageDailyTime = humanizeMinutes(averageDailyMinutes)
+            try:
+                averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
+            except Exception as ex:
+                averageDailyMinutes = 0
+                print("Code Time: Average Daily Minutes exception: %s" % ex)
+            
+            currentDayTime = humanizeMinutes(currentDayMinutes)
+            averageDailyTime = humanizeMinutes(averageDailyMinutes)
 
-        inFlowIcon = ""
-        if (currentDayMinutes > averageDailyMinutes):
-            inFlowIcon = "🚀"
+            inFlowIcon = ""
+            if (currentDayMinutes > averageDailyMinutes):
+                inFlowIcon = "🚀"
 
-        statusMsg = inFlowIcon + "" + currentDayTime
-        if (averageDailyMinutes > 0):
-            statusMsg += " | " + averageDailyTime
+            statusMsg = inFlowIcon + "" + currentDayTime
+            if (averageDailyMinutes > 0):
+                statusMsg += " | " + averageDailyTime
 
-        showStatus(statusMsg)
-        fetchCodeTimeMetrics()
+            showStatus(statusMsg)
+            fetchCodeTimeMetrics()
+    else:
+        return None
 
     # fetchDailyKpmTimer = Timer(60, fetchDailyKpmSessionInfo)
     # fetchDailyKpmTimer.start()
