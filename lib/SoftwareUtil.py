@@ -13,12 +13,11 @@ import webbrowser
 from urllib.parse import quote_plus
 from subprocess import Popen, PIPE
 from .SoftwareHttp import *
+from .SoftwareSettings import *
 
 # the plugin version
 VERSION = '0.8.5'
 PLUGIN_ID = 1
-SETTINGS_FILE = 'Software.sublime_settings'
-SETTINGS = {}
 
 sessionMap = {}
 
@@ -27,13 +26,11 @@ loggedInCacheState = False
 
 # log the message
 def log(message):
-    software_settings = sublime.load_settings("Software.sublime_settings")
-    if (software_settings.get("software_logging_on", True)):
+    if (getValue("software_logging_on", True)):
         print(message)
 
 def getUrlEndpoint():
-    software_settings = sublime.load_settings("Software.sublime_settings")
-    return software_settings.get("software_dashboard_url", "https://app.software.com")
+    return getValue("software_dashboard_url", "https://app.software.com")
 
 def getOsUsername():
     homedir = os.path.expanduser('~')
@@ -332,7 +329,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
     t.start()
 
 def launchLoginUrl():
-    software_settings = sublime.load_settings("Software.sublime_settings")
     webUrl = getUrlEndpoint()
     jwt = getItem("jwt")
     webUrl += "/onboarding?token=" + jwt
@@ -340,7 +336,6 @@ def launchLoginUrl():
     refetchUserStatusLazily(10)
 
 def launchWebDashboardUrl():
-    software_settings = sublime.load_settings("Software.sublime_settings")
     webUrl = getUrlEndpoint() + "/login"
     webbrowser.open(webUrl)
 
@@ -360,13 +355,20 @@ def fetchCodeTimeMetrics():
         islinux = "false"
     api = '/dashboard?linux=' + islinux
     response = requestIt("GET", api, None, getItem("jwt"))
-    content = response.read().decode('utf-8')
-    file = getDashboardFile()
-    with open(file, 'w', encoding='utf-8') as f:
-        f.write(content)
+    try:
+        content = response.read().decode('utf-8')
+        file = getDashboardFile()
+        with open(file, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as ex:
+        log("Code Time: Unable to write local dashboard: %s" % ex)
 
 def launchCodeTimeMetrics():
-    fetchCodeTimeMetrics()
+    online = getValue("online", True)
+    if (online):
+        fetchCodeTimeMetrics()
+    else:
+        log("Code Time: could not fetch latest metrics")
     file = getDashboardFile()
     sublime.active_window().open_file(file)
 
@@ -481,19 +483,16 @@ def isLoggedOn(serverAvailable):
 
 
 def getUserStatus():
-    global SETTINGS
     global loggedInCacheState
 
     getOsUsername()
-
-    SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
     serverAvailable = checkOnline()
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
     
-    SETTINGS.set("logged_on", loggedOn)
+    setValue("logged_on", loggedOn)
     currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 

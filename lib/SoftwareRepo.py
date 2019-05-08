@@ -4,6 +4,7 @@ import re
 from urllib.parse import quote_plus
 from .SoftwareHttp import *
 from .SoftwareUtil import *
+from .SoftwareSettings import *
 
 # gather git commits
 def gatherCommits(rootDir):
@@ -165,14 +166,18 @@ def gatherCommits(rootDir):
 					sendCommits(commitData)
 
 def sendCommits(commitData):
-	response = requestIt("POST", "/commits", json.dumps(commitData), getItem("jwt"))
-	if (response is not None):
-		responseObjStr = response.read().decode('utf-8')
-		try:
-			responseObj = json.loads(responseObjStr)
-			log("Code Time: %s" % responseObj.get("message", "Repo commits update complete"))
-		except Exception as ex:
-			log("Code Time: Unable to complete repo commits metric update: %s" % ex)
+	online = getValue("online", True)
+	if (online):
+		response = requestIt("POST", "/commits", json.dumps(commitData), getItem("jwt"))
+		if (response is not None):
+			responseObjStr = response.read().decode('utf-8')
+			try:
+				responseObj = json.loads(responseObjStr)
+				log("Code Time: %s" % responseObj.get("message", "Repo commits update complete"))
+			except Exception as ex:
+				log("Code Time: Unable to complete repo commits metric update: %s" % ex)
+	else:
+		return None
 
 def buildRepoKey(identifier, branch, tag):
 	return "%s_%s_%s" % (identifier, branch, tag)
