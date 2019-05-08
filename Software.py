@@ -284,7 +284,12 @@ class GoToSoftwareCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         # global SETTINGS
         # return (SETTINGS.get("logged_on", True) is True)
-        return (getValue("logged_on", True) is True)
+        loggedOn = getValue("logged_on", True)
+        online = getValue("online", True)
+        if (loggedOn is True and online is True):
+            return True
+        else:
+            return False
 
 # code_time_login command
 class CodeTimeLogin(sublime_plugin.TextCommand):
@@ -294,7 +299,12 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
     def is_enabled(self):
         # global SETTINGS
         # return (SETTINGS.get("logged_on", True) is False)
-        return (getValue("logged_on", True) is False)
+        loggedOn = getValue("logged_on", True)
+        online = getValue("online", True)
+        if (loggedOn is False and online is True):
+            return True
+        else:
+            return False
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
@@ -304,6 +314,9 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
+
+    def is_enabled(self):
+        return (getValue("online", True) is True)
 
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
