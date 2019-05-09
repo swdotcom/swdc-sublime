@@ -3,6 +3,7 @@ from threading import Thread, Timer, Event
 import os
 import json
 import time
+import datetime
 import socket
 import sublime_plugin, sublime
 import sys
@@ -16,7 +17,7 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.8.5'
+VERSION = '0.8.6'
 PLUGIN_ID = 1
 
 sessionMap = {}
@@ -140,6 +141,10 @@ def getSoftwareDir(autoCreate):
 def getDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CodeTime.txt')
+
+def getCustomDashboardFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'CustomDashboard.txt')
 
 # execute the applescript command
 def runCommand(cmd, args = []):
@@ -370,6 +375,43 @@ def launchCodeTimeMetrics():
     else:
         log("Code Time: could not fetch latest metrics")
     file = getDashboardFile()
+    sublime.active_window().open_file(file)
+
+def fetchCustomDashboard(date_range):
+    try:
+        date_range_arr = [x.strip() for x in date_range.split(',')]
+        startDate = date_range_arr[0] 
+        endDate = date_range_arr[1] 
+        start = time.mktime(datetime.datetime.strptime(startDate, "%m/%d/%Y").timetuple())
+        end = time.mktime(datetime.datetime.strptime(endDate, "%m/%d/%Y").timetuple())
+    except Exception:
+        sublime.error_message(
+            'Invalid date range'
+            '\n\n'
+            'Please enter a start and end date in the format, MM/DD/YYYY.'
+            '\n\n'
+            'Example: 04/24/2019, 05/01/2019')
+        log("Code Time: invalid date range")
+
+    try:
+        api = '/dashboard/custom?start=' + str(start) + '&end=' + str(end)
+        response = requestIt("GET", api, None, getItem("jwt"))
+        content = response.read().decode('utf-8')
+        file = getCustomDashboardFile()
+        with open(file, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception:
+        log("Code Time: Unable to write custom dashboard")
+
+
+def launchCustomDashboard():
+    online = getValue("online", True)
+    date_range = getValue("date_range", "04/24/2019, 05/01/2019")
+    if (online):
+        fetchCustomDashboard(date_range)
+    else:
+        log("Code Time: could not fetch custom dashboard")
+    file = getCustomDashboardFile()
     sublime.active_window().open_file(file)
 
 def getAppJwt():

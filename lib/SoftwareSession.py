@@ -79,7 +79,7 @@ def handlKpmClickedEvent():
 #
 def fetchDailyKpmSessionInfo():
     # send in the start of the day in seconds
-    today = datetime.now()
+    today = datetime.datetime.now()
     today = today.replace(hour=0, minute=0, second=0, microsecond=0)
     fromSeconds = round(today.timestamp())
 
