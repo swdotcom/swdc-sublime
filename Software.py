@@ -5,6 +5,7 @@ from package_control import events
 from queue import Queue
 import webbrowser
 import time
+import datetime
 import json
 import os
 import sublime_plugin, sublime
@@ -303,6 +304,21 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         launchCodeTimeMetrics()
+
+class LaunchCustomDashboard(sublime_plugin.WindowCommand):
+    def run(self):
+        d = datetime.datetime.now()
+        current_time = d.strftime("%m/%d/%Y")
+        t = d - datetime.timedelta(days=7)
+        time_ago = t.strftime("%m/%d/%Y")
+        # default range: last 7 days
+        default_range = str(time_ago) + ", " + str(current_time)
+        self.window.show_input_panel("Enter a start and end date (format: MM/DD/YYYY):", default_range, self.on_done, None, None)
+
+    def on_done(self, result):
+        setValue("date_range", result)
+        launchCustomDashboard()
+
 
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):

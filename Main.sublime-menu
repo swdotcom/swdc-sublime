@@ -9,6 +9,7 @@
 				"children":
 				[
 					{ "command": "launch_code_time_metrics", "caption": "Code time dashboard" },
+					{ "command": "launch_custom_dashboard", "caption": "Generate a custom dashboard" },
 					{ "command": "software_top_forty", "caption": "Software top 40" },
 					{ "command": "go_to_software", "caption": "Web dashboard" },
 					{ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" },
