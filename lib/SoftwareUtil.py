@@ -382,8 +382,8 @@ def fetchCustomDashboard(date_range):
         date_range_arr = [x.strip() for x in date_range.split(',')]
         startDate = date_range_arr[0] 
         endDate = date_range_arr[1] 
-        start = time.mktime(datetime.datetime.strptime(startDate, "%m/%d/%Y").timetuple())
-        end = time.mktime(datetime.datetime.strptime(endDate, "%m/%d/%Y").timetuple())
+        start = int(time.mktime(datetime.datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
+        end = int(time.mktime(datetime.datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
     except Exception:
         sublime.error_message(
             'Invalid date range'
@@ -394,7 +394,7 @@ def fetchCustomDashboard(date_range):
         log("Code Time: invalid date range")
 
     try:
-        api = '/dashboard/custom?start=' + str(start) + '&end=' + str(end)
+        api = '/dashboard?start=' + str(start) + '&end=' + str(end)
         response = requestIt("GET", api, None, getItem("jwt"))
         content = response.read().decode('utf-8')
         file = getCustomDashboardFile()
