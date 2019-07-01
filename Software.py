@@ -14,6 +14,7 @@ from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
 from .lib.SoftwareRepo import *
+from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
 
 DEFAULT_DURATION = 60
@@ -25,18 +26,8 @@ retry_counter = 0
 
 # update the kpm in
 def post_json(json_data):
-    # send offline data
-    sendOfflineData()
-
-    response = requestIt("POST", "/data", json_data, getItem("jwt"))
-
-    # update status bar after data is sent
-    fetchDailyKpmTimer = Timer(5, fetchDailyKpmSessionInfo)
-    fetchDailyKpmTimer.start()
-
-    if (isUnauthenticated(response)):
-        # save the data to the offline data file
-        storePayload(json_data)
+    # save the data to the offline data file
+    storePayload(json_data)
 
     PluginData.reset_source_data()
 
@@ -125,7 +116,7 @@ class PluginData():
             for fileName in keystrokeCountObj.source:
                 fileInfo = keystrokeCountObj.source[fileName]
                 # add the lines for this file so we can re-use again
-                PluginData.line_counts[fileName] = fileInfo["lines"]
+                PluginData.line_counts[fileName] = fileInfo.get("lines", 0)
 
             if keystrokeCountObj is not None:
                 keystrokeCountObj.source = {}
@@ -337,9 +328,7 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
         else:
             setValue("show_code_time_status", True)
 
-
         toggleStatus()
-
 
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
@@ -354,7 +343,7 @@ class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
 # Command to re-enable kpm metrics
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        log("software kpm metrics enabled")
+        log("Code Time: metrics enabled")
         showStatus("Code Time")
         setValue("software_telemetry_on", True)
 
@@ -387,7 +376,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: opened file %s' % fileName)
 
         # show last status message
-        toggleStatus() 
+        redispayStatus() 
 
     def on_close(self, view):
         fileName = view.file_name()
@@ -413,7 +402,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: closed file %s' % fileName)
         
         # show last status message
-        toggleStatus() 
+        redispayStatus() 
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -514,6 +503,7 @@ def plugin_loaded():
     initializeUser()
 
 def initializeUser():
+    log("Code Time: Initializing user info")
     # check if the session file is there
     serverAvailable = checkOnline()
     fileExists = softwareSessionFileExists()
@@ -531,11 +521,11 @@ def initializeUser():
                 initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
                 initializeUserTimer.start()
             else:
-                initializePlugin(True)
+                initializePlugin(True, serverAvailable)
     else:
-        initializePlugin(False)
+        initializePlugin(False, serverAvailable)
 
-def initializePlugin(initializedAnonUser):
+def initializePlugin(initializedAnonUser, serverAvailable):
     PACKAGE_NAME = __name__.split('.')[0]
     log('Code Time: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
     showStatus("Code Time")
@@ -544,21 +534,16 @@ def initializePlugin(initializedAnonUser):
 
     # fire off timer tasks (seconds, task)
 
-    sendOfflineDataTimer = Timer(20, sendOfflineData)
-    sendOfflineDataTimer.start()
+    setOnlineStatus()
 
-    fetchDailyKpmTimer = Timer(6, fetchDailyKpmSessionInfo)
-    fetchDailyKpmTimer.start()
+    sendOfflineDataTimer = Timer(2, sendOfflineData)
+    sendOfflineDataTimer.start()
 
     gatherMusicTimer = Timer(30, gatherMusicInfo)
     gatherMusicTimer.start()
 
     hourlyTimer = Timer(45, hourlyTimerHandler)
     hourlyTimer.start()
-
-    setOnlineStatusTimer = Timer(5, setOnlineStatus)
-    setOnlineStatusTimer.start()
-    # print("Online status timer initialized")
 
     initializeUserInfo(initializedAnonUser)
 
@@ -588,8 +573,6 @@ def plugin_unloaded():
 
 # gather the git commits, repo members, heatbeat ping
 def hourlyTimerHandler():
-    global PROJECT_DIR
-
     sendHeartbeat("HOURLY")
 
     processCommitsTimer = Timer(60, processCommits)
@@ -613,12 +596,12 @@ def setOnlineStatus():
     if (online is True):
         setValue("online", True)
         log("Code Time: Online")
-        # log(getValue("online", True))
     else:
         setValue("online", False)
         log("Code Time: Offline")
-        # log(getValue("online", True))
 
     # run the check in another minute
     setOnlineStatusTimer = Timer(60, setOnlineStatus)
     setOnlineStatusTimer.start()
+
+

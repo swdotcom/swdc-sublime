@@ -14,6 +14,10 @@ def httpLog(message):
     if (getValue("software_logging_on", True)):
         print(message)
 
+def redispayStatus():
+    global lastMsg
+    showStatus(lastMsg)
+
 def toggleStatus():
     global lastMsg
     showStatusVal = getValue("show_code_time_status", True)
@@ -21,6 +25,7 @@ def toggleStatus():
     if (showStatusVal is True):
         showStatus(lastMsg)
     else:
+        # show clock icon unicode
         showStatus("Code Time")
 
 # update the status bar message

@@ -17,8 +17,11 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.8.6'
+VERSION = '0.8.7'
 PLUGIN_ID = 1
+DASHBOARD_LABEL_WIDTH = 25
+DASHBOARD_VALUE_WIDTH = 25
+MARKER_WIDTH = 4
 
 sessionMap = {}
 
@@ -103,14 +106,6 @@ def setItem(key, value):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
-# store the payload offline
-def storePayload(payload):
-    # append payload to software data store file
-    dataStoreFile = getSoftwareDataStoreFile()
-
-    with open(dataStoreFile, "a") as dsFile:
-        dsFile.write(payload + "\n")
-
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
     sessionFile = os.path.join(file, 'session.json')
@@ -119,7 +114,8 @@ def softwareSessionFileExists():
 def getSoftwareSessionAsJson():
     try:
         with open(getSoftwareSessionFile()) as sessionFile:
-            return json.load(sessionFile)
+            loadedSessionFile = json.load(sessionFile)
+            return loadedSessionFile
     except Exception:
         return {}
 
@@ -161,7 +157,7 @@ def getItunesTrackState():
         result = runCommand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
-        log("exception getting track state: %s " % e)
+        log("Code Time: error getting track state: %s " % e)
         # no music found playing
         return "stopped"
 
@@ -174,7 +170,7 @@ def getSpotifyTrackState():
         result = runCommand(cmd, ['osascript', '-'])
         return result
     except Exception as e:
-        log("exception getting track state: %s " % e)
+        log("Code Time: error getting track state: %s " % e)
         # no music found playing
         return "stopped"
 
@@ -268,7 +264,7 @@ def getMacTrackInfo():
         else:
             return {}
     except Exception as e:
-        log("exception getting track: %s " % e)
+        log("Code Time: error getting track: %s " % e)
         # no music found playing
         return {}
 
@@ -354,29 +350,6 @@ def isWindows():
         return True
     return False
 
-def fetchCodeTimeMetrics():
-    islinux = "true"
-    if isWindows() is True or isMac() is True:
-        islinux = "false"
-    api = '/dashboard?linux=' + islinux
-    response = requestIt("GET", api, None, getItem("jwt"))
-    try:
-        content = response.read().decode('utf-8')
-        file = getDashboardFile()
-        with open(file, 'w', encoding='utf-8') as f:
-            f.write(content)
-    except Exception as ex:
-        log("Code Time: Unable to write local dashboard: %s" % ex)
-
-def launchCodeTimeMetrics():
-    online = getValue("online", True)
-    if (online):
-        fetchCodeTimeMetrics()
-    else:
-        log("Code Time: could not fetch latest metrics")
-    file = getDashboardFile()
-    sublime.active_window().open_file(file)
-
 def fetchCustomDashboard(date_range):
     try:
         date_range_arr = [x.strip() for x in date_range.split(',')]
@@ -448,7 +421,7 @@ def createAnonymousUser(serverAvailable):
         payload["username"] = username
         payload["timezone"] = timezone
         payload["hostname"] = hostname
-        payload["creation_annotation"] = "NO_SESSION_FILE";
+        payload["creation_annotation"] = "NO_SESSION_FILE"
 
         api = "/data/onboard"
         try:
@@ -527,6 +500,12 @@ def isLoggedOn(serverAvailable):
 def getUserStatus():
     global loggedInCacheState
 
+    currentUserStatus = {}
+
+    if (loggedInCacheState is True):
+        currentUserStatus["loggedOn"] = loggedInCacheState
+        return currentUserStatus
+
     getOsUsername()
 
     serverAvailable = checkOnline()
@@ -535,7 +514,6 @@ def getUserStatus():
     loggedOn = isLoggedOn(serverAvailable)
     
     setValue("logged_on", loggedOn)
-    currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 
     if (loggedOn is True and loggedInCacheState != loggedOn):
@@ -559,8 +537,6 @@ def sendHeartbeat(reason):
         payload["hostname"] = getHostname()
         payload["trigger_annotaion"] = reason
 
-        log("heartbeat payload: %s" % json.dumps(payload));
-
         api = "/data/heartbeat"
         try:
             response = requestIt("POST", api, json.dumps(payload), jwt)
@@ -570,5 +546,60 @@ def sendHeartbeat(reason):
         except Exception as ex:
             log("Code Time: Unable to send heartbeat: %s" % ex)
 
+def humanizeMinutes(minutes):
+    minutes = int(minutes)
+    humanizedStr = ""
+    if (minutes == 60):
+        humanizedStr = "1 hr"
+    elif (minutes > 60):
+        floatMin = (minutes / 60)
+        if (floatMin % 1 == 0):
+            # don't show zeros after the decimal
+            humanizedStr = '{:4.0f}'.format(floatMin) + " hrs"
+        else:
+            # at least 4 chars (including the dot) with 2 after the dec point
+            humanizedStr = '{:4.1f}'.format(round(floatMin, 1)) + " hrs"
+    elif (minutes == 1):
+        humanizedStr = "1 min"
+    else:
+        humanizedStr = '{:1.0f}'.format(minutes) + " min"
 
+    return humanizedStr
+
+
+def getDashboardRow(label, value):
+    dashboardLabel = getDashboardLabel(label, DASHBOARD_LABEL_WIDTH)
+    dashboardValue = getDashboardValue(value)
+    content = "%s : %s\n" % (dashboardLabel, dashboardValue)
+    return content
+
+def getSectionHeader(label):
+    content = "%s\n" % label
+    # add 3 to account for the " : " between the columns
+    dashLen = DASHBOARD_LABEL_WIDTH + DASHBOARD_VALUE_WIDTH + 15
+    for i in range(dashLen):
+        content += "-"
+    content += "\n"
+    return content
+
+def getDashboardLabel(label, width):
+    return getDashboardDataDisplay(width, label)
+
+def getDashboardValue(value):
+    valueContent = getDashboardDataDisplay(DASHBOARD_VALUE_WIDTH, value)
+    paddedContent = ""
+    for i in range(11):
+        paddedContent += " "
+    paddedContent = "%s%s" % (paddedContent, valueContent)
+    return paddedContent
+
+def getDashboardDataDisplay(widthLen, data):
+    dataLen = len(data)
+
+    stringLen = widthLen - len(data)
+
+    content = ""
+    for i in range(stringLen):
+        content += " "
+    return "%s%s" % (content, data)
 

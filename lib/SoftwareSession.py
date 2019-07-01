@@ -10,9 +10,9 @@ import sublime_plugin, sublime
 from .SoftwareHttp import *
 from .SoftwareUtil import *
 from .SoftwareSettings import *
+from .SoftwareOffline import *
 
 # Constants
-DASHBOARD_KEYMAP_MSG = "⚠️Code Time ctrl+alt+o"
 ONE_MINUTE_IN_SEC = 60
 SECONDS_PER_HOUR = 60 * 60
 LONG_THRESHOLD_HOURS = 12
@@ -20,13 +20,6 @@ SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
 LOGIN_LABEL = "Log in"
 
-# store the payload offline
-def storePayload(payload):
-    # append payload to software data store file
-    dataStoreFile = getSoftwareDataStoreFile()
-
-    with open(dataStoreFile, "a") as dsFile:
-        dsFile.write(payload + "\n")
 
 # send the data that has been saved offline
 def sendOfflineData():
@@ -60,6 +53,9 @@ def sendOfflineData():
             if (isResponsOk(response)):
                 os.remove(dataStoreFile)
 
+    # update the statusbar
+    fetchDailyKpmSessionInfo(True)
+
 def showLoginPrompt():
     serverAvailable = checkOnline()
 
@@ -77,85 +73,61 @@ def handlKpmClickedEvent():
 #
 # Fetch and display the daily KPM info
 #
-def fetchDailyKpmSessionInfo():
-    # send in the start of the day in seconds
-    today = datetime.datetime.now()
-    today = today.replace(hour=0, minute=0, second=0, microsecond=0)
-    fromSeconds = round(today.timestamp())
+def fetchDailyKpmSessionInfo(forceRefresh):
+    sessionSummaryData = getSessionSummaryFileAsJson()
+    currentDayMinutes = sessionSummaryData.get("currentDayMinutes", 0)
+    if (currentDayMinutes == 0 or forceRefresh is True):
+        online = getValue("online", True)
+        if (online is False):
+            # update the status bar with offline data
+            updateStatusBarWithSummaryData()
+            return { "data": sessionSummaryData, "status": "CONN_ERR" }
 
-    online = getValue("online", True)
-    if (online):
         # api to fetch the session kpm info
-        api = '/sessions?summary=true'
+        api = '/sessions/summary'
         response = requestIt("GET", api, None, getItem("jwt"))
 
         if (response is not None and isResponsOk(response)):
-            sessions = json.loads(response.read().decode('utf-8'))
+            sessionSummaryData = json.loads(response.read().decode('utf-8'))
 
-            # i.e.
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': None}
-            # but should be...
-            # {'sessionMinAvg': 0, 'inFlow': False, 'currentSessionMinutes': 23.983333333333334, 'lastKpm': 0, 'currentSessionGoalPercent': 0.44}
+            # update the file
+            saveSessionSummaryToDisk(sessionSummaryData)
 
-            avgKpmStr = "0"
-            try:
-                avgKpmStr = '{:1.0f}'.format(sessions.get("lastKpm", 0))
-            except Exception as ex:
-                avgKpmStr = "0"
-                print("Code Time: Average KPM exception: %s" % ex)
+            # update the status bar
+            updateStatusBarWithSummaryData()
 
-            currentDayMinutes = 0
-            try:
-                currentDayMinutes = int(sessions.get("currentDayMinutes", 0))
-            except Exception as ex:
-                currentDayMinutes = 0
-                print("Code Time: Current Day exception: %s" % ex)
-                
-            averageDailyMinutes = 0
-            try:
-                averageDailyMinutes = int(sessions.get("averageDailyMinutes", 0))
-            except Exception as ex:
-                averageDailyMinutes = 0
-                print("Code Time: Average Daily Minutes exception: %s" % ex)
-            
-            currentDayTime = humanizeMinutes(currentDayMinutes)
-            averageDailyTime = humanizeMinutes(averageDailyMinutes)
+            # stitch the dashboard together
+            fetchCodeTimeMetricsDashboard(sessionSummaryData)
 
-            inFlowIcon = ""
-            if (currentDayMinutes > averageDailyMinutes):
-                inFlowIcon = "🚀"
-
-            statusMsg = inFlowIcon + "" + currentDayTime
-            if (averageDailyMinutes > 0):
-                statusMsg += " | " + averageDailyTime
-
-            showStatus(statusMsg)
-            fetchCodeTimeMetrics()
+            return { "data": sessionSummaryData, "status": "OK" }
     else:
-        return None
+        # update the status bar with offline data
+        updateStatusBarWithSummaryData()
+        return { "data": sessionSummaryData, "status": "OK" }
 
-    # fetchDailyKpmTimer = Timer(60, fetchDailyKpmSessionInfo)
-    # fetchDailyKpmTimer.start()
+# store the payload offline
+def storePayload(payload):
 
-def humanizeMinutes(minutes):
-    minutes = int(minutes)
-    humanizedStr = ""
-    if (minutes == 60):
-        humanizedStr = "1 hr"
-    elif (minutes > 60):
-        floatMin = (minutes / 60)
-        if (floatMin % 1 == 0):
-            # don't show zeros after the decimal
-            humanizedStr = '{:4.0f}'.format(floatMin) + " hrs"
-        else:
-            # at least 4 chars (including the dot) with 2 after the dec point
-            humanizedStr = '{:4.1f}'.format(round(floatMin, 1)) + " hrs"
-    elif (minutes == 1):
-        humanizedStr = "1 min"
-    else:
-        humanizedStr = '{:1.0f}'.format(minutes) + " min"
+    # calculate it and call add to the minutes
+    # convert it to json
+    payloadData = json.loads(payload)
 
-    return humanizedStr
+    keystrokes = payloadData.get("keystrokes", 0)
+
+    incrementSessionSummaryData(1, keystrokes)
+
+    # push the stats to the file so other editor windows can have it
+    saveSessionSummaryToDisk(getSessionSummaryData())
+
+    # update the statusbar
+    fetchDailyKpmSessionInfo(False)
+
+    # get the datastore file to save the payload
+    dataStoreFile = getSoftwareDataStoreFile()
+
+    with open(dataStoreFile, "a") as dsFile:
+        dsFile.write(payload + "\n")
+
 
 
 
