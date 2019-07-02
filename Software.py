@@ -24,7 +24,7 @@ PROJECT_DIR = None
 check_online_interval_sec = 60 * 10
 retry_counter = 0
 
-# update the kpm in
+# payload trigger to store it for later
 def post_json(json_data):
     # save the data to the offline data file
     storePayload(json_data)
@@ -534,9 +534,10 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     # fire off timer tasks (seconds, task)
 
-    setOnlineStatus()
+    setOnlineStatusTimer = Timer(1, setOnlineStatus)
+    setOnlineStatusTimer.start()
 
-    sendOfflineDataTimer = Timer(2, sendOfflineData)
+    sendOfflineDataTimer = Timer(5, sendOfflineData)
     sendOfflineDataTimer.start()
 
     gatherMusicTimer = Timer(30, gatherMusicInfo)

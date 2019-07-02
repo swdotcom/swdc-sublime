@@ -1,6 +1,8 @@
 import sublime_plugin, sublime
 import json
 import os.path
+import time
+import datetime
 from .SoftwareUtil import *
 
 sessionSummaryData = None
@@ -63,7 +65,7 @@ def getCurrentDayTime(sessionSummaryData):
         currentDayMinutes = int(sessionSummaryData.get("currentDayMinutes", 0))
     except Exception as ex:
         currentDayMinutes = 0
-        print("Code Time: Current Day exception: %s" % ex)
+        log("Code Time: Current Day exception: %s" % ex)
     
     return {"data": currentDayMinutes, "formatted": humanizeMinutes(currentDayMinutes)}
 
@@ -73,7 +75,7 @@ def getAverageDailyTime(sessionSummaryData):
         averageDailyMinutes = int(sessionSummaryData.get("averageDailyMinutes", 0))
     except Exception as ex:
         averageDailyMinutes = 0
-        print("Code Time: Average Daily Minutes exception: %s" % ex)
+        log("Code Time: Average Daily Minutes exception: %s" % ex)
     
     return {"data": averageDailyMinutes, "formatted": humanizeMinutes(averageDailyMinutes)}
 
@@ -167,8 +169,8 @@ def fetchCodeTimeMetricsDashboard(summary):
 
     if (os.path.exists(summaryInfoFile)):
         try:
-            with open(summaryInfoFile) as summaryInfoFileContent:
-                dashboardContent += summaryInfoFileContent
+            with open(summaryInfoFile, 'r', encoding="utf-8") as summaryInfoFileContent:
+                dashboardContent += summaryInfoFileContent.read()
         except Exception as ex:
             log("Code Time: Unable to read summary info file content: %s" % ex)
 

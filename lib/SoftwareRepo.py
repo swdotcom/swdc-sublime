@@ -106,7 +106,10 @@ def gatherCommits(rootDir):
 
 						metricsLine = lineInfos[1].strip()
 						metricsInfos = metricsLine.split(" ")
-		
+
+						if (len(metricsInfos) < 2):
+							continue
+
 						changes = 0
 						try:
 							changes = int(metricsInfos[0].strip())
