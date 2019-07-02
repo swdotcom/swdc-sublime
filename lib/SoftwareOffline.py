@@ -153,10 +153,11 @@ def fetchCodeTimeMetricsDashboard(summary):
     dashboardContent = ""
 
     d = datetime.datetime.now()
-    formattedDate = d.strftime("%a, %b %-d %-I:%M%p")
+
+    formattedDate = d.strftime("%a %b %d %I:%M %p")
     dashboardContent += "CODE TIME          (Last updated on %s)\n\n" % formattedDate
 
-    formattedTodayDate = d.strftime("%a, %b %-d")
+    formattedTodayDate = d.strftime("%a %b %d")
     todayHeader = "Today (%s)" % formattedTodayDate
     dashboardContent += getSectionHeader(todayHeader)
 
