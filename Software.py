@@ -87,6 +87,7 @@ class PluginData():
 
     # send the kpm info
     def send(self):
+        # check if it has data
         if PluginData.background_worker and self.hasData():
             PluginData.background_worker.queue.put(self.json())
 
@@ -429,7 +430,7 @@ class EventListener(sublime_plugin.EventListener):
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
 
-            if (not PluginData.line_counts):
+            if (not PluginData.line_counts or not PluginData.line_counts[fileName]):
                 PluginData.line_counts[fileName] = prevLines
 
             prevLines = PluginData.line_counts[fileName]
