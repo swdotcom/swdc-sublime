@@ -423,14 +423,14 @@ class EventListener(sublime_plugin.EventListener):
         fileSize = view.size()
 
         lines = 0
-        # try
+        # try..
         # rowcol(point) Calculates the 0-based line and column numbers of the point
         lines = view.rowcol(fileSize)[0]
 
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
 
-            if (not PluginData.line_counts or not PluginData.line_counts[fileName]):
+            if (PluginData.line_counts.get(fileName) is None):
                 PluginData.line_counts[fileName] = prevLines
 
             prevLines = PluginData.line_counts[fileName]
@@ -584,6 +584,7 @@ def hourlyTimerHandler():
     hourlyTimer = Timer(60 * 60, hourlyTimerHandler)
     hourlyTimer.start()
 
+# ...
 def processCommits():
     global PROJECT_DIR
     gatherCommits(PROJECT_DIR)
