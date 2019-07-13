@@ -504,7 +504,6 @@ def plugin_loaded():
     initializeUser()
 
 def initializeUser():
-    log("Code Time: Initializing user info")
     # check if the session file is there
     serverAvailable = checkOnline()
     fileExists = softwareSessionFileExists()
@@ -538,13 +537,13 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     setOnlineStatusTimer = Timer(1, setOnlineStatus)
     setOnlineStatusTimer.start()
 
-    sendOfflineDataTimer = Timer(5, sendOfflineData)
+    sendOfflineDataTimer = Timer(10, sendOfflineData)
     sendOfflineDataTimer.start()
 
-    gatherMusicTimer = Timer(30, gatherMusicInfo)
+    gatherMusicTimer = Timer(45, gatherMusicInfo)
     gatherMusicTimer.start()
 
-    hourlyTimer = Timer(45, hourlyTimerHandler)
+    hourlyTimer = Timer(60, hourlyTimerHandler)
     hourlyTimer.start()
 
     initializeUserInfo(initializedAnonUser)
@@ -556,7 +555,8 @@ def initializeUserInfo(initializedAnonUser):
         showLoginPrompt()
         PluginData.send_initial_payload()
 
-    sendHeartbeat("INITIALIZED")
+    sendInitHeartbeatTimer = Timer(15, sendInitializedHeartbeat)
+    sendInitHeartbeatTimer.start()
 
     # re-fetch user info in another 90 seconds
     checkUserAuthTimer = Timer(90, userStatusHandler)
@@ -573,10 +573,14 @@ def plugin_unloaded():
     # clean up the background worker
     PluginData.background_worker.queue.join()
 
+def sendInitializedHeartbeat():
+    sendHeartbeat("INITIALIZED")
+
 # gather the git commits, repo members, heatbeat ping
 def hourlyTimerHandler():
     sendHeartbeat("HOURLY")
 
+    # process commits in a minute
     processCommitsTimer = Timer(60, processCommits)
     processCommitsTimer.start()
 
@@ -604,7 +608,7 @@ def setOnlineStatus():
         log("Code Time: Offline")
 
     # run the check in another minute
-    setOnlineStatusTimer = Timer(60, setOnlineStatus)
-    setOnlineStatusTimer.start()
+    timer = Timer(60, setOnlineStatus)
+    timer.start()
 
 

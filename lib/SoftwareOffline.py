@@ -4,6 +4,7 @@ import os.path
 import time
 import datetime
 from .SoftwareUtil import *
+from .SoftwareSession import *
 
 sessionSummaryData = None
 lastDashboardFetchTime = 0

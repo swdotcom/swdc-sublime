@@ -26,7 +26,7 @@ def toggleStatus():
         showStatus(lastMsg)
     else:
         # show clock icon unicode
-        showStatus("Code Time")
+        showStatus("⏱")
 
 # update the status bar message
 def showStatus(msg):
@@ -37,10 +37,7 @@ def showStatus(msg):
         showStatusVal = getValue("show_code_time_status", True)
 
         if (showStatusVal is False):
-            if (msg != "Code Time"):
-                # update the lastMsg
-                lastMsg = msg
-            msg = "Code Time"
+            msg = "⏱"
         else:
             lastMsg = msg
 
