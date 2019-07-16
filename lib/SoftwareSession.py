@@ -29,32 +29,50 @@ def sendOfflineData():
     if (existingJwt is None):
         return
 
-    # send the offline data
-    dataStoreFile = getSoftwareDataStoreFile()
+    serverAvailable = checkOnline()
+    if (serverAvailable):
+        # send the offline data
+        dataStoreFile = getSoftwareDataStoreFile()
 
-    if (os.path.exists(dataStoreFile)):
-        payloads = []
+        if (os.path.exists(dataStoreFile)):
+            payloads = []
 
-        try:
-            with open(dataStoreFile) as fp:
-                for line in fp:
-                    if (line and line.strip()):
-                        line = line.rstrip()
-                        # convert to object
-                        json_obj = json.loads(line)
-                        # convert to json to send
-                        payloads.append(json_obj)
-        except Exception:
-            log("Unable to read offline data file %s" % dataStoreFile)
+            try:
+                with open(dataStoreFile) as fp:
+                    for line in fp:
+                        if (line and line.strip()):
+                            line = line.rstrip()
+                            # convert to object
+                            json_obj = json.loads(line)
+                            # convert to json to send
+                            payloads.append(json_obj)
+            except Exception:
+                log("Unable to read offline data file %s" % dataStoreFile)
 
-        if (payloads):
-            response = requestIt("POST", "/data/batch", json.dumps(payloads), getItem("jwt"))
-
-            if (isResponsOk(response)):
+            if (payloads):
                 os.remove(dataStoreFile)
+
+                # go through the payloads array 50 at a time
+                batch = []
+                length = len(payloads)
+                for i in range(length):
+                    payload = payloads[i]
+                    if (len(batch) >= 50):
+                        requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
+                        # send batch
+                        batch = []
+                    batch.append(payload)
+
+                # send remaining batch
+                if (len(batch) > 0):
+                    requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
 
     # update the statusbar
     fetchDailyKpmSessionInfo(True)
+
+    # send the next batch in 30 minutes
+    sendOfflineDataTimer = Timer(60 * 30, sendOfflineData)
+    sendOfflineDataTimer.start()
 
 def showLoginPrompt():
     serverAvailable = checkOnline()

@@ -7,7 +7,7 @@ from .SoftwareUtil import *
 from .SoftwareSession import *
 
 sessionSummaryData = None
-lastDashboardFetchTime = 0
+lastDayOfMonth = 0
 SERVICE_NOT_AVAIL = "Our service is temporarily unavailable.\n\nPlease try again later.\n"
 
 # init the session summary data
@@ -118,15 +118,14 @@ def launchCodeTimeMetrics():
 
 def fetchCodeTimeMetricsDashboard(summary):
     global sessionSummaryData
-    global lastDashboardFetchTime
+    global lastDayOfMonth
 
     summaryInfoFile = getSummaryInfoFile()
 
-    now = round(time.time()) - 60
-    diff = now - lastDashboardFetchTime
-    day_in_sec = 60 * 60 * 24
-    if (lastDashboardFetchTime == 0 or diff >= day_in_sec):
-        lastDashboardFetchTime = now
+    dayOfMonth = datetime.datetime.today().day
+
+    if (lastDayOfMonth == 0 or dayOfMonth != lastDayOfMonth):
+        lastDayOfMonth = dayOfMonth
 
         # fetch the backend data
         islinux = "true"
