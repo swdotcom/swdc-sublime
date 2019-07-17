@@ -123,7 +123,7 @@ def fetchDailyKpmSessionInfo(forceRefresh):
         updateStatusBarWithSummaryData()
         return { "data": sessionSummaryData, "status": "OK" }
 
-# store the payload offline
+# store the payload offline...
 def storePayload(payload):
 
     # calculate it and call add to the minutes
@@ -142,6 +142,8 @@ def storePayload(payload):
 
     # get the datastore file to save the payload
     dataStoreFile = getSoftwareDataStoreFile()
+
+    log("Code Time: storing kpm metrics: %s" % payload)
 
     with open(dataStoreFile, "a") as dsFile:
         dsFile.write(payload + "\n")

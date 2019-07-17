@@ -24,7 +24,7 @@ PROJECT_DIR = None
 check_online_interval_sec = 60 * 10
 retry_counter = 0
 
-# payload trigger to store it for later
+# payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
     storePayload(json_data)
@@ -32,7 +32,7 @@ def post_json(json_data):
     PluginData.reset_source_data()
 
 #
-# Background thread used to send data every minute
+# Background thread used to send data every minute.
 #
 class BackgroundWorker():
     def __init__(self, threads_count, target_func):
@@ -69,16 +69,12 @@ class PluginData():
         self.project = project
         self.pluginId = PLUGIN_ID
         self.version = VERSION
-        now = round(time.time()) - 60
-        self.start = now
-        self.local_start = getLocalStart()
         self.timezone = getTimezone()
         self.os = getOs()
 
     def json(self):
 
-        # if self.project['directory'] == 'Unnamed':
-        #     self.project = None
+        # make sure all file end times are set
 
         dict_data = {key: getattr(self, key, None)
                      for key in self.__slots__}
@@ -89,6 +85,7 @@ class PluginData():
     def send(self):
         # check if it has data
         if PluginData.background_worker and self.hasData():
+            PluginData.endUnendedFileEndTimes()
             PluginData.background_worker.queue.put(self.json())
 
     # check if we have data
@@ -123,9 +120,6 @@ class PluginData():
                 keystrokeCountObj.source = {}
                 keystrokeCountObj.keystrokes = 0
                 keystrokeCountObj.project['identifier'] = None
-                now = round(time.time()) - 60
-                keystrokeCountObj.start = now
-                keystrokeCountObj.local_start = getLocalStart()
                 keystrokeCountObj.timezone = getTimezone()
 
     @staticmethod
@@ -196,10 +190,13 @@ class PluginData():
 
         return return_data
 
-
+    # ...
     @staticmethod
     def get_existing_file_info(fileName):
+        fileInfoData = None
 
+        now = round(time.time())
+        local_start = getLocalStart()
         # Get the FileInfo object within the KeystrokesCount object
         # based on the specified fileName.
         for dir in PluginData.active_datas:
@@ -208,15 +205,38 @@ class PluginData():
                 hasExistingKeystrokeObj = True
                 # we have a keystroke count object, get the fileInfo
                 if keystrokeCountObj.source is not None and fileName in keystrokeCountObj.source:
-                    return keystrokeCountObj.source[fileName]
+                    # set the fileInfoData we'll return the calling def
+                    fileInfoData = keystrokeCountObj.source[fileName]
+                else:
+                    # end the other files end times
+                    for fileName in keystrokeCountObj.source:
+                        fileInfo = keystrokeCountObj.source[fileName]
+                        fileInfo["end"] = now
+                        fileInfo["local_end"] = local_start
 
-        return None
+        return fileInfoData
+
+    # 
+    @staticmethod
+    def endUnendedFileEndTimes():
+        now = round(time.time())
+        local_start = getLocalStart()
+        
+        for dir in PluginData.active_datas:
+            keystrokeCountObj = PluginData.active_datas[dir]
+            if keystrokeCountObj is not None and keystrokeCountObj.source is not None:
+                for fileName in keystrokeCountObj.source:
+                    fileInfo = keystrokeCountObj.source[fileName]
+                    if (fileInfo.get("end", 0) == 0):
+                        fileInfo["end"] = now
+                        fileInfo["local_end"] = local_start
 
     @staticmethod
     def send_all_datas():
         for dir in PluginData.active_datas:
             PluginData.active_datas[dir].send()
 
+    #.........
     @staticmethod
     def initialize_file_info(keystrokeCount, fileName):
         if keystrokeCount is None:
@@ -228,6 +248,14 @@ class PluginData():
         # create the new FileInfo, which will contain a dictionary
         # of fileName and it's metrics
         fileInfoData = PluginData.get_existing_file_info(fileName)
+
+        now = round(time.time())
+        local_start = getLocalStart()
+
+        if keystrokeCount.start == 0:
+            keystrokeCount.start = now
+            keystrokeCount.local_start = local_start
+            keystrokeCount.timezone = getTimezone()
 
         # "add" = additive keystrokes
         # "netkeys" = add - delete
@@ -246,7 +274,15 @@ class PluginData():
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
+            fileInfoData['start'] = now
+            fileInfoData['local_start'] = local_start
+            fileInfoData['end'] = 0
+            fileInfoData['local_end'] = 0
             keystrokeCount.source[fileName] = fileInfoData
+        else:
+            # update the end and local_end to zero since the file is still getting modified
+            fileInfoData['end'] = 0
+            fileInfoData['local_end'] = 0
 
     @staticmethod
     def get_file_info_and_initialize_if_none(keystrokeCount, fileName):

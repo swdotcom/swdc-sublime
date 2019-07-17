@@ -17,7 +17,7 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.9.3'
+VERSION = '0.9.4'
 PLUGIN_ID = 1
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
@@ -28,11 +28,12 @@ sessionMap = {}
 runningResourceCmd = False
 loggedInCacheState = False
 
-# log the message
+# log the message.
 def log(message):
     if (getValue("software_logging_on", True)):
         print(message)
 
+# .
 def getUrlEndpoint():
     return getValue("software_dashboard_url", "https://app.software.com")
 
@@ -63,7 +64,7 @@ def getTimezone():
     return timezone
 
 def getLocalStart():
-    now = round(time.time()) - 60
+    now = round(time.time())
     local_start = now - time.timezone
     try:
         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
