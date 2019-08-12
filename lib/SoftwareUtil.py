@@ -27,6 +27,7 @@ sessionMap = {}
 
 runningResourceCmd = False
 loggedInCacheState = False
+timezone=''
 
 # log the message.
 def log(message):
@@ -53,21 +54,24 @@ def getOs():
 
 def getTimezone():
     try:
-        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+        timezone = time.localtime().tm_zone
+#         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
             # no DST
-            timezone = time.tzname[0]
-        else:
+#             timezone = time.tzname[0]
+#         else:
             # we're in DST
-            timezone = time.tzname[1]
+#             timezone = time.tzname[1]
     except Exception:
-        keystrokeCountObj.timezone = ''
+        pass
+#         keystrokeCountObj.timezone = ''
     return timezone
 
 def getLocalStart():
     now = round(time.time())
     local_start = now - time.timezone
     try:
-        if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
+        if time.localtime().tm_isdst == 0:
+#         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
             # no DST, use the local_start based on time.timezone
             pass
         else:
