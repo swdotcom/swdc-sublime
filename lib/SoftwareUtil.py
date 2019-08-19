@@ -53,6 +53,7 @@ def getOs():
     return system + "_" + release
 
 def getTimezone():
+    global timezone
     try:
         timezone = time.localtime().tm_zone
 #         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
