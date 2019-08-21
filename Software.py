@@ -601,9 +601,14 @@ def initializeUserInfo(initializedAnonUser):
 
 def userStatusHandler():
     getUserStatus()
+
+    loggedOn = getValue("logged_on", True)
+    if (loggedOn is True):
+        # no need to fetch any longer
+        return
     
-    # re-fetch user info in another 90 seconds
-    checkUserAuthTimer = Timer(90, userStatusHandler)
+    # re-fetch user info in another 10 minutes
+    checkUserAuthTimer = Timer(60 * 10, userStatusHandler)
     checkUserAuthTimer.start()
 
 def plugin_unloaded():
@@ -644,8 +649,8 @@ def setOnlineStatus():
         setValue("online", False)
         log("Code Time: Offline")
 
-    # run the check in another minute
-    timer = Timer(60, setOnlineStatus)
+    # run the check in another 1 minute
+    timer = Timer(60 * 1, setOnlineStatus)
     timer.start()
 
 
