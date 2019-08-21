@@ -9,7 +9,6 @@ import datetime
 import json
 import os
 import sublime_plugin, sublime
-from .lib.SoftwareSession import *
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
@@ -543,7 +542,9 @@ def initializeUser():
     # check if the session file is there
     serverAvailable = checkOnline()
     fileExists = softwareSessionFileExists()
-    if (fileExists is False):
+    jwt = getItem("jwt")
+    log("JWT VAL: %s" % jwt)
+    if (fileExists is False or jwt is None):
         if (serverAvailable is False):
             if (retry_counter == 0):
                 showOfflinePrompt()
@@ -570,7 +571,7 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     # fire off timer tasks (seconds, task)
 
-    setOnlineStatusTimer = Timer(1, setOnlineStatus)
+    setOnlineStatusTimer = Timer(2, setOnlineStatus)
     setOnlineStatusTimer.start()
 
     sendOfflineDataTimer = Timer(10, sendOfflineData)

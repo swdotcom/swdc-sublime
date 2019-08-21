@@ -432,11 +432,11 @@ def createAnonymousUser(serverAvailable):
         api = "/data/onboard"
         try:
             response = requestIt("POST", api, json.dumps(payload), appJwt)
-
             if (response is not None and isResponsOk(response)):
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
+                    log("created anonymous user with jwt %s " % jwt)
                     setItem("jwt", jwt)
                     return jwt
                 except Exception as ex:
