@@ -56,12 +56,6 @@ def getTimezone():
     global timezone
     try:
         timezone = time.localtime().tm_zone
-#         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
-            # no DST
-#             timezone = time.tzname[0]
-#         else:
-            # we're in DST
-#             timezone = time.tzname[1]
     except Exception:
         pass
 #         keystrokeCountObj.timezone = ''
@@ -71,9 +65,8 @@ def getLocalStart():
     now = round(time.time())
     local_start = now - time.timezone
     try:
+        #If current timezone is not in DST, value of tm_ist will be 0
         if time.localtime().tm_isdst == 0:
-#         if time.tzname[1] is None or time.tzname[0] == time.tzname[1]:
-            # no DST, use the local_start based on time.timezone
             pass
         else:
             # we're in DST, add 1
