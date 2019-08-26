@@ -16,6 +16,7 @@
 					{ "command": "pause_kpm_updates", "caption": "Pause Code Time" },
 					{ "command": "enable_kpm_updates", "caption": "Enable Code Time" },
 					{ "command": "toggle_status_bar_metrics", "caption": "Show/Hide Status Bar Metrics" },
+					{ "command": "mute_console_message", "caption": "Show/Hide Console Message" },
 				]
 			},
 		]
