@@ -366,6 +366,18 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
 
         toggleStatus()
 
+# Mute Console message
+class MuteConsoleMessage(sublime_plugin.TextCommand):
+    def run(self, edit):
+        log("Code Time: Toggle Console Message  !")
+
+        showStatusVal = getValue("software_logging_on", True)
+        if (showStatusVal):
+            setValue("software_logging_on", False)
+        else:
+            setValue("software_logging_on", True)
+
+
 # Command to pause kpm metrics
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
