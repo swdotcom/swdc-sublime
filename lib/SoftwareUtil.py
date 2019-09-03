@@ -49,8 +49,8 @@ def getOsUsername():
 
 def getOs():
     system = platform.system()
-    release = platform.release()
-    return system + "_" + release
+    #release = platform.release()
+    return system
 
 def getTimezone():
     global timezone
