@@ -424,7 +424,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['length'] = fileSize
 
         # get the number of lines
-        lines = view.rowcol(fileSize)[0]
+        lines = view.rowcol(fileSize)[0] + 1
         fileInfoData['lines'] = lines
 
         # we have the fileinfo, update the metric
@@ -450,7 +450,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['length'] = fileSize
 
         # get the number of lines
-        lines = view.rowcol(fileSize)[0]
+        lines = view.rowcol(fileSize)[0] + 1
         fileInfoData['lines'] = lines
 
         # we have the fileInfo, update the metric
@@ -469,19 +469,30 @@ class EventListener(sublime_plugin.EventListener):
 
         # add the count for the file
         fileName = view.file_name()
+        
+        fileInfoData = {}
+        
         if (fileName is None):
             fileName = "Untitled"
+            
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
+        
+        # If file is untitled then log that msg and set file open metrics to 1
+        if fileName == "Untitled":
+            log("Code Time: opened file untitled")
+            fileInfoData['open'] = 1
+        else:
+            pass
+
         if fileInfoData is None:
             return
 
         fileSize = view.size()
 
-        lines = 0
-        # try..
-        # rowcol(point) Calculates the 0-based line and column numbers of the point
-        lines = view.rowcol(fileSize)[0]
-
+        #lines = 0
+        # rowcol gives 0-based line number, need to add one as on editor lines starts from 1 
+        lines = view.rowcol(fileSize)[0] + 1
+        
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
 
@@ -489,8 +500,8 @@ class EventListener(sublime_plugin.EventListener):
                 PluginData.line_counts[fileName] = prevLines
 
             prevLines = PluginData.line_counts[fileName]
-            if (prevLines > 0):
-                fileInfoData['lines'] = prevLines
+        elif (prevLines > 0):
+            fileInfoData['lines'] = prevLines
 
         lineDiff = 0
         if (prevLines > 0):
@@ -510,7 +521,8 @@ class EventListener(sublime_plugin.EventListener):
 
         charCountDiff = 0
         
-        if currLen > 0:
+        if currLen > 0 or currLen == 0:
+        # currLen > 0 only worked for existing file, currlen==0 will work for new file
             charCountDiff = fileSize - currLen
 
         if (not fileInfoData["syntax"]):
