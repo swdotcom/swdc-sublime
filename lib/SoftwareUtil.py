@@ -55,10 +55,10 @@ def getOs():
 def getTimezone():
     global timezone
     try:
-        timezone = time.localtime().tm_zone
+        timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()
     except Exception:
         pass
-#         keystrokeCountObj.timezone = ''
+        keystrokeCountObj.timezone = ''
     return timezone
 
 def getLocalStart():
