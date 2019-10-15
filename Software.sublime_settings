@@ -6,5 +6,6 @@
 	"logged_on": false,
 	"show_code_time_status": true,
 	"online": true,
-	"date_range": "04/24/2019, 05/01/2019"
+	"date_range": "04/24/2019, 05/01/2019",
+	"name":"code-time",
 }

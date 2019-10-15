@@ -15,6 +15,32 @@ from .lib.SoftwareMusic import *
 from .lib.SoftwareRepo import *
 from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
+from .deployer import *
+
+def cache_path():
+    return os.path.join(sublime.cache_path(), __package__)
+
+
+def write_menu(menu):
+    menu_path = os.path.join(cache_path(), "Main.sublime-menu")
+    with open(menu_path, "w+") as cache:
+        cache.write(json.dumps(menu, cache))
+
+
+def plugin_loaded():
+    os.makedirs(cache_path(), exist_ok=True)
+    write_menu([])
+
+
+def plugin_unloaded():
+    try:
+        os.remove(os.path.join(cache_path(), "Main.sublime-menu"))
+    except Exception as e:
+        print("plugin_unloaded....!!!")
+        pass
+
+print("####################\nDEPLOYER SUCCEED\n",setname())
+print("\n",cache_path())
 
 DEFAULT_DURATION = 60
 
@@ -22,6 +48,9 @@ PROJECT_DIR = None
 
 check_online_interval_sec = 60 * 10
 retry_counter = 0
+
+# def IsMusicTime():
+#     if 
 
 # payload trigger to store it for later.
 def post_json(json_data):
@@ -269,7 +298,7 @@ class PluginData():
             fileInfoData['delete'] = 0
             fileInfoData['netkeys'] = 0
             fileInfoData['add'] = 0
-            fileInfoData['lines'] = -1
+            fileInfoData['lines'] = 1
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
@@ -405,6 +434,29 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is False)
+
+class ConnectSpotify(sublime_plugin.TextCommand):
+    def run(self, edit):
+        webbrowser.open("https://api.software.com/music/top40")
+
+    def is_enabled(self):
+        return (getValue("online", True) is True)
+
+'''MUSIC TIME menu'''
+class LaunchMusicTimeMetrics(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchCodeTimeMetrics()
+
+class SoftwareTopForty(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchCodeTimeMetrics()
+
+class ConnectSpotify(sublime_plugin.TextCommand):
+    def run(self, edit):
+        webbrowser.open("https://api.software.com/music/top40")
+
+    def is_enabled(self):
+        return (getValue("online", True) is True)
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
