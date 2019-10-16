@@ -1,15 +1,27 @@
 [
     {
-        "command": "launch_music_time_metrics",
-        "caption": "Music Time Dashboard"
+        "command": "launch_code_time_metrics",
+        "caption": "Code Time Dashboard"
     },
     {
-        "command": "software_top_forty",
-        "caption": "Software Top 40"
+        "command": "launch_custom_dashboard",
+        "caption": "Generate a Custom Dashboard"
     },
     {
-        "command": "connect_spotify",
-        "caption": "Log in to Spotify"
+        "command": "go_to_software",
+        "caption": "Web Dashboard"
+    },
+    {
+        "command": "code_time_login",
+        "caption": "Log in to see your coding data in Code Time"
+    },
+    {
+        "command": "pause_kpm_updates",
+        "caption": "Pause Code Time"
+    },
+    {
+        "command": "enable_kpm_updates",
+        "caption": "Enable Code Time"
     },
     {
         "command": "toggle_status_bar_metrics",

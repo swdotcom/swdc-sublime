@@ -7,5 +7,5 @@
     "online": true,
     "software_telemetry_on": true,
     "software_dashboard_url": "https://app.software.com",
-    "plugin": "music-time"
+    "plugin": "code-time"
 }
