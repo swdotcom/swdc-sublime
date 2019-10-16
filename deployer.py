@@ -42,38 +42,50 @@ try:
     plugin_obj = {"caption": display_name, "children": []}
     main_obj["children"].append(plugin_obj)
 
-
     # music time only commands
     music_time_cmds = []
-    music_time_cmds.append({ "command": "launch_music_time_metrics", "caption": "Music Time Dashboard" })
-    music_time_cmds.append({ "command": "software_top_forty", "caption": "Software Top 40" })
-    music_time_cmds.append({ "command": "connect_spotify", "caption": "Log in to Spotify" })
+    music_time_cmds.append(
+        {"command": "launch_music_time_metrics", "caption": "Music Time Dashboard"})
+    music_time_cmds.append(
+        {"command": "software_top_forty", "caption": "Software Top 40"})
+    music_time_cmds.append(
+        {"command": "connect_spotify", "caption": "Log in to Spotify"})
 
     # code time only commands
     code_time_cmds = []
-    code_time_cmds.append({ "command": "launch_code_time_metrics", "caption": "Code Time Dashboard" })
-    code_time_cmds.append({ "command": "launch_custom_dashboard", "caption": "Generate a Custom Dashboard" })
-    code_time_cmds.append({ "command": "go_to_software", "caption": "Web Dashboard" })
-    code_time_cmds.append({ "command": "code_time_login", "caption": "Log in to see your coding data in Code Time" })
-    code_time_cmds.append({ "command": "pause_kpm_updates", "caption": "Pause Code Time" })
-    code_time_cmds.append({ "command": "enable_kpm_updates", "caption": "Enable Code Time" })
+    code_time_cmds.append(
+        {"command": "launch_code_time_metrics", "caption": "Code Time Dashboard"})
+    code_time_cmds.append(
+        {"command": "launch_custom_dashboard", "caption": "Generate a Custom Dashboard"})
+    code_time_cmds.append(
+        {"command": "go_to_software", "caption": "Web Dashboard"})
+    code_time_cmds.append({"command": "code_time_login",
+                           "caption": "Log in to see your coding data in Code Time"})
+    code_time_cmds.append(
+        {"command": "pause_kpm_updates", "caption": "Pause Code Time"})
+    code_time_cmds.append(
+        {"command": "enable_kpm_updates", "caption": "Enable Code Time"})
 
     # shared commands for code time and music time
     shared_cmds = []
-    shared_cmds.append({ "command": "toggle_status_bar_metrics", "caption": "Show/Hide Status Bar Metrics" })
-    shared_cmds.append({ "command": "hide_console_message", "caption": "Hide Console Message" })
-    shared_cmds.append({ "command": "show_console_message", "caption": "Show Console Message" })
+    shared_cmds.append({"command": "toggle_status_bar_metrics",
+                        "caption": "Show/Hide Status Bar Metrics"})
+    shared_cmds.append({"command": "hide_console_message",
+                        "caption": "Hide Console Message"})
+    shared_cmds.append({"command": "show_console_message",
+                        "caption": "Show Console Message"})
 
-    # add the appropriate commands 
+    # add the appropriate commands
     if plugin_name == "code-time":
         cmds = code_time_cmds + shared_cmds
-        main_obj['children'][1]["children"]=cmds
+        # main_obj['children'][1]["children"] = cmds
         # plugin_obj["children"].append(cmds)
     else:
         cmds = music_time_cmds + shared_cmds
-        main_obj['children'][1]["children"]=cmds
+        # main_obj['children'][1]["children"] = cmds
         # plugin_obj["children"].append(music_time_cmds)
 
+    main_obj['children'][1]["children"] = cmds
     # main_obj["children"].append(plugin_obj)
 
     main_menu.append(main_obj)
@@ -85,5 +97,6 @@ try:
     # write the commands array to the default commands file
     with open("Default.sublime-commands", "w") as default_cmds_file:
         json.dump(cmds, default_cmds_file, indent=4)
+
 except Exception as E:
     pass
