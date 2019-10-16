@@ -29,6 +29,13 @@ runningResourceCmd = False
 loggedInCacheState = False
 timezone=''
 
+def isMusicTime():
+    plugin = getItem("plugin")
+    if plugin == "music-time":
+        return True
+    else: 
+        return False
+
 # log the message.
 def log(message):
     if (getValue("software_logging_on", True)):
@@ -334,6 +341,13 @@ def launchLoginUrl():
     webUrl += "/onboarding?token=" + jwt
     webbrowser.open(webUrl)
     refetchUserStatusLazily(10)
+
+def launchSpotifyLoginUrl():
+    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+    jwt = getItem("jwt")
+    spotify_url="https://api.software.com/auth/spotify?token="+jwt
+    # spotify_url = "https://"+ api_endpoint + "/auth/spotify?token=" + jwt
+    webbrowser.open(spotify_url)
 
 def launchWebDashboardUrl():
     webUrl = getUrlEndpoint() + "/login"

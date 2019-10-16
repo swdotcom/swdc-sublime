@@ -97,7 +97,6 @@ def requestIt(method, api, payload, jwt):
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        # print("response---",response)
         # httpLog("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except Exception as ex:

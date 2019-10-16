@@ -1,11 +1,11 @@
 {
-	"software_telemetry_on": true,
-	"software_logging_on": true,
-	"software_api_endpoint": "api.software.com",
-	"software_dashboard_url": "https://app.software.com",
-	"logged_on": false,
-	"show_code_time_status": true,
-	"online": true,
-	"date_range": "04/24/2019, 05/01/2019",
-	"name":"code-time",
+    "show_code_time_status": true,
+    "software_api_endpoint": "api.software.com",
+    "date_range": "04/24/2019, 05/01/2019",
+    "software_logging_on": true,
+    "logged_on": false,
+    "online": true,
+    "software_telemetry_on": true,
+    "software_dashboard_url": "https://app.software.com",
+    "plugin": "music-time"
 }
