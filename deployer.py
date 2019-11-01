@@ -33,7 +33,7 @@ try:
     else:
         display_name = "Music Time"
 
-    # this will store the array that gets written into Main.sublime_menu
+    # this will store the array that gets written `into Main.sublime_menu
     main_menu = []
 
     main_obj = {"id": "tools", "children": []}
@@ -45,11 +45,17 @@ try:
     # music time only commands
     music_time_cmds = []
     music_time_cmds.append(
+        {"command": "connect_spotify", "caption": "Log in Spotify"})
+    music_time_cmds.append(
         {"command": "launch_music_time_metrics", "caption": "Music Time Dashboard"})
     music_time_cmds.append(
         {"command": "software_top_forty", "caption": "Software Top 40"})
     music_time_cmds.append(
-        {"command": "connect_spotify", "caption": "Log in to Spotify"})
+        {"command": "submit_issue_github", "caption": "Submit an Issue on GitHub"})
+    music_time_cmds.append(
+        {"command": "submit_feedback", "caption": "Send feedback to cody@software.com"})
+    music_time_cmds.append(
+        {"command": "connect_slack", "caption": "Log in slack"})
 
     # code time only commands
     code_time_cmds = []
@@ -78,14 +84,13 @@ try:
     # add the appropriate commands
     if plugin_name == "code-time":
         cmds = code_time_cmds + shared_cmds
-        # main_obj['children'][1]["children"] = cmds
+        main_obj['children'][1]["children"] = cmds
         # plugin_obj["children"].append(cmds)
     else:
-        cmds = music_time_cmds + shared_cmds
-        # main_obj['children'][1]["children"] = cmds
+        cmds = music_time_cmds 
+        main_obj['children'][1]["children"] = cmds
         # plugin_obj["children"].append(music_time_cmds)
 
-    main_obj['children'][1]["children"] = cmds
     # main_obj["children"].append(plugin_obj)
 
     main_menu.append(main_obj)
@@ -97,6 +102,5 @@ try:
     # write the commands array to the default commands file
     with open("Default.sublime-commands", "w") as default_cmds_file:
         json.dump(cmds, default_cmds_file, indent=4)
-
 except Exception as E:
     pass
