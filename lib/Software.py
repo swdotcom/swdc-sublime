@@ -17,7 +17,7 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.9.4'
+VERSION = '0.0.0'
 PLUGIN_ID = 1
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
@@ -28,13 +28,6 @@ sessionMap = {}
 runningResourceCmd = False
 loggedInCacheState = False
 timezone=''
-
-def isMusicTime():
-    plugin = getItem("plugin")
-    if plugin == "music-time":
-        return True
-    else: 
-        return False
 
 # log the message.
 def log(message):
@@ -342,13 +335,6 @@ def launchLoginUrl():
     webbrowser.open(webUrl)
     refetchUserStatusLazily(10)
 
-def launchSpotifyLoginUrl():
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
-    jwt = getItem("jwt")
-    spotify_url="https://api.software.com/auth/spotify?token="+jwt
-    # spotify_url = "https://"+ api_endpoint + "/auth/spotify?token=" + jwt
-    webbrowser.open(spotify_url)
-
 def launchWebDashboardUrl():
     webUrl = getUrlEndpoint() + "/login"
     webbrowser.open(webUrl)
@@ -381,8 +367,11 @@ def fetchCustomDashboard(date_range):
 
     try:
         api = '/dashboard?start=' + str(start) + '&end=' + str(end)
+        print("APi <<<",api)
         response = requestIt("GET", api, None, getItem("jwt"))
+        print("response>>>",response)
         content = response.read().decode('utf-8')
+        print("Content ===",content)
         file = getCustomDashboardFile()
         with open(file, 'w', encoding='utf-8') as f:
             f.write(content)

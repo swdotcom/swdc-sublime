@@ -302,7 +302,7 @@ class PluginData():
         active_data.keystrokes = 1
         PluginData.send_all_datas()
 
-class GoToSoftwareCommand(sublime_plugin.TextCommand):
+class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
         launchWebDashboardUrl()
 
@@ -345,6 +345,19 @@ class LaunchCustomDashboard(sublime_plugin.WindowCommand):
     def on_done(self, result):
         setValue("date_range", result)
         launchCustomDashboard()
+
+# connect spotify menu
+class ConnectSpotify(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchSpotifyLoginUrl()
+
+    # def is_enabled(self):
+    #     loggedOn = getValue("logged_on", True)
+    #     online = getValue("online", True)
+    #     if (loggedOn is False and online is True):
+    #         return True
+    #     else:
+    #         return False
 
 
 class SoftwareTopForty(sublime_plugin.TextCommand):

@@ -1,6 +1,38 @@
 [
-	{ "command": "launch_code_time_metrics", "caption": "Code Time: Dashboard" },
-	{ "command": "go_to_software", "caption": "Code Time: Go to software.com" },
-	{ "command": "software_top_forty", "caption": "Code Time: Software top 40" },
-	{ "command": "toggle_status_bar_metrics", "caption": "Code Time: Show/hide status bar metrics" },
+    {
+        "command": "launch_code_time_metrics",
+        "caption": "Code Time Dashboard"
+    },
+    {
+        "command": "launch_custom_dashboard",
+        "caption": "Generate a Custom Dashboard"
+    },
+    {
+        "command": "go_to_software",
+        "caption": "Web Dashboard"
+    },
+    {
+        "command": "code_time_login",
+        "caption": "Log in to see your coding data in Code Time"
+    },
+    {
+        "command": "pause_kpm_updates",
+        "caption": "Pause Code Time"
+    },
+    {
+        "command": "enable_kpm_updates",
+        "caption": "Enable Code Time"
+    },
+    {
+        "command": "toggle_status_bar_metrics",
+        "caption": "Show/Hide Status Bar Metrics"
+    },
+    {
+        "command": "hide_console_message",
+        "caption": "Hide Console Message"
+    },
+    {
+        "command": "show_console_message",
+        "caption": "Show Console Message"
+    }
 ]
