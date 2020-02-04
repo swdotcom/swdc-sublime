@@ -19,9 +19,8 @@ from .SoftwareSettings import *
 # the plugin version
 VERSION = '0.9.4'
 PLUGIN_ID = 1
-DASHBOARD_LABEL_WIDTH = 25
-DASHBOARD_VALUE_WIDTH = 25
-MARKER_WIDTH = 4
+SETTINGS_FILE = 'Software.sublime_settings'
+SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
 sessionMap = {}
 
@@ -29,14 +28,27 @@ runningResourceCmd = False
 loggedInCacheState = False
 timezone=''
 
-def isMusicTime():
-    plugin = getItem("plugin")
-    if plugin == "music-time":
-        return True
-    else: 
-        return False
+def getValue(key, defaultValue):
+    global SETTINGS
+    print("Got value!")
+    return SETTINGS.get(key, defaultValue)
 
-# log the message.
+def setValue(key, value):
+    global SETTINGS
+    print("Set value!")
+    return SETTINGS.set(key, value)
+
+def updateOnlineStatus():
+    online = checkOnline()
+    print("Checking online status")
+    if (online is True):
+        setValue("online", True)
+        print(getValue("online", True))
+    else:
+        setValue("online", False)
+        print(getValue("online", True))
+
+# log the message
 def log(message):
     if (getValue("software_logging_on", True)):
         print(message)
@@ -515,18 +527,14 @@ def getUserStatus():
 
     currentUserStatus = {}
 
-    if (loggedInCacheState is True):
-        currentUserStatus["loggedOn"] = loggedInCacheState
-        return currentUserStatus
-
-    getOsUsername()
-
     serverAvailable = checkOnline()
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
-    
+
     setValue("logged_on", loggedOn)
+    
+    currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 
     if (loggedOn is True and loggedInCacheState != loggedOn):

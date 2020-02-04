@@ -4,7 +4,7 @@
 import http
 import json
 import sublime_plugin, sublime
-from .SoftwareSettings import *
+from .SoftwareUtil import *
 
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
