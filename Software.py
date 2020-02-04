@@ -3,7 +3,6 @@
 from threading import Thread, Timer, Event
 from package_control import events
 from queue import Queue
-import json
 import webbrowser
 import time
 import datetime
