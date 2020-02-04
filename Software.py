@@ -18,6 +18,8 @@ from .lib.SoftwareSettings import *
 
 DEFAULT_DURATION = 60
 
+SETTINGS = {}
+
 PROJECT_DIR = None
 
 check_online_interval_sec = 60 * 10
@@ -307,12 +309,7 @@ class GoToSoftware(sublime_plugin.TextCommand):
         launchWebDashboardUrl()
 
     def is_enabled(self):
-        loggedOn = getValue("logged_on", True)
-        online = getValue("online", True)
-        if (loggedOn is True and online is True):
-            return True
-        else:
-            return False
+        return (getValue("logged_on", True) is True)
 
 # code_time_login command
 class CodeTimeLogin(sublime_plugin.TextCommand):
@@ -320,12 +317,7 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
         launchLoginUrl()
 
     def is_enabled(self):
-        loggedOn = getValue("logged_on", True)
-        online = getValue("online", True)
-        if (loggedOn is False and online is True):
-            return True
-        else:
-            return False
+        return (getValue("logged_on", True) is False)
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
@@ -412,7 +404,7 @@ class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
 # Command to re-enable kpm metrics
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        log("Code Time: metrics enabled")
+        log("software kpm metrics enabled")
         showStatus("Code Time")
         setValue("software_telemetry_on", True)
 
@@ -627,6 +619,10 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     hourlyTimer = Timer(60, hourlyTimerHandler)
     hourlyTimer.start()
+
+    updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
+    updateOnlineStatusTimer.start()
+    print("Online status timer initialized")
 
     initializeUserInfo(initializedAnonUser)
 
