@@ -645,7 +645,6 @@ class OpenTreeView(sublime_plugin.TextCommand):
         self.list = [self.tree]
         self.opened = None
         self.expand(0)
-        print(icons['bolt'])
 
 
     def expand(self, index):

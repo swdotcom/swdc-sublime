@@ -16,6 +16,8 @@ from subprocess import Popen, PIPE
 from .SoftwareHttp import *
 from .SoftwareSettings import *
 
+# TODO: maybe delete this file, it's a near dupe of .SoftwareUtil.py
+
 # the plugin version
 VERSION = '0.0.0'
 PLUGIN_ID = 1

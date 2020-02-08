@@ -13,21 +13,42 @@ lastDayOfMonth = 0
 SERVICE_NOT_AVAIL = "Our service is temporarily unavailable.\n\nPlease try again later.\n"
 ONE_MINUTE_IN_SEC = 60
 SECONDS_PER_HOUR = 60 * 60
+DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
 LOGIN_LABEL = "Log in"
 
 # init the session summary data
-def initSessionSumaryData():
-    global sessionSummaryData
-    sessionSummaryData = {
+def initSessionSummaryData():
+    template = {
         "currentDayMinutes": 0,
+        "currentDayKeystrokes": 0,
+        "currentDayKpm": 0,
+        "currentDayLinesAdded": 0,
+        "currentDayLinesRemoved": 0,
         "averageDailyMinutes": 0,
         "averageDailyKeystrokes": 0,
-        "currentDayKeystrokes": 0,
-        "liveshareMinutes": None
+        "averageDailyKpm": 0,
+        "averageLinesAdded": 0,
+        "averageLinesRemoved": 0,
+        "timePercent": 0,
+        "volumePercent": 0,
+        "velocityPercent": 0,
+        "liveshareMinutes": 0,
+        "latestPayloadTimestampEndUtc": 0,
+        "latestPayloadTimestamp": 0,
+        "lastUpdatedToday": False,
+        "currentSessionGoalPercent": 0,
+        "inFlow": False,
+        "dailyMinutesGoal": 0,
+        "globalAverageSeconds": 0,
+        "globalAverageDailyMinutes": 0,
+        "globalAverageDailyKeystrokes": 0,
+        "globalAverageLinesAdded": 0,
+        "globalAverageLinesRemoved": 0,
     }
+    return template
 
 # get the session summary data
 def getSessionSummaryData():
@@ -98,6 +119,21 @@ def saveSessionSummaryToDisk(sessionSummaryData):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
+def clearSoftwareSessionSummaryData():
+    emptyData = initSessionSummaryData()
+    saveSessionSummaryToDisk(emptyData)
+
+# Corrects data object if missing keys
+def coalesceMissingSessionSummaryAttributes(data):
+    template = initSessionSummaryData()
+    for key in template.keys():
+        if key not in data:
+            if key == 'lastUpdatedToday' or key == 'inFlow':
+                data[key] = False
+            else: 
+                data[key] = 0
+    return data
+
 #
 def getSessionSummaryFileAsJson():
     global sessionSummaryData
@@ -105,9 +141,15 @@ def getSessionSummaryFileAsJson():
         with open(getSessionSummaryFile()) as sessionSummaryFile:
             sessionSummaryData = json.load(sessionSummaryFile)
     except Exception as ex:
-        initSessionSumaryData()
+        sessionSummaryData = initSessionSummaryData()
         log("Code Time: Session summary file fetch error: %s" % ex)
+    sessionSummaryData = coalesceMissingSessionSummaryAttributes(sessionSummaryData)
     return sessionSummaryData
+
+def setSessionSummaryLiveshareMinutes(minutes):
+    data = getSessionSummaryData()
+    data['liveshareMinutes'] = minutes
+    saveSessionSummaryToDisk(data)
 
 def launchCodeTimeMetrics():
     global sessionSummaryData

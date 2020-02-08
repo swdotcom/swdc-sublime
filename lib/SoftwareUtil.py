@@ -94,6 +94,10 @@ def getLocalStart():
         pass
     return local_start
 
+# TODO: port from atom
+def getNowTimes():
+    pass
+
 def getHostname():
     try:
         return socket.gethostname()
