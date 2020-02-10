@@ -1,4 +1,3 @@
-# Copyright (c) 2018 by Software.com
 from threading import Thread, Timer, Event
 import os
 import json
@@ -19,8 +18,10 @@ from .SoftwareSettings import *
 # the plugin version
 VERSION = '0.9.4'
 PLUGIN_ID = 1
-SETTINGS_FILE = 'Software.sublime_settings'
-SETTINGS = sublime.load_settings(SETTINGS_FILE)
+
+DASHBOARD_LABEL_WIDTH = 25
+DASHBOARD_VALUE_WIDTH = 25
+MARKER_WIDTH = 4
 
 sessionMap = {}
 
@@ -28,19 +29,9 @@ runningResourceCmd = False
 loggedInCacheState = False
 timezone=''
 
-def getValue(key, defaultValue):
-    global SETTINGS
-    print("Got value!")
-    return SETTINGS.get(key, defaultValue)
-
-def setValue(key, value):
-    global SETTINGS
-    print("Set value!")
-    return SETTINGS.set(key, value)
-
 def updateOnlineStatus():
     online = checkOnline()
-    print("Checking online status")
+    # print("Checking online status")
     if (online is True):
         setValue("online", True)
         print(getValue("online", True))
@@ -591,7 +582,6 @@ def humanizeMinutes(minutes):
 
     return humanizedStr
 
-
 def getDashboardRow(label, value):
     dashboardLabel = getDashboardLabel(label, DASHBOARD_LABEL_WIDTH)
     dashboardValue = getDashboardValue(value)
@@ -628,3 +618,12 @@ def getDashboardDataDisplay(widthLen, data):
         content += " "
     return "%s%s" % (content, data)
 
+def getIcons():
+    try:
+        dirname = os.path.dirname(__file__)
+        icons_file = os.path.join(dirname, '../icons.json')
+        with open(icons_file, 'r') as f:
+            icons_dict = json.load(f)
+            return icons_dict
+    except Exception:
+        return {}

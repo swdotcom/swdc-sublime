@@ -1,10 +1,7 @@
-
-# Copyright (c) 2018 by Software.com
-
 import http
 import json
 import sublime_plugin, sublime
-from .SoftwareUtil import *
+from .SoftwareSettings import *
 
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None

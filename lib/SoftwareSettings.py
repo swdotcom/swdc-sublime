@@ -1,5 +1,7 @@
-
 import sublime_plugin, sublime
+
+SETTINGS_FILE = 'Software.sublime_settings'
+SETTINGS = sublime.load_settings(SETTINGS_FILE)
 
 def getValue(key, defaultValue):
 	SETTINGS = sublime.load_settings("Software.sublime_settings")
