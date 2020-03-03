@@ -5,11 +5,14 @@ import os.path
 import time
 import datetime
 import math
+import copy
 from .SoftwareUtil import *
+from .SoftwareFileDataManager import *
+from .SoftwareModels import SessionSummary, KeystrokeAggregate
+from .SoftwareWallClock import *
+from .SoftwareDashboard import *
 
 # Constants
-sessionSummaryData = None
-lastDayOfMonth = 0
 SERVICE_NOT_AVAIL = "Our service is temporarily unavailable.\n\nPlease try again later.\n"
 ONE_MINUTE_IN_SEC = 60
 SECONDS_PER_HOUR = 60 * 60
@@ -18,78 +21,33 @@ LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
 LOGIN_LABEL = "Log in"
+NO_PROJ_NAME = 'Unnamed'
 
-# init the session summary data
-def initSessionSummaryData():
-    template = {
-        "currentDayMinutes": 0,
-        "currentDayKeystrokes": 0,
-        "currentDayKpm": 0,
-        "currentDayLinesAdded": 0,
-        "currentDayLinesRemoved": 0,
-        "averageDailyMinutes": 0,
-        "averageDailyKeystrokes": 0,
-        "averageDailyKpm": 0,
-        "averageLinesAdded": 0,
-        "averageLinesRemoved": 0,
-        "timePercent": 0,
-        "volumePercent": 0,
-        "velocityPercent": 0,
-        "liveshareMinutes": 0,
-        "latestPayloadTimestampEndUtc": 0,
-        "latestPayloadTimestamp": 0,
-        "lastUpdatedToday": False,
-        "currentSessionGoalPercent": 0,
-        "inFlow": False,
-        "dailyMinutesGoal": 0,
-        "globalAverageSeconds": 0,
-        "globalAverageDailyMinutes": 0,
-        "globalAverageDailyKeystrokes": 0,
-        "globalAverageLinesAdded": 0,
-        "globalAverageLinesRemoved": 0,
-    }
-    return template
-
-# get the session summary data
-def getSessionSummaryData():
-    global sessionSummaryData
-    if (sessionSummaryData is None):
-        sessionSummaryData = getSessionSummaryFileAsJson()
-    return sessionSummaryData
-
-# get the session summary file
-def getSessionSummaryFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'sessionSummary.json')
 
 def getSummaryInfoFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'SummaryInfo.txt')
 
-def incrementSessionSummaryData(minutes, keystrokes):
-    global sessionSummaryData
-    if (sessionSummaryData is None):
-        sessionSummaryData = getSessionSummaryFileAsJson()
-    sessionSummaryData["currentDayMinutes"] += minutes
-    sessionSummaryData["currentDayKeystrokes"] += keystrokes
+def incrementSessionSummaryData(aggregates):
+    data = getSessionSummaryData()
+    incrementMinutes = getMinutesSinceLastPayload()
 
-#
-def updateStatusBarWithSummaryData():
-    global sessionSummaryData
-    sessionSummaryData = getSessionSummaryFileAsJson()
+    data['currentDayMinutes'] += incrementMinutes
+    data['currentDayKeystrokes'] += aggregates['keystrokes']
+    data['currentDayLinesAdded'] += aggregates['linesAdded']
+    data['currentDayLinesRemoved'] += aggregates['linesRemoved']
 
-    currentDayInfo = getCurrentDayTime(sessionSummaryData)
-    averageDailyInfo = getAverageDailyTime(sessionSummaryData)
+    saveSessionSummaryToDisk(data)
 
-    inFlowIcon = ""
-    if (currentDayInfo.get("data", 0) > averageDailyInfo.get("data", 0)):
-        inFlowIcon = "🚀"
+    timeData = getTodayTimeDataSummary()
+    timeData['file_seconds'] += 60
+    fileSeconds = timeData['file_seconds']
 
-    statusMsg = inFlowIcon + "" + currentDayInfo["formatted"]
-    if (averageDailyInfo.get("data", 0) > 0):
-        statusMsg += " | " + averageDailyInfo["formatted"]
+    sessionSeconds = data['currentDayMinutes'] * 60
+    updateBasedOnSessionSeconds(sessionSeconds)
+    editorSeconds = getWcTimeInSeconds()
 
-    showStatus(statusMsg)
+    updateTimeSummaryData(editorSeconds, sessionSeconds, fileSeconds)
 
 def getCurrentDayTime(sessionSummaryData):
     currentDayMinutes = 0
@@ -112,78 +70,59 @@ def getAverageDailyTime(sessionSummaryData):
     return {"data": averageDailyMinutes, "formatted": humanizeMinutes(averageDailyMinutes)}
 
 
-def saveSessionSummaryToDisk(sessionSummaryData):
-    content = json.dumps(sessionSummaryData)
+def getSessionThresholdSeconds():
+    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
+    return thresholdSeconds
 
-    sessionFile = getSessionSummaryFile()
-    with open(sessionFile, 'w') as f:
-        f.write(content)
-
-def clearSoftwareSessionSummaryData():
-    emptyData = initSessionSummaryData()
+def clearSessionSummaryDataData():
+    log('--- clearing session summary data ---')
+    emptyData = SessionSummary()
     saveSessionSummaryToDisk(emptyData)
 
-# Corrects data object if missing keys
-def coalesceMissingSessionSummaryAttributes(data):
-    template = initSessionSummaryData()
-    for key in template.keys():
-        if key not in data:
-            if key == 'lastUpdatedToday' or key == 'inFlow':
-                data[key] = False
-            else: 
-                data[key] = 0
-    return data
-
-#
-def getSessionSummaryFileAsJson():
-    global sessionSummaryData
-    try:
-        with open(getSessionSummaryFile()) as sessionSummaryFile:
-            sessionSummaryData = json.load(sessionSummaryFile)
-    except Exception as ex:
-        sessionSummaryData = initSessionSummaryData()
-        log("Code Time: Session summary file fetch error: %s" % ex)
-    sessionSummaryData = coalesceMissingSessionSummaryAttributes(sessionSummaryData)
-    return sessionSummaryData
 
 def setSessionSummaryLiveshareMinutes(minutes):
     data = getSessionSummaryData()
     data['liveshareMinutes'] = minutes
     saveSessionSummaryToDisk(data)
 
-def launchCodeTimeMetrics():
-    global sessionSummaryData
-    online = getValue("online", True)
-    sessionSummaryData = getSessionSummaryData()
-    if (sessionSummaryData.get("currentDayMinutes", 0) == 0):
-        if (online):
-            result = fetchDailyKpmSessionInfo(True)
-            sessionSummaryData = result["data"]
-        else:
-            log("Code Time: Connection error, using cached dashboard results")
-            result = fetchDailyKpmSessionInfo(False)
-            sessionSummaryData = result["data"]
+def getMinutesSinceLastPayload():
+    minutesSinceLastPayload = 1
+    lastPayloadEnd = getItem('latestPayloadTimestampEndUtc')
+    if lastPayloadEnd is not None:
+        nowTimes = getNowTimes()
+        nowInSec = nowTimes['nowInSec']
+        # diff from the previous end time
+        diffInSec = nowInSec - lastPayloadEnd
 
-    fetchCodeTimeMetricsDashboard(sessionSummaryData)
+        if diffInSec > 0 and diffInSec < getSessionThresholdSeconds():
+            minutesSinceLastPayload = diffInSec / 60
+    else:
+        refreshSessionSummaryTimer = Timer(1.0, getSessionSummaryStatus)
+        refreshSessionSummaryTimer.start()
+
+    return minutesSinceLastPayload
+
+# TODO: this method hangs for a while (bc no cache now?)
+def launchCodeTimeMetrics():
+    fetchCodeTimeMetricsDashboard()
+    print('hello?')
     file = getDashboardFile()
     sublime.active_window().open_file(file)
 
-def fetchCodeTimeMetricsDashboard(summary):
-    global sessionSummaryData
-    global lastDayOfMonth
 
+def fetchCodeTimeMetricsDashboard():
+    serverOnline = serverIsAvailable()
     summaryInfoFile = getSummaryInfoFile()
 
-    dayOfMonth = datetime.datetime.today().day
-
-    if (lastDayOfMonth == 0 or dayOfMonth != lastDayOfMonth):
-        lastDayOfMonth = dayOfMonth
-
+    if serverOnline:
         # fetch the backend data
         islinux = "true"
         if isWindows() is True or isMac() is True:
             islinux = "false"
-        api = '/dashboard?linux=' + islinux + '&showToday=false'
+
+        # TODO: find sublime setting for showGitMEtrics and replace true with it
+        showGitMetrics = True 
+        api = '/dashboard?showGit=' + 'true' + '&linux=' + islinux + '&showToday=false'
         response = requestIt("GET", api, None, getItem("jwt"))
 
         summaryContent = ""
@@ -193,7 +132,6 @@ def fetchCodeTimeMetricsDashboard(summary):
             summaryContent = SERVICE_NOT_AVAIL
             log("Code Time: Unable to read response data: %s" % ex)
 
-        # save the 
         try:
             with open(summaryInfoFile, 'w', encoding='utf-8') as f:
                 f.write(summaryContent)
@@ -213,11 +151,21 @@ def fetchCodeTimeMetricsDashboard(summary):
     todayHeader = "Today (%s)" % formattedTodayDate
     dashboardContent += getSectionHeader(todayHeader)
 
+    summary = getSessionSummaryStatus()
     if (summary is not None):
-        hoursCodedToday = getCurrentDayTime(sessionSummaryData)["formatted"]
-        averageTime = getCurrentDayTime(sessionSummaryData)["formatted"]
-        dashboardContent += getDashboardRow("Hours coded today", hoursCodedToday)
+        averageTime = getAverageDailyTime(summary)["formatted"]
+        hoursCodedToday = getCurrentDayTime(summary)["formatted"]
+
+        liveshareTime = None 
+        if summary['liveshareMinutes']:
+            liveshareTime = humanizeMinutes(summary['liveshareMinutes'])
+
+        currentEditorMinutesStr = getHumanizedWcTime()
+        dashboardContent += getDashboardRow('Editor time today', currentEditorMinutesStr)
+        dashboardContent += getDashboardRow("Code time today", hoursCodedToday)
         dashboardContent += getDashboardRow("90-day avg", averageTime)
+        if liveshareTime:
+            dashboardContent += getDashboardRow('Live Share', liveshareTime)
         dashboardContent += "\n"
 
     if (os.path.exists(summaryInfoFile)):
@@ -233,121 +181,135 @@ def fetchCodeTimeMetricsDashboard(summary):
     except Exception as ex:
         log("Code Time: Unable to write local dashboard content: %s" % ex)
 
-#
-# Fetch and display the daily KPM info
-#
-def fetchDailyKpmSessionInfo(forceRefresh):
-    sessionSummaryData = getSessionSummaryFileAsJson()
-    currentDayMinutes = sessionSummaryData.get("currentDayMinutes", 0)
-    if (currentDayMinutes == 0 or forceRefresh is True):
-        online = getValue("online", True)
-        if (online is False):
-            # update the status bar with offline data
-            updateStatusBarWithSummaryData()
-            return { "data": sessionSummaryData, "status": "CONN_ERR" }
-
-        # api to fetch the session kpm info
-        api = '/sessions/summary'
-        response = requestIt("GET", api, None, getItem("jwt"))
-
-        if (response is not None and isResponsOk(response)):
-            sessionSummaryData = json.loads(response.read().decode('utf-8'))
-
-            # update the file
-            saveSessionSummaryToDisk(sessionSummaryData)
-
-            # update the status bar
-            updateStatusBarWithSummaryData()
-
-            # stitch the dashboard together
-            fetchCodeTimeMetricsDashboard(sessionSummaryData)
-
-            return { "data": sessionSummaryData, "status": "OK" }
-    else:
-        # update the status bar with offline data
-        updateStatusBarWithSummaryData()
-        return { "data": sessionSummaryData, "status": "OK" }
-
 # store the payload offline...
 def storePayload(payload):
 
-    # calculate it and call add to the minutes
-    # convert it to json
-    payloadData = json.loads(payload)
+    fileChangeInfoMap = getFileChangeSummaryAsJson()
+    aggregate = KeystrokeAggregate()
+    print(payload)
 
-    keystrokes = payloadData.get("keystrokes", 0)
+    if payload['project']:
+        aggregate['directory'] = payload['project']['directory'] or NO_PROJ_NAME
+    else:
+        aggregate['directory'] = NO_PROJ_NAME
+    
+    for key in payload['source'].keys():
+        fileInfo = payload['source'][key]
+        baseName = os.path.basename(key)
 
-    incrementSessionSummaryData(1, keystrokes)
+        fileInfo['name'] = baseName
+        fileInfo['fsPath'] = key
+        fileInfo['projectDir'] = payload['project']['directory']
+        fileInfo['duration_seconds'] = fileInfo['end'] - fileInfo['start']
+
+        aggregate['add'] += fileInfo['add']
+        aggregate['close'] += fileInfo['close']
+        aggregate['delete'] += fileInfo['delete']
+        aggregate['keystrokes'] += fileInfo['keystrokes']
+        aggregate['linesAdded'] += fileInfo['linesAdded']
+        aggregate['linesRemoved'] += fileInfo['linesRemoved']
+        aggregate['open'] += fileInfo['open']
+        aggregate['paste'] += fileInfo['paste']
+
+        existingFileInfo = fileChangeInfoMap.get(key)
+        if existingFileInfo is None:
+            fileInfo['update_count'] = 1
+            fileInfo['kpm'] = aggregate['keystrokes']
+            fileChangeInfoMap[key] = fileInfo
+        else:
+            existingFileInfo['update_count'] += 1
+            existingFileInfo['keystrokes'] += fileInfo['keystrokes']
+            existingFileInfo['kpm'] = existingFileInfo['keystrokes'] / existingFileInfo['update_count']
+            existingFileInfo['add'] += fileInfo['add']
+            existingFileInfo['close'] += fileInfo['close']
+            existingFileInfo['delete'] += fileInfo['delete']
+            existingFileInfo['keystrokes'] += fileInfo['keystrokes']
+            existingFileInfo['linesAdded'] += fileInfo['linesAdded']
+            existingFileInfo['linesRemoved'] += fileInfo['linesRemoved']
+            existingFileInfo['open'] += fileInfo['open']
+            existingFileInfo['paste'] += fileInfo['paste']
+            existingFileInfo['duration_seconds'] += fileInfo['duration_seconds']
+
+            # non aggregates, just set
+            existingFileInfo['lines'] = fileInfo['lines']
+            existingFileInfo['length'] = fileInfo['length']
+
+
+    incrementSessionSummaryData(aggregate)
 
     # push the stats to the file so other editor windows can have it
-    saveSessionSummaryToDisk(getSessionSummaryData())
+    saveFileChangeInfoToDisk(fileChangeInfoMap)
 
-    # update the statusbar
-    fetchDailyKpmSessionInfo(False)
+    # refresh tree
+    refreshTreeTimer = Timer(1.0, refreshTreeView)
+    refreshTreeTimer.start()
 
     # get the datastore file to save the payload
     dataStoreFile = getSoftwareDataStoreFile()
 
     log("Code Time: storing kpm metrics: %s" % payload)
 
-    with open(dataStoreFile, "a") as dsFile:
-        dsFile.write(payload + "\n")
+    try:
+        with open(dataStoreFile, "a") as dsFile:
+            dsFile.write(json.dumps(payload) + "\n")
+    except Exception as ex:
+        log('Error appending to the Software data store file: %s' % ex)
 
 # send the data that has been saved offline
 def sendOfflineData():
-    existingJwt = getItem("jwt")
+    batchSendData('/data/batch', getSoftwareDataStoreFile())
 
-    # no need to try to send the offline data if we don't have an auth token
-    if (existingJwt is None):
-        return
+def sendOfflineEvents():
+    batchSendData('/data/event', getPluginEventsFile())
 
-    serverAvailable = checkOnline()
-    if (serverAvailable):
-        # send the offline data
-        dataStoreFile = getSoftwareDataStoreFile()
+def sendOfflineTimeData():
+    batchSendData('/data/time', getTimeDataSummaryFile(), isArray=True)
 
-        if (os.path.exists(dataStoreFile)):
-            payloads = []
 
-            try:
-                with open(dataStoreFile) as fp:
-                    for line in fp:
-                        if (line and line.strip()):
-                            line = line.rstrip()
-                            # convert to object
-                            json_obj = json.loads(line)
-                            # convert to json to send
-                            payloads.append(json_obj)
-            except Exception:
-                log("Unable to read offline data file %s" % dataStoreFile)
+def batchSendData(api, file, isArray=False):
+    isOnline = serverIsAvailable()
+    if not isOnline:
+        return 
 
-            if (payloads):
-                os.remove(dataStoreFile)
+    try:
+        # print('batch sending {}'.format(file))
+        if os.path.exists(file):
+            payloads = None 
+            if isArray:
+                payloads = getFileDataArray(file)
+            else:
+                payloads = getFileDataPayloadsAsJson(file)
+            batchSendPayloadData(api, file, payloads)
+    except Exception as ex:
+        log('Error batch sending payloads: %s' % ex)
 
-                # go through the payloads array 50 at a time
+            
+
+def batchSendPayloadData(api, file, payloads):
+    if (payloads is not None and len(payloads) > 0):
+        log('sending batch payloads')
+
+        # go through the payloads array 50 at a time
+        batch = []
+        length = len(payloads)
+        for i in range(length):
+            payload = payloads[i]
+            if (len(batch) >= 50):
+                requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
+                # send batch
                 batch = []
-                length = len(payloads)
-                for i in range(length):
-                    payload = payloads[i]
-                    if (len(batch) >= 50):
-                        requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
-                        # send batch
-                        batch = []
-                    batch.append(payload)
+            batch.append(payload)
 
-                # send remaining batch
-                if (len(batch) > 0):
-                    requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
+        # send remaining batch
+        if (len(batch) > 0):
+            requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
+        
+        os.remove(file)
 
-    # update the statusbar
-    fetchDailyKpmSessionInfo(True)
 
-    # send the next batch in 30 minutes
-    sendOfflineDataTimer = Timer(60 * 30, sendOfflineData)
-    sendOfflineDataTimer.start()
 
 def showLoginPrompt():
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
 
     if (serverAvailable):
         # set the last update time so we don't try to ask too frequently

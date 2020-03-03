@@ -18,7 +18,7 @@ def redispayStatus():
 def toggleStatus():
     global lastMsg
     showStatusVal = getValue("show_code_time_status", True)
-    
+
     if (showStatusVal is True):
         showStatus(lastMsg)
     else:
@@ -42,10 +42,12 @@ def showStatus(msg):
             for view in active_window.views():
                 if (view is not None):
                     view.set_status('software.com', msg)
+
+        setValue("show_code_time_status", not showStatusVal)
     except RuntimeError:
         httpLog(msg)
 
-def isResponsOk(response):
+def isResponseOk(response):
     if (response is not None and int(response.status) < 300):
         return True
     return False

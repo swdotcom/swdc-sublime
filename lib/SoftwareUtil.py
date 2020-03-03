@@ -2,7 +2,7 @@ from threading import Thread, Timer, Event
 import os
 import json
 import time
-import datetime
+import datetime 
 import socket
 import sublime_plugin, sublime
 import sys
@@ -11,7 +11,7 @@ import platform
 import re, uuid
 import webbrowser
 from urllib.parse import quote_plus
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_output, CalledProcessError
 from .SoftwareHttp import *
 from .SoftwareSettings import *
 
@@ -25,12 +25,20 @@ MARKER_WIDTH = 4
 
 sessionMap = {}
 
+'''
+In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
+have easy TTL cache options available
+'''
+# TODO: implement a TTL cache
+myCache = {}
+
 runningResourceCmd = False
 loggedInCacheState = False
+isFocused = True 
 timezone=''
 
 def updateOnlineStatus():
-    online = checkOnline()
+    online = serverIsAvailable()
     # print("Checking online status")
     if (online is True):
         setValue("online", True)
@@ -85,9 +93,18 @@ def getLocalStart():
         pass
     return local_start
 
-# TODO: port from atom
+
 def getNowTimes():
-    pass
+    date = datetime.datetime.utcnow()
+    nowInSec = round(date.timestamp())
+    offsetSec = time.timezone
+    localNowInSec = nowInSec - offsetSec
+    day = datetime.datetime.fromtimestamp(localNowInSec).date().isoformat()
+    return {
+        'nowInSec': nowInSec,
+        'localNowInSec': localNowInSec,
+        'day': day
+    }
 
 def getHostname():
     try:
@@ -95,7 +112,7 @@ def getHostname():
     except Exception:
         return os.uname().nodename
 
-# fetch a value from the .software/sesion.json file
+# fetch a value from the .software/session.json file
 def getItem(key):
     val = sessionMap.get(key, None)
     if (val is not None):
@@ -119,6 +136,30 @@ def setItem(key, value):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
+def focusWindow():
+    global isFocused
+    isFocused = True
+
+def blurWindow():
+    global isFocused
+    isFocused = False 
+
+def isFocused():
+    global isFocused
+    return isFocused 
+
+def refreshTreeView():
+    sublime.active_window().run_command('open_tree_view')
+
+def getOpenProjects():
+    folders = None 
+    if sublime.active_window().project_data():
+        folders = sublime.active_window().project_data()['folders']
+    if folders is None:
+        return []
+    openProjectNames = list(map(lambda x: x['path'], folders))
+    return openProjectNames
+
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
     sessionFile = os.path.join(file, 'session.json')
@@ -132,6 +173,45 @@ def getSoftwareSessionAsJson():
     except Exception:
         return {}
 
+def getFileDataAsJson(file):
+    data = None 
+    if os.path.isfile(file):
+        with open(file) as f:
+            try:
+                data = json.load(f)
+            except Exception as ex:
+                log('Unable to read session info: %s' % ex)
+                os.remove(file)
+    return data 
+
+def getFileDataArray(file):
+    payloads = []
+    if os.path.isfile(file):
+        with open(file) as f:
+            try:
+                payloads = json.load(f)
+            except Exception as ex:
+                log('Error reading file array data: %s' % ex)
+                os.remove(file)
+    return payloads 
+
+def getFileDataPayloadsAsJson(file):
+    payloads = []
+    if os.path.isfile(file):
+        try:
+            with open(file) as f:
+                for line in f:
+                    if (line and line.strip()):
+                        line = line.rstrip()
+                        # convert to object
+                        json_obj = json.loads(line)
+                        # convert to json to send
+                        payloads.append(json_obj)
+        except Exception as ex:
+            log('Unable to read file data payload: %s' % ex)
+            return []
+    return payloads 
+
 def getSoftwareSessionFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'session.json')
@@ -140,6 +220,14 @@ def getSoftwareDataStoreFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'data.json')
 
+def getPluginEventsFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'events.json')
+
+def getFileChangeSummaryFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'fileChangeSummary.json')
+
 def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')
     softwareDataDir = os.path.join(softwareDataDir, '.software')
@@ -147,13 +235,22 @@ def getSoftwareDir(autoCreate):
         os.makedirs(softwareDataDir, exist_ok=True)
     return softwareDataDir
 
-def getDashboardFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'CodeTime.txt')
-
 def getCustomDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CustomDashboard.txt')
+
+def getCommandResultList(cmd, projectDir):
+    try:
+        result = check_output(cmd, cwd=projectDir)
+    except CalledProcessError as ex:
+        log('Error running {}: {}'.format(cmd, ex.output))
+        return []
+    
+    result = result.decode('UTF-8').strip().replace('\r\n', '\r').replace('\n', '\r')
+    # Remove initial spaces
+    result = re.sub(r'^\s+', '', result).split('\r')
+    return result 
+    
 
 # execute the applescript command
 def runCommand(cmd, args = []):
@@ -323,10 +420,10 @@ def getResourceInfo(rootDir):
     except Exception as e:
         return {}
 
-def checkOnline():
+def serverIsAvailable():
     # non-authenticated ping, no need to set the Authorization header
     response = requestIt("GET", "/ping", None, getItem("jwt"))
-    if (isResponsOk(response)):
+    if (isResponseOk(response)):
         return True
     else:
         return False
@@ -348,6 +445,23 @@ def launchLoginUrl():
     webUrl += "/onboarding?token=" + jwt
     webbrowser.open(webUrl)
     refetchUserStatusLazily(10)
+
+def launchSubmitFeedback():
+    webbrowser.open('mailto:cody@software.com')
+
+def getLocalREADMEFile():
+    return os.path.join(os.path.dirname(__file__), '..', 'README.md')
+
+# TODO: figure out how to do markdown preview
+def displayReadmeIfNotExists():
+    readmeFile = getLocalREADMEFile()
+    fileUri = 'markdown-preview://{}'.format(readmeFile)
+    print(fileUri)
+
+    # displayed = getItem('sublime_CtReadme')
+    # if not displayed:
+    sublime.active_window().open_file(readmeFile)
+        # setItem('sublime_CtReadme', True)
 
 def launchSpotifyLoginUrl():
     api_endpoint = getValue("software_api_endpoint", "api.software.com")
@@ -408,7 +522,7 @@ def launchCustomDashboard():
     sublime.active_window().open_file(file)
 
 def getAppJwt():
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
     if (serverAvailable):
         now = round(time.time())
         api = "/data/apptoken?token=" + str(now)
@@ -446,7 +560,7 @@ def createAnonymousUser(serverAvailable):
         api = "/data/onboard"
         try:
             response = requestIt("POST", api, json.dumps(payload), appJwt)
-            if (response is not None and isResponsOk(response)):
+            if (response is not None and isResponseOk(response)):
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
@@ -464,7 +578,7 @@ def getUser(serverAvailable):
     if (jwt and serverAvailable):
         api = "/users/me"
         response = requestIt("GET", api, None, jwt)
-        if (isResponsOk(response)):
+        if (isResponseOk(response)):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
                 user = responseObj.get("data", None)
@@ -492,7 +606,7 @@ def isLoggedOn(serverAvailable):
         api = "/users/plugin/state"
         response = requestIt("GET", api, None, jwt)
 
-        responseOk = isResponsOk(response)
+        responseOk = isResponseOk(response)
         if (responseOk is True):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
@@ -522,7 +636,7 @@ def getUserStatus():
 
     currentUserStatus = {}
 
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
 
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
@@ -540,9 +654,12 @@ def getUserStatus():
 
     return currentUserStatus
 
+def getLoggedInCacheState():
+    return getLoggedInCacheState
+
 def sendHeartbeat(reason):
     jwt = getItem("jwt")
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
     if (jwt is not None and serverAvailable):
 
         payload = {}
@@ -557,7 +674,7 @@ def sendHeartbeat(reason):
         try:
             response = requestIt("POST", api, json.dumps(payload), jwt)
 
-            if (response is not None and isResponsOk(response) is False):
+            if (response is not None and isResponseOk(response) is False):
                 log("Code Time: Unable to send heartbeat ping")
         except Exception as ex:
             log("Code Time: Unable to send heartbeat: %s" % ex)
@@ -579,7 +696,6 @@ def humanizeMinutes(minutes):
         humanizedStr = "1 min"
     else:
         humanizedStr = '{:1.0f}'.format(minutes) + " min"
-
     return humanizedStr
 
 def getDashboardRow(label, value):
@@ -627,3 +743,22 @@ def getIcons():
             return icons_dict
     except Exception:
         return {}
+
+#TODO:  Ensure this has equivalent functionality as numeral().format('0 a') in JS
+def formatNumWithK(num):
+    if num == 0: 
+        return '0'
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{} {}'.format('{:d}'.format(int(num)).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude]).strip()
+
+def setInterval(func, sec): 
+    def func_wrapper():
+        setInterval(func, sec) 
+        func()  
+    t = Timer(sec, func_wrapper)
+    t.start()
+    return t

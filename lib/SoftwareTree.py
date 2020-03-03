@@ -1,16 +1,39 @@
 import sublime_plugin, sublime
+from threading import Thread, Timer, Event 
+from .SoftwareOffline import getSessionSummaryData, launchCodeTimeMetrics
+from .SoftwareUtil import *
+from .SoftwareModels import SessionSummary
+from .SoftwareWallClock import *
+from .SoftwareFileChangeInfoSummaryData import *
+from .SoftwareRepo import *
 
-class OpenTreeView(sublime_plugin.TextCommand):
+icons = getIcons()
+tree_view = None
+NO_ID = 'NO_ID'
 
-    def run(self, edit):
-        tree_view = None
-        window = self.view.window()
+'''
+Because we do frequent tree updates/refreshes, we don't want to redraw the tree in its unopened
+state, especially if the user is in the middle of using it. This data struct keeps track of what
+was opened so state can be maintained across draws.
+'''
+open_state = set()
+
+# IDs for code time action buttons
+CODE_TIME_ACTIONS = {'advanced-metrics', 'generate-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback'}
+
+# TODO: rare bug where tree isn't clickable (possibly slow wifi)
+class OpenTreeView(sublime_plugin.WindowCommand):
+
+    def run(self):
+        global tree_view 
+        self.currentKeystrokeStats = SessionSummary()
+        window = self.window
         orig_view = window.active_view()
         if not tree_view:
             window.set_sidebar_visible(False)
             layout = window.get_layout()
             if len(layout['cols']) < 3:
-                layout['cols'] = [0, 0.2, 1]
+                layout['cols'] = [0, 0.25, 1]
                 layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
                     [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
                 ]
@@ -19,7 +42,7 @@ class OpenTreeView(sublime_plugin.TextCommand):
                     (group, index) = window.get_view_index(view)
                     window.set_view_index(view, group + 1, index)
             elif layout['cols'][1] > 0.3:
-                layout['cols'] = [0, min(0.2, layout['cols'][1] / 2.0)] + layout['cols'][1:]
+                layout['cols'] = [0, min(0.25, layout['cols'][1] / 2.0)] + layout['cols'][1:]
                 layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
                     [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
                 ]
@@ -42,58 +65,62 @@ class OpenTreeView(sublime_plugin.TextCommand):
                     window.set_view_index(tree_view, group, 0)
                     window.focus_view(orig_view) # Um... Seems like a bug
         else:
-        	tree_view.erase_phantoms('remote_tree')
+        	tree_view.erase_phantoms('software_tree')
 
-        self.view = tree_view
-        self.phantom_set = sublime.PhantomSet(tree_view, 'remote_tree')
+        # self.view = tree_view
+        self.phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
 
-        # trees.append(self) 
+        if len(window.views()) == 1:
+            window.focus_group(1)
+
+        statusBarMessage = 'Show status bar metrics' if getValue("show_code_time_status", True) else 'Hide status bar metrics'
 
         self.tree = { 
         	'index': 0,
         	'depth': 0,
         	'path': '',
         	'name': '',
+            'id': '',
         	'dir': True,
         	'expanded': False,
         	'childs': [
                 {
-                    'index': 1,
                     'depth': 1,
+                    'id': 'code-time-actions',
                     'name': 'CODE TIME',
                     'dir': True,
                     'expanded': False,
                     'childs': [
                         {
-                            'index': 2,
                             'depth': 2,
+                            'id': 'advanced-metrics',
                             'icon': 'paw',
                             'name': 'See advanced metrics',
                             'dir': False,
                             'expanded': False,
                             'childs': None
                         },
-                        {
-                            'index': 3,
+                        { 
                             'depth': 2,
+                            'id': 'generate-dashboard',
                             'icon': 'dashboard',
                             'name': 'Generate dashboard',
                             'dir': False,
                             'expanded': False,
                             'childs': None
                         },
-                        {
-                            'index': 4,
+                        { 
                             'depth': 2,
+                            'id': 'toggle-status-metrics',
                             'icon': 'visible',
-                            'name': 'Hide status bar metrics', #TODO: make this a switch with Show status bar metrics
+                            'name': statusBarMessage,
                             'dir': False,
                             'expanded': False,
                             'childs': None
                         },
-                        {
-                            'index': 5,
+                        { 
                             'depth': 2,
+                            'id': 'learn-more',
                             'icon': 'readme',
                             'name': 'Learn more',
                             'dir': False,
@@ -101,8 +128,8 @@ class OpenTreeView(sublime_plugin.TextCommand):
                             'childs': None
                         },
                         {
-                            'index': 6,
                             'depth': 2,
+                            'id': 'submit-feedback',
                             'icon': 'message',
                             'name': 'Submit feedback',
                             'dir': False,
@@ -110,192 +137,75 @@ class OpenTreeView(sublime_plugin.TextCommand):
                             'childs': None
                         }
                     ]
-                },
-                {
-                    'index': 7,
-                    'depth': 1,
-                    'name': 'ACTIVITY METRICS',
-                    'dir': True,
-                    'expanded': False,
-                    'childs': [
-                        {
-                            'index': 8,
-                            'depth': 2,
-                            'name': 'Editor time',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': [
-                                {
-                                    'index': 9,
-                                    'depth': 3,
-                                    'name': 'Today: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                }
-                            ]
-                        },
-                        {
-                            'index': 9,
-                            'depth': 2,
-                            'name': 'Code time',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': [
-                                {
-                                    'index': 10,
-                                    'depth': 3,
-                                    'name': 'Today: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 11,
-                                    'depth': 3,
-                                    'name': 'Your average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 12,
-                                    'depth': 3,
-                                    'name': 'Global average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                }
-                            ]
-                        },
-                        {
-                            'index': 13,
-                            'depth': 2,
-                            'name': 'Lines added',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': [
-                                {
-                                    'index': 14,
-                                    'depth': 3,
-                                    'name': 'Today: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 15,
-                                    'depth': 3,
-                                    'name': 'Your average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 16,
-                                    'depth': 3,
-                                    'name': 'Global average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                }
-                            ]
-                        },
-                            {
-                            'index': 17,
-                            'depth': 2,
-                            'name': 'Lines removed',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': [
-                                {
-                                    'index': 18,
-                                    'depth': 3,
-                                    'name': 'Today: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 19,
-                                    'depth': 3,
-                                    'name': 'Your average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                },
-                                {
-                                    'index': 20,
-                                    'depth': 3,
-                                    'name': 'Global average: 0 min', #TODO: hardcoded right now
-                                    'dir': False,
-                                    'expanded': False,
-                                    'childs': None
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    'index': 21,
-                    'depth': 1,
-                    'name': 'PROJECT METRICS',
-                    'dir': True,
-                    'expanded': False,
-                    'childs': [
-                        {
-                            'index': 22,
-                            'depth': 2,
-                            'name': 'Open changes',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': None
-                        },
-                        {
-                            'index': 23,
-                            'depth': 2,
-                            'name': 'Committed today',
-                            'dir': True,
-                            'expanded': False,
-                            'childs': None
-                        }
-                    ]
                 }
-                
             ]
         }
-        self.list = [self.tree]
-        self.opened = None
-        self.expand(0)
 
+        # Build tree nodes
+        data = getSessionSummaryData()
+        self.buildMetricsNodes(data)
+        self.buildCommitTreeNodes()
 
-    def expand(self, index):
-        item = self.list[index]
-        item['expanded'] = not item['expanded']
-        if item['expanded']: # and item['childs'] == None -- caching
-            if item['childs']:
-                for child in item['childs']:
-                    child['index'] = len(self.list)
-                    self.list.append(child)
+        self.expand(self.tree, '')
+
+    # name will be a unique identifier b/c the only values that can have the same name
+    # are non-expandables (individual metrics like dailyMinutes, etc.)
+    def expand(self, tree, id):
+        if 'id' in tree:
+            print('tree name is {}'.format(tree['id']))
+        if 'id' in tree and tree['id'] == id:
+            # print('we did it')
+            tree['expanded'] = not tree['expanded']
+            if tree['expanded'] is True:
+                open_state.add(tree['id'])
+            else:
+                open_state.remove(tree['id'])
             self.rebuild_phantom()
+            return True
         else:
-            self.rebuild_phantom()
+            if tree['childs'] is None:
+                return False
+            else:
+                for child in tree['childs']:
+                    if self.expand(child, id):
+                        return True
 
-    def open(self, index):  
-        item = self.list[index]
-        self.opened = item
-        self.rebuild_phantom()
+    def performCodeTimeAction(self, command):
+        if command == 'generate-dashboard':
+            launchCodeTimeMetrics()
+        elif command == 'toggle-status-metrics':
+            toggleStatus()
+            refreshTreeView()
+        elif command == 'learn-more':
+            #TODO: figure out how to preview markdown
+            displayReadmeIfNotExists()
+        elif command == 'advanced-metrics':
+            loggedIn = getLoggedInCacheState()
+            if not loggedIn:
+                launchLoginUrl()
+            else:
+                launchWebDashboardUrl()
+        elif command == 'submit-feedback':
+            launchSubmitFeedback()
 
     def on_click(self, url):
         comps = url.split('/')
-        if comps[0] == 'open':
-            self.open(int(comps[1]))
-        else:
-            self.expand(int(comps[1]))
 
+        print(comps[1])
+        if comps[1] in CODE_TIME_ACTIONS:
+            self.performCodeTimeAction(comps[1])
+            return 
+
+        if comps[0] == 'expand':
+            print('looking for ', comps[1])
+            self.expand(self.tree, comps[1])
+
+    '''
+    TODO: lots of styles changes to look more like Atom/VSCode, though 
+          Sublime's "minihtml" engine has some large restrictions
+    '''
     def rebuild_phantom(self):
         result = self.render_subtree(self.tree, [])
-        # print(result)
         html = '''<body id="tree">
             <style>
             body {
@@ -311,10 +221,6 @@ class OpenTreeView(sublime_plugin.TextCommand):
             padding-bottom: 2px;
             text-decoration: none;
             }
-            .file.active {
-            background-color: color(var(--background) blend(var(--foreground) 80%));
-            border-radius: 3px;
-            }
             .file span {
             font-size: 7px; 
             }
@@ -327,47 +233,326 @@ class OpenTreeView(sublime_plugin.TextCommand):
         self.phantom = sublime.Phantom(sublime.Region(0), html, sublime.LAYOUT_BLOCK, on_navigate=self.on_click)
         self.phantom_set.update([self.phantom])
 
-
-    # TODO: modify render_subtree
     def render_subtree(self, item, result):
-        # if file
-        # if not item['dir']:
-        #     result.append('<div class="file{active}" style="margin-left: {margin}px"><a href=open/{index}><span>📄&nbsp;</span>{name}</a></div>'.format(
-        #         active=' active' if item == self.opened else '',
-        #         margin=(item['depth'] * 20) - 10,
-        #         index=item['index'],
-        #         name=item['name']))
-        #     return result
-        
+        global icons
         if not item['dir']:
             if 'icon' in item:
-                result.append('<div class="file{active}" style="margin-left: {margin}px;"><a href=open/{index}><img height="16" width="16" alt="" src="{icon}">{name}</a></div>'.format(
-                    active=' active' if item == self.opened else '',
+                result.append('<div class="file" style="margin-left: {margin}px;"><a href=open/{index}><img height="16" width="16" alt="" src="{icon}">{name}</a></div>'.format(
                     margin=(item['depth'] * 20) - 10,
-                    index=item['index'],
+                    index=item['id'] if 'id' in item else NO_ID,
                     name=item['name'],
                     icon=icons[item['icon']]))
                 return result
             else:
-                result.append('<div class="file{active}" style="margin-left: {margin}px"><a href=open/{index}><span>📄&nbsp;</span>{name}</a></div>'.format(
-                    active=' active' if item == self.opened else '',
+                result.append('<div class="file" style="margin-left: {margin}px"><a href=open/{index}>{name}</a></div>'.format(
                     margin=(item['depth'] * 20) - 10,
-                    index=item['index'],
+                    index=item['id'] if 'id' in item else NO_ID,
                     name=item['name']))
                 return result
 
-
         # if in a directory
         if item['depth'] > 0:
-            result.append('<div class="dir" style="margin-left: {margin}px"><a href=expand/{index}>{sign}&nbsp;{name}</a></div>'.format(
+            result.append('<div id="{id}" class="dir" style="margin-left: {margin}px"><a href=expand/{index}>{sign}&nbsp;{name}</a></div>'.format(
+                id=item['id'] if 'id' in item else NO_ID,
                 margin=(item['depth'] * 20) - 10,
-                index=item['index'],
+                index=item['id'] if 'id' in item else NO_ID,
                 name=item['name'],
-                sign='▼' if item['expanded'] else '▶'))
+                sign='▼' if (item['expanded'] or item['id'] in open_state) else '▶'))
 
         # if directory with things
-        if item['childs'] != None and item['expanded']:
+        if item['childs'] != None and (item['expanded'] or item['id'] in open_state):
+            item['expanded'] = True
             for child in item['childs']:
                 self.render_subtree(child, result)
 
         return result
+
+    def setCurrentKeystrokeStats(self, keystrokeStats):
+        if not keystrokeStats:
+            self.currentKeystrokeStats = SessionSummary()
+        else:
+            for key in keystrokeStats.source:
+                # fileInfo is of type FileChangeInfo
+                fileInfo = keystrokeStats.source[key] 
+                self.currentKeystrokeStats.currentDayKeystrokes = fileInfo.keystrokes
+                self.currentKeystrokeStats.currentDayLinesAdded = fileInfo.linesAdded
+                self.currentKeystrokeStats.currentDayLinesRemoved = fileInfo.linesRemoved
+
+    # data is an object of shape returned by SessionSummary()
+    def buildMetricsNodes(self, data):
+        # delete the current (ACTIVITY METRICS) from tree['childs']
+        self.tree['childs'] = list(filter(lambda x: x['name'] != 'ACTIVITY METRICS', self.tree['childs']))
+
+        newActivityMetrics = {
+            'index': 2,
+            'depth': 1,
+            'id': 'activity-metrics',
+            'name': 'ACTIVITY METRICS',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+
+        # EDITOR-TIME stuff
+        editorMinutes = getHumanizedWcTime()
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('editor-time', 'Editor time', editorMinutes))
+
+        # CODE-TIME stuff
+        codeTimeMinutes = humanizeMinutes(data['currentDayMinutes']).strip()
+        avgDailyMinutes = humanizeMinutes(data['averageDailyMinutes']).strip()
+        globalAvgMinutes = humanizeMinutes(data['globalAverageSeconds'] / 60).strip()
+        boltIcon = 'bolt' if data['currentDayMinutes'] > data['averageDailyMinutes'] else 'bolt-grey'
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('code-time', 'Code time', codeTimeMinutes, avgDailyMinutes, globalAvgMinutes, boltIcon))
+
+        currLinesAdded = self.currentKeystrokeStats['currentDayLinesAdded'] + data['currentDayLinesAdded']
+        linesAdded = formatNumWithK(currLinesAdded)
+        avgLinesAdded = formatNumWithK(data['averageLinesAdded'])
+        globalLinesAdded = formatNumWithK(data['globalAverageLinesAdded'])
+        boltIcon = 'bolt' if data['currentDayLinesAdded'] > data['averageLinesAdded'] else 'bolt-grey'
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('lines-added', 'Lines added', linesAdded, avgLinesAdded, globalLinesAdded, boltIcon))
+
+        currLinesRemoved = self.currentKeystrokeStats['currentDayLinesRemoved'] + data['currentDayLinesRemoved']
+        linesRemoved = formatNumWithK(currLinesRemoved)
+        avgLinesRemoved = formatNumWithK(data['averageLinesRemoved'])
+        globalLinesRemoved = formatNumWithK(data['globalAverageLinesRemoved'])
+        boltIcon = 'bolt' if data['currentDayLinesRemoved'] > data['averageLinesRemoved'] else 'bolt-grey'
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('lines-removed', 'Lines removed', linesRemoved, avgLinesRemoved, globalLinesRemoved, boltIcon))
+
+        currKeystrokes = self.currentKeystrokeStats['currentDayKeystrokes'] + data['currentDayKeystrokes']
+        keystrokes = formatNumWithK(currKeystrokes)
+        avgKeystrokes = formatNumWithK(data['averageDailyKeystrokes'])
+        globalKeystrokes = formatNumWithK(data['globalAverageDailyKeystrokes'])
+        boltIcon = 'bolt' if data['currentDayKeystrokes'] > data['averageDailyKeystrokes'] else 'bolt-grey'
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('keystrokes', 'Keystrokes', keystrokes, avgKeystrokes, globalKeystrokes, boltIcon))
+        
+        
+        # Num files changed
+        fileChangeInfoMap = getFileChangeSummaryAsJson()
+        topFilesNode = self.buildTopFilesNode(fileChangeInfoMap)
+        if topFilesNode:
+            newActivityMetrics['childs'].append(topFilesNode)
+
+        # More file metrics nodes
+        fileChangeInfos = fileChangeInfoMap.values()
+
+        topKpmFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by KPM', 'kpm', 'top-kpm-files')
+        newActivityMetrics['childs'].append(topKpmFileNodes)
+
+        topKeystrokeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by keystrokes', 'keystrokes', 'top-keystrokes-files')
+        newActivityMetrics['childs'].append(topKeystrokeFileNodes)
+
+        topCodetimeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by code time', 'duration_seconds', 'top-codetime-files')
+        newActivityMetrics['childs'].append(topCodetimeFileNodes)
+
+        # Insert newActivityMetrics into second position of tree['childs']
+        self.tree['childs'].insert(1, newActivityMetrics)
+
+
+    def buildCodeTimeMetricsItem(self, id, label, todayValue, avgValue=None, globalAvgValue=None, avgIcon=None):
+        item = {
+            'depth': 2,
+            'id': id,
+            'name': label,
+            'dir': True,
+            'expanded': False,
+            'childs': [
+                {
+                    'depth': 3,
+                    'icon': 'rocket',
+                    'name': 'Today: {}'.format(todayValue),
+                    'dir': False,
+                    'expanded': False,
+                    'childs': None
+                }
+            ]
+        }
+
+        if avgValue and globalAvgValue:
+            item['childs'].append({
+                    'depth': 3,
+                    'icon': avgIcon,
+                    'name': 'Your average: {}'.format(avgValue),
+                    'dir': False,
+                    'expanded': False,
+                    'childs': None
+                })
+            item['childs'].append({
+                    'depth': 3,
+                    'icon': 'global-grey',
+                    'name': 'Global average: {}'.format(globalAvgValue),
+                    'dir': False,
+                    'expanded': False,
+                    'childs': None
+                })
+
+        return item 
+
+    def buildTopFilesNode(self, fileChangeInfoMap):
+        topFileTreeNodes = {
+            'depth': 2,
+            'id': 'files-changed',
+            'name': 'Files changed today',
+            'dir': True,
+            'expanded': False,
+            'childs': [
+                {
+                    'depth': 3,
+                    'name': '',
+                    'dir': False,
+                    'expanded': False,
+                    'childs': None
+                }
+            ]
+        }
+        filesChanged = len(fileChangeInfoMap.keys()) if fileChangeInfoMap else 0
+
+        if filesChanged > 0:
+            topFileTreeNodes['childs'][0]['name'] = 'Today: {}'.format(filesChanged)
+            return topFileTreeNodes
+        else:
+            return {}
+
+    def buildOpenChangesDirNodeItem(self, dirName, id, insertions, deletions, commitCount=None, fileCount=None):
+        newNode = {
+            'depth': 3,
+            'id': id,
+            'name': dirName,
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+
+        newNode['childs'].append({
+            'depth': 4,
+            'icon': 'insertion',
+            'name': 'Insertion(s): {}'.format(insertions),
+            'dir': False,
+            'expanded': False,
+            'childs': None 
+        })
+        newNode['childs'].append({
+            'depth': 4,
+            'icon': 'deletion',
+            'name': 'Deletions(s): {}'.format(deletions),
+            'dir': False,
+            'expanded': False,
+            'childs': None 
+        })
+
+        if commitCount:
+            newNode['childs'].append({
+                'depth': 4,
+                'icon': 'commit',
+                'name': 'Commit(s): {}'.format(commitCount),
+                'dir': False,
+                'expanded': False,
+                'childs': None 
+            })  
+            newNode['childs'].append({
+                'depth': 4,
+                'icon': 'files',
+                'name': 'Files changed: {}'.format(fileCount),
+                'dir': False,
+                'expanded': False,
+                'childs': None 
+            })
+
+        return newNode
+
+
+    def topFilesMetricsNode(self, fileChangeInfos, name, sortBy, id):
+        if not fileChangeInfos or len(fileChangeInfos) == 0:
+            return None 
+
+        node = {
+            'depth': 2,
+            'id': id,
+            'name': name,
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+
+        sortedArr = []
+        if sortBy == 'duration_seconds' or sortBy == 'kpm' or sortBy == 'keystrokes':
+            sortedArr = list(sorted(fileChangeInfos, key=lambda info: info[sortBy], reverse=True))
+        else:
+            log('Sorting by invalid sortBy value: "{}"'.format(sortBy))
+
+        childrenNodes = []
+        length = min(3, len(sortedArr))
+        for i in range(0, length):
+            sortedObj = sortedArr[i]
+            fileName = sortedObj['name']
+
+            val = 0
+            if sortBy == 'kpm' or sortBy == 'keystrokes':
+                val = formatNumWithK(sortedObj['kpm'] or 0)
+            elif sortBy == 'duration_seconds':
+                val = humanizeMinutes(sortedObj['duration_seconds'] or 0)
+
+            fsPath = sortedObj['fsPath']
+            label = '{} | {}'.format(fileName, val)
+
+            valItem = {
+                'depth': 3,
+                'name': label,
+                'dir': False,
+                'expanded': False,
+                'childs': None 
+            }
+
+            node['childs'].append(valItem)
+        
+        return node 
+
+    def buildCommitTreeNodes(self):
+        self.tree['childs'] = list(filter(lambda x: x['name'] != 'PROJECT METRICS', self.tree['childs']))
+
+        newProjectMetrics = {
+            'depth': 1,
+            'id': 'project-metrics',
+            'name': 'PROJECT METRICS',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+
+        folders = getOpenProjects()
+        
+        openChangesNode = {
+            'depth': 2,
+            'id': 'open-changes',
+            'name': 'Open changes',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+        committedTodayNode = {
+            'depth': 2,
+            'id': 'committed-today',
+            'name': 'Committed today',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+        
+        if len(folders) > 0:
+            for i in range(len(folders)):
+                directory = folders[i]
+                basename = os.path.basename(directory)
+
+                # Add uncommitted changes
+                currentChangesSummary = getUncommittedChanges(directory)
+                uncommittedNode = self.buildOpenChangesDirNodeItem(basename, 'uncommitted-{}'.format(i), currentChangesSummary['insertions'], currentChangesSummary['deletions'])
+                openChangesNode['childs'].append(uncommittedNode)
+
+                # Add committed changes
+                todaysChangeSummary = getTodaysCommits(directory)
+                committedNode = self.buildOpenChangesDirNodeItem(basename, 'committed-{}'.format(i), todaysChangeSummary['insertions'], todaysChangeSummary['deletions'], todaysChangeSummary['commitCount'], todaysChangeSummary['fileCount'])
+                committedTodayNode['childs'].append(committedNode)
+
+        newProjectMetrics['childs'].append(openChangesNode)
+        newProjectMetrics['childs'].append(committedTodayNode)
+
+        self.tree['childs'].insert(2, newProjectMetrics)
