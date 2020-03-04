@@ -287,9 +287,7 @@ def accumulateStatChanges(results):
 	if results:
 		for line in results:
 			if 'insertion' in line and 'deletion' in line:
-				# print(line)
 				parts = line.strip().split(' ')
-				# print(parts)
 				fileCount = int(parts[0])
 				stats['fileCount'] += fileCount 
 				stats['commitCount'] += 1

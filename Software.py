@@ -453,12 +453,17 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: opened file %s' % fileName)
 
         # show last status message
-        redispayStatus() 
+        redisplayStatus() 
 
+    # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
         fileName = view.file_name()
         if (fileName is None):
             fileName = "Untitled"
+
+        if view.name() == CODETIME_TREEVIEW_NAME:
+            print('handling close tree view')
+            handleCloseTreeView()
 
         active_data = PluginData.get_active_data(view)
 
@@ -479,7 +484,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: closed file %s' % fileName)
         
         # show last status message
-        redispayStatus() 
+        redisplayStatus() 
 
     def on_modified_async(self, view):
         global PROJECT_DIR

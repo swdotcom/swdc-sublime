@@ -10,6 +10,7 @@ from .SoftwareRepo import *
 icons = getIcons()
 tree_view = None
 NO_ID = 'NO_ID'
+CODETIME_TREEVIEW_NAME = 'Code Time Tree View'
 
 '''
 Because we do frequent tree updates/refreshes, we don't want to redraw the tree in its unopened
@@ -29,45 +30,37 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         self.currentKeystrokeStats = SessionSummary()
         window = self.window
         orig_view = window.active_view()
-        if not tree_view:
+        
+        if tree_view is None:
             window.set_sidebar_visible(False)
             layout = window.get_layout()
             if len(layout['cols']) < 3:
                 layout['cols'] = [0, 0.25, 1]
-                layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
-                    [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
-                ]
-                window.set_layout(layout)
-                for view in window.views():
-                    (group, index) = window.get_view_index(view)
-                    window.set_view_index(view, group + 1, index)
             elif layout['cols'][1] > 0.3:
-                layout['cols'] = [0, min(0.25, layout['cols'][1] / 2.0)] + layout['cols'][1:]
-                layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
-                    [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
-                ]
-                window.set_layout(layout)
-                for view in window.views():
-                    (group, index) = window.get_view_index(view)
-                    window.set_view_index(view, group + 1, index)
+                # Evenly space the original views
+                tree_view_width = min(0.25, layout['cols'][1] / 2.0)
+                new_orig_views = list(map(lambda x: x + (1 - x) * tree_view_width, layout['cols'][1:-1])) 
+                layout['cols'] = [0, tree_view_width] + new_orig_views + [layout['cols'][-1]]
+
+            layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
+                [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
+            ]
+            window.set_layout(layout)
 
             tree_view = window.new_file()
             tree_view.settings().set('line_numbers', False)
             tree_view.settings().set('gutter', False)
             tree_view.settings().set('rulers', [])
             tree_view.set_read_only(True)
-            tree_view.set_name('Code Time Tree View')
+            tree_view.set_name(CODETIME_TREEVIEW_NAME)
             tree_view.set_scratch(True)
-            if window.num_groups() > 1: 
-                (group, index) = window.get_view_index(orig_view)
-                if group != 0:
-                    group = 0
-                    window.set_view_index(tree_view, group, 0)
-                    window.focus_view(orig_view) # Um... Seems like a bug
-        else:
-        	tree_view.erase_phantoms('software_tree')
+            if window.num_groups() > 1:
+                for view in window.views():
+                    (group, index) = window.get_view_index(view)
+                    window.set_view_index(view, group + 1, 0)
+                window.set_view_index(tree_view, 0, 0)
+                window.focus_view(orig_view)
 
-        # self.view = tree_view
         self.phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
 
         if len(window.views()) == 1:
@@ -151,10 +144,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
     # name will be a unique identifier b/c the only values that can have the same name
     # are non-expandables (individual metrics like dailyMinutes, etc.)
     def expand(self, tree, id):
-        if 'id' in tree:
-            print('tree name is {}'.format(tree['id']))
         if 'id' in tree and tree['id'] == id:
-            # print('we did it')
             tree['expanded'] = not tree['expanded']
             if tree['expanded'] is True:
                 open_state.add(tree['id'])
@@ -556,3 +546,22 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         newProjectMetrics['childs'].append(committedTodayNode)
 
         self.tree['childs'].insert(2, newProjectMetrics)
+
+
+# If the tree view is closed, collapse its view and set the layout back to its original.
+def handleCloseTreeView():
+    global tree_view
+    tree_view = None
+
+
+# if len(layout['cols']) < 3:
+#             layout['cols'] = [0, 0.25, 1]
+#         elif layout['cols'][1] > 0.3:
+#             # Evenly space the original views
+#             tree_view_width = min(0.25, layout['cols'][1] / 2.0)
+#             new_orig_views = list(map(lambda x: x + (1 - x) * tree_view_width, layout['cols'][1:-1])) 
+#             layout['cols'] = [0, tree_view_width] + new_orig_views + [layout['cols'][-1]]
+
+#         layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
+#             [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
+#         ]

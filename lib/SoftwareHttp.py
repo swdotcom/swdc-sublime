@@ -11,7 +11,7 @@ def httpLog(message):
     if (getValue("software_logging_on", True)):
         print(message)
 
-def redispayStatus():
+def redisplayStatus():
     global lastMsg
     showStatus(lastMsg)
 
