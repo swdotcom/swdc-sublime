@@ -1,4 +1,5 @@
 import sublime_plugin, sublime
+from copy import deepcopy
 from threading import Thread, Timer, Event 
 from .SoftwareOffline import getSessionSummaryData, launchCodeTimeMetrics
 from .SoftwareUtil import *
@@ -9,8 +10,14 @@ from .SoftwareRepo import *
 
 icons = getIcons()
 tree_view = None
+orig_layout = None
 NO_ID = 'NO_ID'
 CODETIME_TREEVIEW_NAME = 'Code Time Tree View'
+shouldOpen = True
+
+def setShouldOpen(val):
+    global shouldOpen
+    shouldOpen = val
 
 '''
 Because we do frequent tree updates/refreshes, we don't want to redraw the tree in its unopened
@@ -26,7 +33,11 @@ CODE_TIME_ACTIONS = {'advanced-metrics', 'generate-dashboard', 'toggle-status-me
 class OpenTreeView(sublime_plugin.WindowCommand):
 
     def run(self):
+        if not shouldOpen:
+            return
+
         global tree_view 
+        global orig_layout
         self.currentKeystrokeStats = SessionSummary()
         window = self.window
         orig_view = window.active_view()
@@ -34,6 +45,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         if tree_view is None:
             window.set_sidebar_visible(False)
             layout = window.get_layout()
+            orig_layout = deepcopy(layout)
             if len(layout['cols']) < 3:
                 layout['cols'] = [0, 0.25, 1]
             elif layout['cols'][1] > 0.3:
@@ -181,13 +193,13 @@ class OpenTreeView(sublime_plugin.WindowCommand):
     def on_click(self, url):
         comps = url.split('/')
 
-        print(comps[1])
+        # print(comps[1])
         if comps[1] in CODE_TIME_ACTIONS:
             self.performCodeTimeAction(comps[1])
             return 
 
         if comps[0] == 'expand':
-            print('looking for ', comps[1])
+            # print('looking for ', comps[1])
             self.expand(self.tree, comps[1])
 
     '''
@@ -549,19 +561,26 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
 
 # If the tree view is closed, collapse its view and set the layout back to its original.
+# TODO: improvements for this method needed b/c the tree view is itself part of the user's 
+#       view layout and it's difficult to return to that state 
 def handleCloseTreeView():
+    global shouldOpen
     global tree_view
+    shouldOpen = False
     tree_view = None
+    # global orig_layout
+    
+    # print(orig_layout)
+    # groups = set()
+    # window = sublime.active_window()
+    # for view in window.views():
+    #     (group, _) = window.get_view_index(view)
+    #     groups.add(group)
+    # for group in groups:
+    #     views = window.views_in_group(group)
+    #     for view in reversed(views):
+    #         # Shift the views back
+    #         window.set_view_index(view, group - 1, 0)
 
-
-# if len(layout['cols']) < 3:
-#             layout['cols'] = [0, 0.25, 1]
-#         elif layout['cols'][1] > 0.3:
-#             # Evenly space the original views
-#             tree_view_width = min(0.25, layout['cols'][1] / 2.0)
-#             new_orig_views = list(map(lambda x: x + (1 - x) * tree_view_width, layout['cols'][1:-1])) 
-#             layout['cols'] = [0, tree_view_width] + new_orig_views + [layout['cols'][-1]]
-
-#         layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
-#             [cell[0] + 1, cell[1], cell[2] + 1, cell[3]] for cell in layout['cells']
-#         ]
+    # window.set_layout(orig_layout)
+    # orig_layout = None

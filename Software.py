@@ -358,6 +358,11 @@ class ConnectSpotify(sublime_plugin.TextCommand):
     #         return False
 
 
+class ShowTreeView(sublime_plugin.WindowCommand):
+    def run(self):
+        setShouldOpen(True)
+        refreshTreeView()
+
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
@@ -423,11 +428,9 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
-        # print('View {} focused'.format(view.id()))
 
     def on_deactivated_async(self, view):
         blurWindow()
-        # print('View {} blurred'.format(view.id()))
 
     def on_load_async(self, view):
         fileName = view.file_name()
@@ -462,7 +465,6 @@ class EventListener(sublime_plugin.EventListener):
             fileName = "Untitled"
 
         if view.name() == CODETIME_TREEVIEW_NAME:
-            print('handling close tree view')
             handleCloseTreeView()
 
         active_data = PluginData.get_active_data(view)

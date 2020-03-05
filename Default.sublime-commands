@@ -34,5 +34,9 @@
     {
         "command": "show_console_message",
         "caption": "Show Console Message"
+    },
+    {
+        "command": "show_tree_view",
+        "caption": "Show Tree View"
     }
 ]
