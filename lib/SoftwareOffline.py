@@ -105,7 +105,6 @@ def getMinutesSinceLastPayload():
 # TODO: this method hangs for a while (bc no cache now?)
 def launchCodeTimeMetrics():
     fetchCodeTimeMetricsDashboard()
-    print('hello?')
     file = getDashboardFile()
     sublime.active_window().open_file(file)
 

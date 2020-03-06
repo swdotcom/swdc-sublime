@@ -41,7 +41,10 @@ def getTodayTimeDataSummary():
                 timeData = TimeData()
                 timeData['day'] = day 
                 saveTimeDataSummaryToDisk(timeData)
-
+        else:
+            timeData = TimeData()
+            timeData['day'] = day 
+            saveTimeDataSummaryToDisk(timeData)
     return timeData
 
 

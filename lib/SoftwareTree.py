@@ -338,13 +338,16 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         fileChangeInfos = fileChangeInfoMap.values()
 
         topKpmFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by KPM', 'kpm', 'top-kpm-files')
-        newActivityMetrics['childs'].append(topKpmFileNodes)
+        if topKpmFileNodes:
+            newActivityMetrics['childs'].append(topKpmFileNodes)
 
         topKeystrokeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by keystrokes', 'keystrokes', 'top-keystrokes-files')
-        newActivityMetrics['childs'].append(topKeystrokeFileNodes)
+        if topKeystrokeFileNodes:
+            newActivityMetrics['childs'].append(topKeystrokeFileNodes)
 
         topCodetimeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by code time', 'duration_seconds', 'top-codetime-files')
-        newActivityMetrics['childs'].append(topCodetimeFileNodes)
+        if topCodetimeFileNodes:
+            newActivityMetrics['childs'].append(topCodetimeFileNodes)
 
         # Insert newActivityMetrics into second position of tree['childs']
         self.tree['childs'].insert(1, newActivityMetrics)
