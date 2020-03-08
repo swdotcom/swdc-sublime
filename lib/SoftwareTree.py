@@ -1,4 +1,5 @@
 import sublime_plugin, sublime
+import datetime 
 from copy import deepcopy
 from threading import Thread, Timer, Event 
 from .SoftwareOffline import getSessionSummaryData, launchCodeTimeMetrics
@@ -355,6 +356,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
 
     def buildCodeTimeMetricsItem(self, id, label, todayValue, avgValue=None, globalAvgValue=None, avgIcon=None):
+        todayString = datetime.datetime.today().strftime('%a')
         item = {
             'depth': 2,
             'id': id,
@@ -377,7 +379,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             item['childs'].append({
                     'depth': 3,
                     'icon': avgIcon,
-                    'name': 'Your average: {}'.format(avgValue),
+                    'name': 'Your average ({}): {}'.format(todayString, avgValue),
                     'dir': False,
                     'expanded': False,
                     'childs': None
@@ -385,7 +387,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             item['childs'].append({
                     'depth': 3,
                     'icon': 'global-grey',
-                    'name': 'Global average: {}'.format(globalAvgValue),
+                    'name': 'Global average ({}): {}'.format(todayString, globalAvgValue),
                     'dir': False,
                     'expanded': False,
                     'childs': None
