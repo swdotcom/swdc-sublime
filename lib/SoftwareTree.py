@@ -27,13 +27,14 @@ was opened so state can be maintained across draws.
 open_state = set()
 
 # IDs for code time action buttons
-CODE_TIME_ACTIONS = {'advanced-metrics', 'generate-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback'}
+CODE_TIME_ACTIONS = {'advanced-metrics', 'open-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback'}
 
 # TODO: rare bug where tree isn't clickable (possibly slow wifi)
 class OpenTreeView(sublime_plugin.WindowCommand):
 
     def run(self):
         if not shouldOpen:
+            print("don't open")
             return
 
         global tree_view 
@@ -78,7 +79,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         if len(window.views()) == 1:
             window.focus_group(1)
 
-        statusBarMessage = 'Show status bar metrics' if getValue("show_code_time_status", True) else 'Hide status bar metrics'
+        statusBarMessage = 'Hide status bar metrics' if getValue("show_code_time_status", True) else 'Show status bar metrics'
 
         self.tree = { 
         	'index': 0,
@@ -107,9 +108,9 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                         },
                         { 
                             'depth': 2,
-                            'id': 'generate-dashboard',
+                            'id': 'open-dashboard',
                             'icon': 'dashboard',
-                            'name': 'Generate dashboard',
+                            'name': 'Open dashboard',
                             'dir': False,
                             'expanded': False,
                             'childs': None
@@ -173,7 +174,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                         return True
 
     def performCodeTimeAction(self, command):
-        if command == 'generate-dashboard':
+        if command == 'open-dashboard':
             launchCodeTimeMetrics()
         elif command == 'toggle-status-metrics':
             toggleStatus()

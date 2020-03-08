@@ -18,8 +18,10 @@ def redisplayStatus():
 def toggleStatus():
     global lastMsg
     showStatusVal = getValue("show_code_time_status", True)
+    setValue("show_code_time_status", not showStatusVal)
 
-    if (showStatusVal is True):
+    # Change the setting before displaying the new one
+    if (not showStatusVal is True):
         showStatus(lastMsg)
     else:
         # show clock icon unicode
@@ -37,13 +39,11 @@ def showStatus(msg):
             msg = "⏱"
         else:
             lastMsg = msg
-
+        
         if (active_window is not None):
             for view in active_window.views():
                 if (view is not None):
                     view.set_status('software.com', msg)
-
-        setValue("show_code_time_status", not showStatusVal)
     except RuntimeError:
         httpLog(msg)
 

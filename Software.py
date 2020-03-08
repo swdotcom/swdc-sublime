@@ -375,13 +375,6 @@ class SoftwareTopForty(sublime_plugin.TextCommand):
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         log("toggling status bar metrics")
-
-        showStatusVal = getValue("show_code_time_status", True)
-        if (showStatusVal):
-            setValue("show_code_time_status", False)
-        else:
-            setValue("show_code_time_status", True)
-
         toggleStatus()
 
 # Mute Console message
