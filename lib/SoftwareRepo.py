@@ -303,18 +303,19 @@ def accumulateStatChanges(results):
 	return stats 
 
 def getChangeStats(projectDir, cmd):
-    changeStats = CommitChangeStats()
+	changeStats = CommitChangeStats()
 
-    if not projectDir:
-        return changeStats 
+	if not projectDir:
+		return changeStats 
 
-    resultList = getCommandResultList(cmd, projectDir)
+	resultList = getCommandResultList(cmd, projectDir)
 
-    if not resultList:
-        return changeStats    
+	if not resultList:
+		return changeStats    
 
-    changeStats = accumulateStatChanges(resultList)
-    return changeStats
+	changeStats = accumulateStatChanges(resultList)
+
+	return changeStats
 
 def getUncommittedChanges(projectDir):
     cmd = ['git', 'diff', '--stat']
@@ -327,5 +328,5 @@ def getTodaysCommits(projectDir):
 	authorOption = ' --author={}'.format(resourceInfo['email']) if resourceInfo and resourceInfo['email'] else ''
 	print('todayStart is {}'.format(todayStart))
 	print('author is {}'.format(authorOption))
-	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}{}'.format(todayStart, authorOption)]
+	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(todayStart), authorOption]
 	return getChangeStats(projectDir, cmd)
