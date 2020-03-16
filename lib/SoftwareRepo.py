@@ -326,7 +326,5 @@ def getTodaysCommits(projectDir):
 	todayStart = int(datetime.datetime(today.year, today.month, today.day).timestamp())
 	resourceInfo = getResourceInfo(projectDir)
 	authorOption = ' --author={}'.format(resourceInfo['email']) if resourceInfo and resourceInfo['email'] else ''
-	print('todayStart is {}'.format(todayStart))
-	print('author is {}'.format(authorOption))
 	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(todayStart), authorOption]
 	return getChangeStats(projectDir, cmd)

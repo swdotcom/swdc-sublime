@@ -2,7 +2,8 @@ import sublime_plugin, sublime
 import datetime 
 from copy import deepcopy
 from threading import Thread, Timer, Event 
-from .SoftwareOffline import getSessionSummaryData, launchCodeTimeMetrics
+from .SoftwareOffline import getSessionSummaryData
+from .SoftwareDashboard import launchCodeTimeMetrics
 from .SoftwareUtil import *
 from .SoftwareModels import SessionSummary
 from .SoftwareWallClock import *
@@ -38,6 +39,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             print("don't open")
             return
 
+        print('Refreshing tree')
         global tree_view 
         global orig_layout
         self.currentKeystrokeStats = SessionSummary()
@@ -73,7 +75,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                     (group, index) = window.get_view_index(view)
                     window.set_view_index(view, group + 1, 0)
                 window.set_view_index(tree_view, 0, 0)
-                window.focus_view(orig_view)
+                # window.focus_view(orig_view)
 
         self.phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
 
@@ -176,7 +178,8 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
     def performCodeTimeAction(self, command):
         if command == 'open-dashboard':
-            launchCodeTimeMetrics()
+            codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
+            codetimemetricsthread.start()
         elif command == 'toggle-status-metrics':
             toggleStatus()
             refreshTreeView()

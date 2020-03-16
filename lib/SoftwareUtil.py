@@ -189,7 +189,11 @@ def getFileDataArray(file):
     if os.path.isfile(file):
         with open(file) as f:
             try:
-                payloads = json.load(f)
+                contents = json.load(f)
+                if (isinstance(contents, list)):    
+                    payloads = contents 
+                else:
+                    payloads.append(contents)
             except Exception as ex:
                 log('Error reading file array data: %s' % ex)
                 os.remove(file)
@@ -655,7 +659,7 @@ def getUserStatus():
     return currentUserStatus
 
 def getLoggedInCacheState():
-    return getLoggedInCacheState
+    return loggedInCacheState
 
 def sendHeartbeat(reason):
     jwt = getItem("jwt")
@@ -675,6 +679,7 @@ def sendHeartbeat(reason):
             response = requestIt("POST", api, json.dumps(payload), jwt)
 
             if (response is not None and isResponseOk(response) is False):
+                print(response.__dict__)
                 log("Code Time: Unable to send heartbeat ping")
         except Exception as ex:
             log("Code Time: Unable to send heartbeat: %s" % ex)

@@ -30,21 +30,18 @@ def getTodayTimeDataSummary():
     nowTimes = getNowTimes()
     day = nowTimes['day']
 
-    timeData = myCache.get('timeDataSummary_{}'.format(day))
+    file = getTimeDataSummaryFile()
+    payloads = getFileDataArray(file)
+    timeData = None 
+    if len(payloads) > 0:
+        try:
+            timeData = next(load for load in payloads if load['day'] == day)
+        except Exception:
+            print('unable to extract payloads')
     if not timeData:
-        file = getTimeDataSummaryFile()
-        payloads = getFileDataArray(file)
-        if len(payloads) > 0:
-            try:
-                timeData = next(load for load in payloads if load['day'] == day)
-            except Exception as ex:
-                timeData = TimeData()
-                timeData['day'] = day 
-                saveTimeDataSummaryToDisk(timeData)
-        else:
-            timeData = TimeData()
-            timeData['day'] = day 
-            saveTimeDataSummaryToDisk(timeData)
+        timeData = TimeData()
+        timeData['day'] = day 
+        saveTimeDataSummaryToDisk(timeData)  
     return timeData
 
 
@@ -52,28 +49,14 @@ def saveTimeDataSummaryToDisk(data):
     if not data:
         return 
 
-    nowTimes = getNowTimes()
-    day = nowTimes['day']
-
-    file = getTimeDataSummaryFile()
-    payloads = getFileDataArray(file)
-
-    newPayloads = []
-    if len(payloads) > 0:
-        # find the one for this day
-        # existingTimeData = payloads.find(n => n.day === day);
-        # create a new array and overwrite the file
-        newPayloads = list(map(lambda item: data if item['day'] == day else item, payloads))
-    else:
-        newPayloads.append(data)
-
     # write new payloads to disk
+    file = getTimeDataSummaryFile()
     try:
         with open(file, 'w') as f:
-            json.dump(newPayloads, f, indent=4)
-        myCache['timeDataSummary_{}'.format(day)] = data 
+            json.dump(data, f, indent=4)
+        log('Code time: updated time summary data to disk')
     except Exception as ex:
-        print('Deployer: Error writing time data:%s' % ex)
+        log('Code time: Error writing time summary data:%s' % ex)
 
 
 

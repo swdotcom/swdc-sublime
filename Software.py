@@ -91,6 +91,9 @@ class PluginData():
     def send(self):
         # check if it has data
         if PluginData.background_worker and self.hasData():
+            nowTimes = getNowTimes()
+            setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
+
             PluginData.endUnendedFileEndTimes()
             PluginData.background_worker.queue.put(self.json())
 
@@ -222,20 +225,17 @@ class PluginData():
 
         return fileInfoData
 
-    # 
     @staticmethod
     def endUnendedFileEndTimes():
-        now = round(timeModule.time())
-        local_start = getLocalStart()
-        
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             if keystrokeCountObj is not None and keystrokeCountObj.source is not None:
                 for fileName in keystrokeCountObj.source:
                     fileInfo = keystrokeCountObj.source[fileName]
                     if (fileInfo.get("end", 0) == 0):
-                        fileInfo["end"] = now
-                        fileInfo["local_end"] = local_start
+                        nowTimes = getNowTimes()
+                        fileInfo["end"] = nowTimes['nowInSec']
+                        fileInfo["local_end"] = nowTimes['localNowInSec']
 
     @staticmethod
     def send_all_datas():
@@ -328,7 +328,8 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
-        launchCodeTimeMetrics()
+        codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
+        codetimemetricsthread.start()
 
 class LaunchCustomDashboard(sublime_plugin.WindowCommand):
     def run(self):
@@ -625,6 +626,8 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     wallClockMgrInit()
     dashboardMgrInit()
+
+    updateSessionSummaryFromServer()
 
     # fire off timer tasks (seconds, task)
 
