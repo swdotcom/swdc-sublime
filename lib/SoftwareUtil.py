@@ -247,7 +247,8 @@ def getCommandResultList(cmd, projectDir):
     try:
         result = check_output(cmd, cwd=projectDir)
     except CalledProcessError as ex:
-        log('Error running {}: {}'.format(cmd, ex.output))
+        if ex.output != b'': # Suppress trivial error 
+            log('Error running {}: {}'.format(cmd, ex.output))
         return []
     
     result = result.decode('UTF-8').strip().replace('\r\n', '\r').replace('\n', '\r')
@@ -457,14 +458,12 @@ def getLocalREADMEFile():
     return os.path.join(os.path.dirname(__file__), '..', 'README.md')
 
 # TODO: figure out how to do markdown preview
-def displayReadmeIfNotExists():
+def displayReadmeIfNotExists(): 
     readmeFile = getLocalREADMEFile()
-    fileUri = 'markdown-preview://{}'.format(readmeFile)
-    print(fileUri)
-
+    sublime.active_window().open_file(readmeFile)
+    # fileUri = 'markdown-preview://{}'.format(readmeFile)
     # displayed = getItem('sublime_CtReadme')
     # if not displayed:
-    sublime.active_window().open_file(readmeFile)
         # setItem('sublime_CtReadme', True)
 
 def launchSpotifyLoginUrl():

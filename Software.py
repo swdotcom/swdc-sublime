@@ -647,7 +647,10 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     updateOnlineStatusTimer.start()
     print("Online status timer initialized")
 
-    initializeUserInfo(initializedAnonUser)
+    # initializeUserInfo(initializedAnonUser)
+    initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
+    initializeUserThread.start()
+    # refreshTreeView()
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
