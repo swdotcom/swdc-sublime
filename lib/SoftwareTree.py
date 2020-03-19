@@ -164,8 +164,6 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             window.set_view_index(tree_view, 0, 0)
 
 
-    # name will be a unique identifier b/c the only values that can have the same name
-    # are non-expandables (individual metrics like dailyMinutes, etc.)
     def expand(self, tree, id):
         if 'id' in tree and tree['id'] == id:
             tree['expanded'] = not tree['expanded']
@@ -509,7 +507,8 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             if sortBy == 'kpm' or sortBy == 'keystrokes':
                 val = formatNumWithK(sortedObj['kpm'] or 0)
             elif sortBy == 'duration_seconds':
-                val = humanizeMinutes(sortedObj['duration_seconds'] or 0)
+                minutes = sortedObj.get('duration_seconds', 0) / 60
+                val = humanizeMinutes(minutes)
 
             fsPath = sortedObj['fsPath']
             label = '{} | {}'.format(fileName, val)

@@ -79,26 +79,17 @@ def getTimezone():
         keystrokeCountObj.timezone = ''
     return timezone
 
-def getLocalStart():
-    now = round(time.time())
-    local_start = now - time.timezone
-    try:
-        #If current timezone is not in DST, value of tm_ist will be 0
-        if time.localtime().tm_isdst == 0:
-            pass
-        else:
-            # we're in DST, add 1
-            local_start += (60 * 60)
-    except Exception:
-        pass
-    return local_start
-
-
 def getNowTimes():
-    date = datetime.datetime.utcnow()
-    nowInSec = round(date.timestamp())
-    offsetSec = time.timezone
-    localNowInSec = nowInSec - offsetSec
+    nowInSec = round(time.time())
+    localNowInSec = nowInSec - time.timezone
+
+    try: # Adjust for DST
+        if time.localtime().tm_isdst == 0:
+            pass 
+        else:
+            localNowInSec += (60 * 60)
+    except Exception:
+        pass 
     day = datetime.datetime.fromtimestamp(localNowInSec).date().isoformat()
     return {
         'nowInSec': nowInSec,
@@ -180,8 +171,9 @@ def getFileDataAsJson(file):
             try:
                 data = json.load(f)
             except Exception as ex:
-                log('Unable to read session info: %s' % ex)
-                os.remove(file)
+                # log('Unable to read session info: %s' % ex)
+                # os.remove(file)
+                print('unable to read: %s' % ex)
     return data 
 
 def getFileDataArray(file):

@@ -26,10 +26,6 @@ PROJECT_DIR = None
 check_online_interval_sec = 60 * 10
 retry_counter = 0
 
-''' 
-TODO: performance improvement to consider:
-      app freezes for a second or two upon startup, not sure if dev or prod issue
-'''
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
@@ -204,8 +200,6 @@ class PluginData():
     def get_existing_file_info(fileName):
         fileInfoData = None
 
-        now = round(timeModule.time())
-        local_start = getLocalStart()
         # Get the FileInfo object within the KeystrokesCount object
         # based on the specified fileName.
         for dir in PluginData.active_datas:
@@ -220,8 +214,9 @@ class PluginData():
                     # end the other files end times
                     for fileName in keystrokeCountObj.source:
                         fileInfo = keystrokeCountObj.source[fileName]
-                        fileInfo["end"] = now
-                        fileInfo["local_end"] = local_start
+                        nowTimes = getNowTimes()
+                        fileInfo["end"] = nowTimes['nowInSec']
+                        fileInfo["local_end"] = nowTimes['localNowInSec']
 
         return fileInfoData
 
@@ -255,12 +250,11 @@ class PluginData():
         # of fileName and it's metrics
         fileInfoData = PluginData.get_existing_file_info(fileName)
 
-        now = round(timeModule.time())
-        local_start = getLocalStart()
+        nowTimes = getNowTimes()
 
         if keystrokeCount.start == 0:
-            keystrokeCount.start = now
-            keystrokeCount.local_start = local_start
+            keystrokeCount.start = nowTimes['nowInSec']
+            keystrokeCount.local_start = nowTimes['localNowInSec']
             keystrokeCount.timezone = getTimezone()
 
         # "add" = additive keystrokes
@@ -281,8 +275,8 @@ class PluginData():
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
-            fileInfoData['start'] = now
-            fileInfoData['local_start'] = local_start
+            fileInfoData['start'] = nowTimes['nowInSec']
+            fileInfoData['local_start'] = nowTimes['localNowInSec']
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
             keystrokeCount.source[fileName] = fileInfoData
