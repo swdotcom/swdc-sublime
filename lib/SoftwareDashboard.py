@@ -51,7 +51,6 @@ def newDayChecker(isInit=False):
         refreshTreeView()
 
 
-# TODO: add updateSessionSummaryFromServer as per https://github.com/swdotcom/swdc-atom/commit/26f6e6c9d2ef637580f71cc3d54cbcf99ffc6d66
 def updateSessionSummaryFromServer():
     jwt = getItem('jwt')
     response = requestIt("GET", '/sessions/summary', None, jwt)

@@ -378,6 +378,11 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
         log("toggling status bar metrics")
         toggleStatus()
 
+# Testing function
+class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
+    def run(self):
+        updateSessionSummaryFromServer()
+
 # Mute Console message
 class HideConsoleMessage(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -650,7 +655,9 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     # initializeUserInfo(initializedAnonUser)
     initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
     initializeUserThread.start()
-    # refreshTreeView()
+    
+    if getValue('open_tree_on_startup', True):
+        refreshTreeView()
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
