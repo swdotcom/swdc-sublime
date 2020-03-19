@@ -744,12 +744,12 @@ def getIcons():
 def formatNumWithK(num):
     if num == 0: 
         return '0'
-    num = float('{:.3g}'.format(num))
+    # num = float('{:.4g}'.format(num))
     magnitude = 0
     while abs(num) >= 1000:
         magnitude += 1
         num /= 1000.0
-    return '{} {}'.format('{:d}'.format(int(num)).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude]).strip()
+    return '{} {}'.format('{:.1f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude]).strip()
 
 def setInterval(func, sec): 
     def func_wrapper():
