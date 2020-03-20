@@ -16,6 +16,7 @@ from .lib.SoftwareSettings import *
 from .lib.SoftwareTree import *
 from .lib.SoftwareWallClock import *
 from .lib.SoftwareDashboard import *
+from .lib.SoftwareUserStatus import *
 
 DEFAULT_DURATION = 60
 
@@ -419,6 +420,10 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
+    # def on_new(self, view):
+    #     if len(sublime.windows()) == 1 and len(sublime.active_window().sheets()) == 1 and len(sublime.active_window().views()) == 1:
+    #         print('whats up')
+
     def on_activated_async(self, view):
         focusWindow()
 

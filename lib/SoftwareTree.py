@@ -9,6 +9,7 @@ from .SoftwareModels import SessionSummary
 from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwareRepo import *
+from .SoftwareUserStatus import *
 
 icons = getIcons()
 tree_view = None
@@ -127,7 +128,6 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         data = getSessionSummaryData()
         self.buildMetricsNodes(data)
         self.buildCommitTreeNodes()
-
         self.expand(self.tree, '')
 
     def build_tree_layout(self):
@@ -240,10 +240,13 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             padding-bottom: 5px;
             color: var(--foreground);
             }
-            img {
-            vertical-align: middle;
+            .file p {
+            position: relative;
+            bottom: 2px;
+            display: inline;
             }
         </style>''' + ''.join(result) + '</body>'
+        # print(html)
         self.phantom = sublime.Phantom(sublime.Region(0), html, sublime.LAYOUT_BLOCK, on_navigate=self.on_click)
         self.phantom_set.update([self.phantom])
 
@@ -251,11 +254,12 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         global icons
         if not item['dir']:
             if 'icon' in item:
-                result.append('<div class="file" style="margin-left: {margin}px;"><a href=open/{index}><img height="16" width="16" alt="" src="{icon}">{name}</a></div>'.format(
+                result.append('<div class="file" style="margin-left: {margin}px;"><a href=open/{index}><img height="16" width="16" alt="" src="{icon}"><p> {name}</p></a></div>'.format(
                     margin=(item['depth'] * 20) - 10,
                     index=item['id'] if 'id' in item else NO_ID,
                     name=item['name'],
                     icon=icons[item['icon']]))
+                    # icon='🚀'))
                 return result
             else:
                 result.append('<div class="file" style="margin-left: {margin}px"><a href=open/{index}>{name}</a></div>'.format(

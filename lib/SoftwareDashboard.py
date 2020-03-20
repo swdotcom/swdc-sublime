@@ -22,7 +22,6 @@ def dashboardMgrInit():
 
 
 def newDayChecker(isInit=False):
-    # print('in new day checker')
     global currentDay
     nowTime = getNowTimes()
     if nowTime['day'] != currentDay:
@@ -44,8 +43,6 @@ def newDayChecker(isInit=False):
         print('Updating session summary from server')
         updateSessionSummaryFromServer()
         refreshTreeView()
-        # refreshSessionSummaryTimer = Timer(60.0, updateSessionSummaryFromServer)
-        # refreshSessionSummaryTimer.start()
 
     elif isInit:
         refreshTreeView()
@@ -55,6 +52,7 @@ def updateSessionSummaryFromServer():
     jwt = getItem('jwt')
     response = requestIt("GET", '/sessions/summary', None, jwt)
     if response is not None and isResponseOk(response):
+        print('got session summary!')
         respData = json.loads(response.read().decode('utf-8'))
         summary = getSessionSummaryData()
         updateCurrents = summary['currentDayMinutes'] < respData['currentDayMinutes']
@@ -70,6 +68,8 @@ def updateSessionSummaryFromServer():
 
         log('summary data: {}'.format(summary))
         saveSessionSummaryToDisk(summary)
+    else:
+        print('failed getting session summary')
 
 
 
@@ -154,39 +154,3 @@ def fetchCodeTimeMetricsDashboard():
             f.write(dashboardContent)
     except Exception as ex:
         log("Code Time: Unable to write local dashboard content: %s" % ex)
-
-# Fetch and display the daily KPM info
-#TODO: remove per https://github.com/swdotcom/swdc-atom/commit/eb7a659cbee1590e21f40206bfd318b7bde8728d
-# def getSessionSummaryStatus():
-#     summary = getSessionSummaryFileAsJson()
-#     jwt = getItem('jwt')
-#     serverOnline = serverIsAvailable()
-
-#     if serverOnline and jwt is not None:
-#         response = requestIt("GET", '/sessions/summary', None, jwt)
-#         if response is not None and isResponseOk(response):
-#             respData = json.loads(response.read().decode('utf-8'))
-
-#             dataMinutes = respData['currentDayMinutes']
-
-#             if dataMinutes == 0 or dataMinutes < summary['currentDayMinutes']:
-#                 log('syncing current day minutesSinceLastPayload')
-#                 respData['currentDayMinutes'] = summary['currentDayMinutes']
-#                 respData['currentDayKeystrokes'] = summary['currentDayKeystrokes']
-#                 respData['currentDayKpm'] = summary['currentDayKpm']
-#                 respData['currentDayLinesAdded'] = summary['currentDayLinesAdded']
-#                 respData['currentDayLinesRemoved'] = summary['currentDayLinesRemoved']
-
-#                 # Everything is synced up now, save to disk
-#                 summary = copy.deepcopy(respData)
-#                 saveSessionSummaryToDisk(summary)
-
-#                 currentTs = getItem('latestPayloadTimestampEndUtc')
-#                 if currentTs is None or summary['latestPayloadTimestampEndUtc'] > currentTs:
-#                     setItem('latestPayloadTimestampEndUtc', summary['latestPayloadTimestampEndUtc'])
-#         else:
-#             log('Unable to get session summary response')
-
-#     sessionSeconds = summary['currentDayMinutes'] * 60
-#     updateBasedOnSessionSeconds(sessionSeconds)
-#     return summary 

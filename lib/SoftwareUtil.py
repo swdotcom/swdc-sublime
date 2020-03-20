@@ -1,4 +1,4 @@
-from threading import Thread, Timer, Event
+from threading import Thread, Timer, Event, Lock
 import os
 import json
 import time
@@ -24,6 +24,8 @@ DASHBOARD_VALUE_WIDTH = 25
 MARKER_WIDTH = 4
 
 sessionMap = {}
+
+buildTreeLock = Lock()
 
 '''
 In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
@@ -51,10 +53,6 @@ def updateOnlineStatus():
 def log(message):
     if (getValue("software_logging_on", True)):
         print(message)
-
-# .
-def getUrlEndpoint():
-    return getValue("software_dashboard_url", "https://app.software.com")
 
 def getOsUsername():
     homedir = os.path.expanduser('~')
@@ -140,7 +138,9 @@ def isFocused():
     return isFocused 
 
 def refreshTreeView():
+    buildTreeLock.acquire()
     sublime.active_window().run_command('open_tree_view')
+    buildTreeLock.release()
 
 def getOpenProjects():
     folders = None 
@@ -425,24 +425,6 @@ def serverIsAvailable():
     else:
         return False
 
-def refetchUserStatusLazily(tryCountUntilFoundUser):
-    currentUserStatus = getUserStatus()
-    loggedInUser = currentUserStatus.get("loggedInUser", None)
-    if (loggedInUser is not None or tryCountUntilFoundUser <= 0):
-        return
-
-    # start the time
-    tryCountUntilFoundUser -= 1
-    t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
-    t.start()
-
-def launchLoginUrl():
-    webUrl = getUrlEndpoint()
-    jwt = getItem("jwt")
-    webUrl += "/onboarding?token=" + jwt
-    webbrowser.open(webUrl)
-    refetchUserStatusLazily(10)
-
 def launchSubmitFeedback():
     webbrowser.open('mailto:cody@software.com')
 
@@ -464,10 +446,6 @@ def launchSpotifyLoginUrl():
     spotify_url="https://api.software.com/auth/spotify?token="+jwt
     # spotify_url = "https://"+ api_endpoint + "/auth/spotify?token=" + jwt
     webbrowser.open(spotify_url)
-
-def launchWebDashboardUrl():
-    webUrl = getUrlEndpoint() + "/login"
-    webbrowser.open(webUrl)
 
 def isMac():
     if sys.platform == "darwin":
@@ -588,66 +566,6 @@ def validateEmail(email):
         return True
     return False
 
-def isLoggedOn(serverAvailable):
-    jwt = getItem("jwt")
-    if (serverAvailable and jwt is not None):
-
-        user = getUser(serverAvailable)
-        if (user is not None and validateEmail(user.get("email", None))):
-            setItem("name", user.get("email"))
-            setItem("jwt", user.get("plugin_jwt"))
-            return True
-
-        api = "/users/plugin/state"
-        response = requestIt("GET", api, None, jwt)
-
-        responseOk = isResponseOk(response)
-        if (responseOk is True):
-            try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                
-                state = responseObj.get("state", None)
-                if (state is not None and state == "OK"):
-                    email = responseObj.get("emai", None)
-                    setItem("name", email)
-                    pluginJwt = responseObj.get("jwt", None)
-                    if (pluginJwt is not None and pluginJwt != jwt):
-                        setItem("jwt", pluginJwt)
-
-                    # state is ok, return True
-                    return True
-                elif (state is not None and state == "NOT_FOUND"):
-                    setItem("jwt", None)
-
-            except Exception as ex:
-                log("Code Time: Unable to retrieve logged on response: %s" % ex)
-
-    setItem("name", None)
-    return False
-
-
-def getUserStatus():
-    global loggedInCacheState
-
-    currentUserStatus = {}
-
-    serverAvailable = serverIsAvailable()
-
-    # check if they're logged in or not
-    loggedOn = isLoggedOn(serverAvailable)
-
-    setValue("logged_on", loggedOn)
-    
-    currentUserStatus = {}
-    currentUserStatus["loggedOn"] = loggedOn
-
-    if (loggedOn is True and loggedInCacheState != loggedOn):
-        log("Code Time: Logged on")
-        sendHeartbeat("STATE_CHANGE:LOGGED_IN:true")
-
-    loggedInCacheState = loggedOn
-
-    return currentUserStatus
 
 def getLoggedInCacheState():
     return loggedInCacheState
@@ -744,7 +662,6 @@ def getIcons():
 def formatNumWithK(num):
     if num == 0: 
         return '0'
-    # num = float('{:.4g}'.format(num))
     magnitude = 0
     while abs(num) >= 1000:
         magnitude += 1

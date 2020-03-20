@@ -21,7 +21,6 @@ DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
 LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
-LOGIN_LABEL = "Log in"
 NO_PROJ_NAME = 'Unnamed'
 
 
@@ -173,18 +172,5 @@ def storePayload(payload):
             dsFile.write(json.dumps(payload) + "\n")
     except Exception as ex:
         log('Error appending to the Software data store file: %s' % ex)
-
-
-
-def showLoginPrompt():
-    serverAvailable = serverIsAvailable()
-
-    if (serverAvailable):
-        # set the last update time so we don't try to ask too frequently
-        infoMsg = "To see your coding data in Code Time, please log in to your account."
-        clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
-        if (clickAction):
-            # launch the login view
-            launchLoginUrl()
 
 
