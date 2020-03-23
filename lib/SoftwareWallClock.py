@@ -12,12 +12,13 @@ def wallClockMgrInit():
     _wctime = getItem('wctime') or 0
     setInterval(updateTimeWrapper, SECONDS_INCREMENT)
     log('------- Intializing Wallclock ----------')
-    updateStatusBar()
+    updateStatusBarWithSummaryData()
 
 
 def updateTimeWrapper():
     if isFocused():
         updateWcTime()
+    dispatchStatusViewUpdate()
 
 
 def updateWcTime():
@@ -25,11 +26,10 @@ def updateWcTime():
     _wctime = getItem('wctime') or 0
     _wctime += SECONDS_INCREMENT
     setItem('wctime', _wctime)
-    dispatchStatusViewUpdate()
-    updateTimeData()
+    updateTimeData(SECONDS_INCREMENT)
 
 def dispatchStatusViewUpdate():
-    updateStatusBar()
+    updateStatusBarWithSummaryData()
     refreshTreeView()
 
 def clearWcTime():
@@ -47,12 +47,9 @@ def setWcTime(seconds):
     setItem('wctime', seconds)
     updateWcTime()
 
-def updateTimeData():
+def updateTimeData(seconds):
     global _wctime
-    timeData = getTodayTimeDataSummary()
-    editor_seconds = _wctime
-
-    updateTimeSummaryData(editor_seconds, timeData['session_seconds'], timeData['file_seconds'])
+    updateEditorSeconds(seconds)
 
 def updateBasedOnSessionSeconds(session_seconds):
     editor_seconds = getWcTimeInSeconds()
@@ -61,4 +58,4 @@ def updateBasedOnSessionSeconds(session_seconds):
         editor_seconds = session_seconds + 1
         setWcTime(editor_seconds)
 
-    updateStatusBar()
+    updateStatusBarWithSummaryData()

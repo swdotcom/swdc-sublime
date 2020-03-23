@@ -5,6 +5,7 @@ from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareDashboard import *
 from .SoftwareSettings import *
+from .SoftwarePayload import *
 
 loggedInCacheState = False 
 LOGIN_LABEL = "Log in"
@@ -58,6 +59,8 @@ def getUserStatus():
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
 
+    print('user is logged on? {}'.format(loggedOn))
+
     setValue("logged_on", loggedOn)
     
     currentUserStatus = {}
@@ -72,12 +75,12 @@ def getUserStatus():
     return currentUserStatus
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
-    print('trying {}'.format(tryCountUntilFoundUser))
+    # print('trying {}'.format(tryCountUntilFoundUser))
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedOn", None)
     if (loggedInUser is True or tryCountUntilFoundUser <= 0):  
-        print('success!') 
-        updateSessionSummaryFromServer() 
+        # print('success!') 
+        sendOfflineData()
         return
 
     # start the time

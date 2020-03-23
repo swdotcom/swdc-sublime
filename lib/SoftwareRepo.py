@@ -272,6 +272,8 @@ def gatherRepoMembers(rootDir):
 		if (len(members) > 0):
 			repoData['members'] = members
 
+			print('sending repo member info: {}', json.dumps(repoData))
+
 			response = requestIt("POST", "/repo/members", json.dumps(repoData), getItem("jwt"))
 			if (response is not None):
 				responseObjStr = response.read().decode('utf-8')

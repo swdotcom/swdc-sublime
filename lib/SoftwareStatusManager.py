@@ -3,7 +3,7 @@ from .SoftwareHttp import *
 from .SoftwareFileDataManager import *
 
 
-def updateStatusBar():
+def updateStatusBarWithSummaryData():
     sessionSummaryData = getSessionSummaryFileAsJson()
 
     currentDayMinStr = humanizeMinutes(int(sessionSummaryData.get('currentDayMinutes', 0)))

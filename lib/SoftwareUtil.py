@@ -27,6 +27,8 @@ sessionMap = {}
 
 buildTreeLock = Lock()
 
+PROJECT_DIR = None
+
 '''
 In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
 have easy TTL cache options available
@@ -151,6 +153,26 @@ def getOpenProjects():
     openProjectNames = list(map(lambda x: x['path'], folders))
     return openProjectNames
 
+def getFirstOpenProject():
+    openProjects = getOpenProjects()
+    if len(openProjects) > 0:
+        return openProjects[0]
+    return None 
+
+def getProjectDirectory():
+    global PROJECT_DIR 
+    if PROJECT_DIR is not None:
+        return PROJECT_DIR 
+    else:
+        return getFirstOpenProject()
+
+def getProjectNameAndDirectory():
+    rootPath = getFirstOpenProject()
+    if not rootPath:
+        return { "directory": '', "name": ''}
+    
+    return { "directory": rootPath, "name": os.path.basename(rootPath)}
+
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
     sessionFile = os.path.join(file, 'session.json')
@@ -223,6 +245,32 @@ def getPluginEventsFile():
 def getFileChangeSummaryFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'fileChangeSummary.json')
+
+def getDashboardFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'CodeTime.txt')
+
+def getTimeDataSummaryFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'projectTimeData.json')
+
+def getMinutesSinceLastPayload():
+    minutesSinceLastPayload = 1
+    lastPayloadEnd = getItem('latestPayloadTimestampEndUtc')
+    if lastPayloadEnd is not None:
+        nowTimes = getNowTimes()
+        nowInSec = nowTimes['nowInSec']
+        # diff from the previous end time
+        diffInSec = nowInSec - lastPayloadEnd
+
+        if diffInSec > 0 and diffInSec < getSessionThresholdSeconds():
+            minutesSinceLastPayload = diffInSec / 60
+
+    return minutesSinceLastPayload
+
+def getSessionThresholdSeconds():
+    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
+    return thresholdSeconds
 
 def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')

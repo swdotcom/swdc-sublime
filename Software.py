@@ -17,15 +17,15 @@ from .lib.SoftwareTree import *
 from .lib.SoftwareWallClock import *
 from .lib.SoftwareDashboard import *
 from .lib.SoftwareUserStatus import *
+from .lib.SoftwareModels import *
 
 DEFAULT_DURATION = 60
 
 SETTINGS = {}
 
-PROJECT_DIR = None
-
 check_online_interval_sec = 60 * 10
 retry_counter = 0
+activated = False 
 
 # payload trigger to store it for later.
 def post_json(json_data):
@@ -130,7 +130,7 @@ class PluginData():
 
     @staticmethod
     def create_empty_payload(fileName, projectName):
-        project = {}
+        project = Project()
         project['directory'] = projectName
         project['name'] = projectName
         return_data = PluginData(project)
@@ -149,7 +149,7 @@ class PluginData():
             fileName = "Untitled"
 
         sublime_variables = view.window().extract_variables()
-        project = {}
+        project = Project()
 
         # set it to none as a default
         projectFolder = 'Unnamed'
@@ -295,15 +295,40 @@ class PluginData():
 
         return fileInfoData
 
-    @staticmethod
+    @staticmethod 
     def send_initial_payload():
         fileName = "Untitled"
         active_data = PluginData.create_empty_payload(fileName, "Unnamed")
-        PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
-        fileInfoData = PluginData.get_existing_file_info(fileName)
-        fileInfoData['add'] = 1
         active_data.keystrokes = 1
-        PluginData.send_all_datas()
+        nowTimes = getNowTimes()
+        start = nowTimes['nowInSec'] - 60
+        local_start = nowTimes['localNowInSec'] - 60
+        active_data.start = start 
+        active_data.local_start = local_start 
+        fileInfo = {
+            "add": 1,
+            "keystrokes": 1,
+            "start": start,
+            "local_start": local_start, 
+            "paste": 0,
+            "open": 0,
+            "close": 0,
+            "length": 0,
+            "delete": 0,
+            "netkeys": 0,
+            "lines": -1,
+            "linesAdded": 0,
+            "linesRemoved": 0,
+            "syntax": "",
+            "end": 0,
+            "local_end": 0
+        }
+        active_data.source[fileName] = fileInfo 
+
+        dict_data = {key: getattr(active_data, key, None)
+                     for key in active_data.__slots__}
+        postBootstrapPayload(dict_data)
+
 
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -638,14 +663,27 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     setOnlineStatusTimer = Timer(2, setOnlineStatus)
     setOnlineStatusTimer.start()
 
-    sendOfflineDataTimer = Timer(10, sendOfflineData)
-    sendOfflineDataTimer.start()
+    oneMin = 60
 
-    gatherMusicTimer = Timer(45, gatherMusicInfo)
-    gatherMusicTimer.start()
+    setInterval(sendOfflineData, oneMin * 15)
+    setInterval(lambda: sendHeartbeat('HOURLY'), oneMin * 60)
+    setInterval(sendOfflineEvents, oneMin * 40)
+    setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
+    setInterval(getUsersOfFirstProject, oneMin * 50)
 
-    hourlyTimer = Timer(60, hourlyTimerHandler)
-    hourlyTimer.start()
+    updateStatusBarWithSummaryData()
+
+    offlineTimer = Timer(oneMin, sendOfflineData)
+    offlineTimer.start()
+
+    getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
+    getCommitsTimer.start()
+
+    getUsersTimer = Timer(oneMin * 3, getUsersOfFirstProject)
+    getUsersTimer.start()
+
+    sendEventsTimer = Timer(oneMin * 4, sendOfflineEvents)
+    sendEventsTimer.start()
 
     updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
     updateOnlineStatusTimer.start()
@@ -654,23 +692,21 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     # initializeUserInfo(initializedAnonUser)
     initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
     initializeUserThread.start()
-    
-    if getValue('open_tree_on_startup', True):
-        refreshTreeView()
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
+    # print('initializing user info')
 
-    if (initializedAnonUser is True):
-        showLoginPrompt()
+    initialized = getItem('sublime_CtInit')
+    if not initialized:
+        setItem('sublime_CtInit', True)
+        updateSessionSummaryFromServer()
+        refreshTreeView()
+        # print('about to send initial payload')
         PluginData.send_initial_payload()
-
-    sendInitHeartbeatTimer = Timer(15, sendInitializedHeartbeat)
-    sendInitHeartbeatTimer.start()
-
-    # re-fetch user info in another 90 seconds
-    checkUserAuthTimer = Timer(90, userStatusHandler)
-    checkUserAuthTimer.start()
+        sendHeartbeat('INSTALLED')
+        # print('about to show login prompt')
+        showLoginPrompt()
 
 def userStatusHandler():
     getUserStatus()
@@ -687,26 +723,6 @@ def userStatusHandler():
 def plugin_unloaded():
     # clean up the background worker
     PluginData.background_worker.queue.join()
-
-def sendInitializedHeartbeat():
-    sendHeartbeat("INITIALIZED")
-
-# gather the git commits, repo members, heatbeat ping
-def hourlyTimerHandler():
-    sendHeartbeat("HOURLY")
-
-    # process commits in a minute
-    processCommitsTimer = Timer(60, processCommits)
-    processCommitsTimer.start()
-
-    # run the handler in another hour
-    hourlyTimer = Timer(60 * 60, hourlyTimerHandler)
-    hourlyTimer.start()
-
-# ...
-def processCommits():
-    global PROJECT_DIR
-    gatherCommits(PROJECT_DIR)
 
 def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
@@ -726,4 +742,8 @@ def setOnlineStatus():
     timer = Timer(60 * 1, setOnlineStatus)
     timer.start()
 
+def getUsersOfFirstProject():
+    gatherRepoMembers(getProjectDirectory())
 
+def getHistoricalCommitsOfFirstProject():
+    gatherCommits(getProjectDirectory())

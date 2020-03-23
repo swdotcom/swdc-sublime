@@ -1,5 +1,5 @@
 import sublime_plugin, sublime
-import datetime 
+import urllib.parse 
 from copy import deepcopy
 from threading import Thread, Timer, Event 
 from .SoftwareOffline import getSessionSummaryData
@@ -195,7 +195,10 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             if not loggedIn:
                 launchLoginUrl()
             else:
-                launchWebDashboardUrl()
+                jwt = getItem('jwt')
+                encodedJwt = urllib.parse.quote(jwt)
+                webbrowser.open('{}?token={}'.format(getUrlEndpoint(), encodedJwt))
+                # launchWebDashboardUrl()
         elif command == 'submit-feedback':
             launchSubmitFeedback()
 
@@ -370,7 +373,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
 
     def buildCodeTimeMetricsItem(self, id, label, todayValue, avgValue=None, globalAvgValue=None, avgIcon=None):
-        todayString = datetime.datetime.today().strftime('%a')
+        todayString = datetime.today().strftime('%a')
         item = {
             'depth': 2,
             'id': id,

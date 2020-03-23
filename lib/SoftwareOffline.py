@@ -39,15 +39,7 @@ def incrementSessionSummaryData(aggregates):
 
     saveSessionSummaryToDisk(data)
 
-    timeData = getTodayTimeDataSummary()
-    timeData['file_seconds'] += 60
-    fileSeconds = timeData['file_seconds']
-
-    sessionSeconds = data['currentDayMinutes'] * 60
-    updateBasedOnSessionSeconds(sessionSeconds)
-    editorSeconds = getWcTimeInSeconds()
-
-    updateTimeSummaryData(editorSeconds, sessionSeconds, fileSeconds)
+    sublime.active_window().run_command('force_update_session_summary')
 
 def getCurrentDayTime(sessionSummaryData):
     currentDayMinutes = 0
@@ -69,11 +61,6 @@ def getAverageDailyTime(sessionSummaryData):
     
     return {"data": averageDailyMinutes, "formatted": humanizeMinutes(averageDailyMinutes)}
 
-
-def getSessionThresholdSeconds():
-    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
-    return thresholdSeconds
-
 def clearSessionSummaryData():
     log('--- clearing session summary data ---')
     emptyData = SessionSummary()
@@ -85,26 +72,12 @@ def setSessionSummaryLiveshareMinutes(minutes):
     data['liveshareMinutes'] = minutes
     saveSessionSummaryToDisk(data)
 
-def getMinutesSinceLastPayload():
-    minutesSinceLastPayload = 1
-    lastPayloadEnd = getItem('latestPayloadTimestampEndUtc')
-    if lastPayloadEnd is not None:
-        nowTimes = getNowTimes()
-        nowInSec = nowTimes['nowInSec']
-        # diff from the previous end time
-        diffInSec = nowInSec - lastPayloadEnd
-
-        if diffInSec > 0 and diffInSec < getSessionThresholdSeconds():
-            minutesSinceLastPayload = diffInSec / 60
-
-    return minutesSinceLastPayload
-
 # store the payload offline...
 def storePayload(payload):
 
     fileChangeInfoMap = getFileChangeSummaryAsJson()
     aggregate = KeystrokeAggregate()
-    print(payload)
+    # print(payload)
 
     if payload['project']:
         aggregate['directory'] = payload['project']['directory'] or NO_PROJ_NAME
