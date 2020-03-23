@@ -1,10 +1,8 @@
-# Copyright (c) 2018 by Software.com
-
 from threading import Thread, Timer, Event
 from package_control import events
 from queue import Queue
 import webbrowser
-import time
+import time as timeModule
 import datetime
 import json
 import os
@@ -15,6 +13,10 @@ from .lib.SoftwareMusic import *
 from .lib.SoftwareRepo import *
 from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
+from .lib.SoftwareTree import *
+from .lib.SoftwareWallClock import *
+from .lib.SoftwareDashboard import *
+from .lib.SoftwareUserStatus import *
 
 DEFAULT_DURATION = 60
 
@@ -28,7 +30,7 @@ retry_counter = 0
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
-    storePayload(json_data)
+    storePayload(json.loads(json_data))
 
     PluginData.reset_source_data()
 
@@ -86,6 +88,9 @@ class PluginData():
     def send(self):
         # check if it has data
         if PluginData.background_worker and self.hasData():
+            nowTimes = getNowTimes()
+            setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
+
             PluginData.endUnendedFileEndTimes()
             PluginData.background_worker.queue.put(self.json())
 
@@ -196,8 +201,6 @@ class PluginData():
     def get_existing_file_info(fileName):
         fileInfoData = None
 
-        now = round(time.time())
-        local_start = getLocalStart()
         # Get the FileInfo object within the KeystrokesCount object
         # based on the specified fileName.
         for dir in PluginData.active_datas:
@@ -212,25 +215,23 @@ class PluginData():
                     # end the other files end times
                     for fileName in keystrokeCountObj.source:
                         fileInfo = keystrokeCountObj.source[fileName]
-                        fileInfo["end"] = now
-                        fileInfo["local_end"] = local_start
+                        nowTimes = getNowTimes()
+                        fileInfo["end"] = nowTimes['nowInSec']
+                        fileInfo["local_end"] = nowTimes['localNowInSec']
 
         return fileInfoData
 
-    # 
     @staticmethod
     def endUnendedFileEndTimes():
-        now = round(time.time())
-        local_start = getLocalStart()
-        
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
             if keystrokeCountObj is not None and keystrokeCountObj.source is not None:
                 for fileName in keystrokeCountObj.source:
                     fileInfo = keystrokeCountObj.source[fileName]
                     if (fileInfo.get("end", 0) == 0):
-                        fileInfo["end"] = now
-                        fileInfo["local_end"] = local_start
+                        nowTimes = getNowTimes()
+                        fileInfo["end"] = nowTimes['nowInSec']
+                        fileInfo["local_end"] = nowTimes['localNowInSec']
 
     @staticmethod
     def send_all_datas():
@@ -250,12 +251,11 @@ class PluginData():
         # of fileName and it's metrics
         fileInfoData = PluginData.get_existing_file_info(fileName)
 
-        now = round(time.time())
-        local_start = getLocalStart()
+        nowTimes = getNowTimes()
 
         if keystrokeCount.start == 0:
-            keystrokeCount.start = now
-            keystrokeCount.local_start = local_start
+            keystrokeCount.start = nowTimes['nowInSec']
+            keystrokeCount.local_start = nowTimes['localNowInSec']
             keystrokeCount.timezone = getTimezone()
 
         # "add" = additive keystrokes
@@ -270,13 +270,14 @@ class PluginData():
             fileInfoData['length'] = 0
             fileInfoData['delete'] = 0
             fileInfoData['netkeys'] = 0
+            fileInfoData['keystrokes'] = 0
             fileInfoData['add'] = 0
             fileInfoData['lines'] = -1
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
-            fileInfoData['start'] = now
-            fileInfoData['local_start'] = local_start
+            fileInfoData['start'] = nowTimes['nowInSec']
+            fileInfoData['local_start'] = nowTimes['localNowInSec']
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
             keystrokeCount.source[fileName] = fileInfoData
@@ -322,7 +323,8 @@ class CodeTimeLogin(sublime_plugin.TextCommand):
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
-        launchCodeTimeMetrics()
+        codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
+        codetimemetricsthread.start()
 
 class LaunchCustomDashboard(sublime_plugin.WindowCommand):
     def run(self):
@@ -352,6 +354,11 @@ class ConnectSpotify(sublime_plugin.TextCommand):
     #         return False
 
 
+class ShowTreeView(sublime_plugin.WindowCommand):
+    def run(self):
+        setShouldOpen(True)
+        refreshTreeView()
+
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
@@ -359,17 +366,17 @@ class SoftwareTopForty(sublime_plugin.TextCommand):
     def is_enabled(self):
         return (getValue("online", True) is True)
 
+
+
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         log("toggling status bar metrics")
-
-        showStatusVal = getValue("show_code_time_status", True)
-        if (showStatusVal):
-            setValue("show_code_time_status", False)
-        else:
-            setValue("show_code_time_status", True)
-
         toggleStatus()
+
+# Testing function
+class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
+    def run(self):
+        updateSessionSummaryFromServer()
 
 # Mute Console message
 class HideConsoleMessage(sublime_plugin.TextCommand):
@@ -413,6 +420,16 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
+    # def on_new(self, view):
+    #     if len(sublime.windows()) == 1 and len(sublime.active_window().sheets()) == 1 and len(sublime.active_window().views()) == 1:
+    #         print('whats up')
+
+    def on_activated_async(self, view):
+        focusWindow()
+
+    def on_deactivated_async(self, view):
+        blurWindow()
+
     def on_load_async(self, view):
         fileName = view.file_name()
         if (fileName is None):
@@ -437,12 +454,16 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: opened file %s' % fileName)
 
         # show last status message
-        redispayStatus() 
+        redisplayStatus() 
 
+    # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
         fileName = view.file_name()
         if (fileName is None):
             fileName = "Untitled"
+
+        if view.name() == CODETIME_TREEVIEW_NAME:
+            handleCloseTreeView()
 
         active_data = PluginData.get_active_data(view)
 
@@ -463,7 +484,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: closed file %s' % fileName)
         
         # show last status message
-        redispayStatus() 
+        redisplayStatus() 
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -565,9 +586,10 @@ class EventListener(sublime_plugin.EventListener):
         if (charCountDiff != 0 or lineDiff != 0):
             active_data.keystrokes += 1
 
-        # update the netkeys and the keys
+        # update the netkeys and the keystrokes
         # "netkeys" = add - delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
+        fileInfoData['keystrokes'] = fileInfoData['add'] + fileInfoData['delete'] + fileInfoData['paste'] + fileInfoData['linesAdded'] + fileInfoData['linesRemoved']
 
 #
 # Iniates the plugin tasks once the it's loaded into Sublime.
@@ -577,7 +599,7 @@ def plugin_loaded():
 
 def initializeUser():
     # check if the session file is there
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
     fileExists = softwareSessionFileExists()
     jwt = getItem("jwt")
     log("JWT VAL: %s" % jwt)
@@ -606,6 +628,11 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     setItem("sublime_lastUpdateTime", None)
 
+    wallClockMgrInit()
+    dashboardMgrInit()
+
+    updateSessionSummaryFromServer()
+
     # fire off timer tasks (seconds, task)
 
     setOnlineStatusTimer = Timer(2, setOnlineStatus)
@@ -624,7 +651,12 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     updateOnlineStatusTimer.start()
     print("Online status timer initialized")
 
-    initializeUserInfo(initializedAnonUser)
+    # initializeUserInfo(initializedAnonUser)
+    initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
+    initializeUserThread.start()
+    
+    if getValue('open_tree_on_startup', True):
+        refreshTreeView()
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
@@ -681,7 +713,7 @@ def showOfflinePrompt():
     sublime.message_dialog(infoMsg)
 
 def setOnlineStatus():
-    online = checkOnline()
+    online = serverIsAvailable()
     log("Code Time: Checking online status...")
     if (online is True):
         setValue("online", True)

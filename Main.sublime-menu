@@ -15,7 +15,7 @@
                     },
                     {
                         "command": "launch_custom_dashboard",
-                        "caption": "Generate a Custom Dashboard"
+                        "caption": "Open a Custom Dashboard"
                     },
                     {
                         "command": "go_to_software",
@@ -44,6 +44,10 @@
                     {
                         "command": "show_console_message",
                         "caption": "Show Console Message"
+                    },
+                    {
+                        "command": "show_tree_view",
+                        "caption": "Show Tree View"
                     }
                 ]
             }
