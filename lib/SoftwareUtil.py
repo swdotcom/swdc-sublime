@@ -15,7 +15,7 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.9.4'
+VERSION = '1.0.0'
 PLUGIN_ID = 1
 
 DASHBOARD_LABEL_WIDTH = 25
