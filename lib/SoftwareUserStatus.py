@@ -1,5 +1,6 @@
 import sublime 
 import webbrowser
+import urllib
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
@@ -79,7 +80,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedOn", None)
     if (loggedInUser is True or tryCountUntilFoundUser <= 0):  
-        # print('success!') 
         sendOfflineData()
         return
 
@@ -88,28 +88,32 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
     t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
     t.start()
 
-def launchLoginUrl():
-    webUrl = getUrlEndpoint()
-    jwt = getItem("jwt")
-    webUrl += "/onboarding?token=" + jwt
-    webbrowser.open(webUrl)
-    refetchUserStatusLazily(20)
+def launchLoginUrl(loginType):
+    webbrowser.open(getLoginUrl(loginType))
+    refetchUserStatusLazily(40)
 
 def getUrlEndpoint():
     return getValue("software_dashboard_url", "https://app.software.com")
 
+def getLoginUrl(loginType):
+    jwt = getItem('jwt')
+    encodedJwt = urllib.parse.quote_plus(jwt)
+    api_endpoint = 'https://api.software.com'
+    loginUrl = None 
+    setItem('authType', loginType)
+    if (loginType == 'software'):
+        loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
+    elif (loginType == 'github'):
+        loginUrl = '{}/auth/github?token={}&plugin=codetime&redirect={}'.format(api_endpoint,encodedJwt,getUrlEndpoint())
+    elif (loginType == 'google'):
+        loginUrl = '{}/auth/google?token={}&plugin=codetime&redirect={}'.format(api_endpoint,encodedJwt,getUrlEndpoint())
+    else:
+        print('Login type error: Type was {}, defaulting...'.format(loginType))
+        loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
+    
+    return loginUrl
+
 def launchWebDashboardUrl():
-    webUrl = getUrlEndpoint() + "/login"
+    jwt = getItem('jwt')
+    webUrl = getUrlEndpoint() + '?token=' + jwt
     webbrowser.open(webUrl)
-
-def showLoginPrompt():
-    serverAvailable = serverIsAvailable()
-
-    if (serverAvailable):
-        # set the last update time so we don't try to ask too frequently
-        infoMsg = "To see your coding data in Code Time, please log in to your account."
-        clickAction = sublime.ok_cancel_dialog(infoMsg, LOGIN_LABEL)
-        if (clickAction):
-            # launch the login view
-            launchLoginUrl()
-

@@ -1,6 +1,6 @@
 import sublime, sublime_plugin
 from .SoftwareUtil import *
-from .SoftwareTimeSummaryData import *
+from .SoftwareOffline import *
 from .SoftwareStatusManager import *
 
 SECONDS_INCREMENT = 30
@@ -29,6 +29,7 @@ def updateWcTime():
     updateTimeData(SECONDS_INCREMENT)
 
 def dispatchStatusViewUpdate():
+    print('dispatching update!!')
     updateStatusBarWithSummaryData()
     refreshTreeView()
 

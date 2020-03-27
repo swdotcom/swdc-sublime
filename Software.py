@@ -3,7 +3,7 @@ from package_control import events
 from queue import Queue
 import webbrowser
 import time as timeModule
-import datetime
+from datetime import *
 import json
 import os
 import sublime_plugin, sublime
@@ -18,6 +18,7 @@ from .lib.SoftwareWallClock import *
 from .lib.SoftwareDashboard import *
 from .lib.SoftwareUserStatus import *
 from .lib.SoftwareModels import *
+from .lib.SoftwareSessionApp import *
 
 DEFAULT_DURATION = 60
 
@@ -146,13 +147,13 @@ class PluginData():
 
         fileName = view.file_name()
         if (fileName is None):
-            fileName = "Untitled"
+            fileName = UNTITLED
 
         sublime_variables = view.window().extract_variables()
         project = Project()
 
         # set it to none as a default
-        projectFolder = 'Unnamed'
+        projectFolder = NO_PROJ_NAME
 
         # set the project folder
         if 'folder' in sublime_variables:
@@ -161,7 +162,7 @@ class PluginData():
             projectFolder = sublime_variables['file_path']
 
         # if we have a valid project folder, set the project name from it
-        if projectFolder != 'Unnamed':
+        if projectFolder != NO_PROJ_NAME:
             project['directory'] = projectFolder
             if 'project_name' in sublime_variables:
                 project['name'] = sublime_variables['project_name']
@@ -172,7 +173,7 @@ class PluginData():
                     projectName = projectFolder[projectNameIdx + 1:]
                     project['name'] = projectName
         else:
-            project['directory'] = 'Unnamed'
+            project['directory'] = NO_PROJ_NAME
 
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
@@ -245,7 +246,7 @@ class PluginData():
             return
 
         if fileName is None or fileName == '':
-            fileName = 'Untitled'
+            fileName = UNTITLED
         
         # create the new FileInfo, which will contain a dictionary
         # of fileName and it's metrics
@@ -297,8 +298,8 @@ class PluginData():
 
     @staticmethod 
     def send_initial_payload():
-        fileName = "Untitled"
-        active_data = PluginData.create_empty_payload(fileName, "Unnamed")
+        fileName = UNTITLED
+        active_data = PluginData.create_empty_payload(fileName, NO_PROJ_NAME)
         active_data.keystrokes = 1
         nowTimes = getNowTimes()
         start = nowTimes['nowInSec'] - 60
@@ -337,14 +338,6 @@ class GoToSoftware(sublime_plugin.TextCommand):
     def is_enabled(self):
         return (getValue("logged_on", True) is True)
 
-# code_time_login command
-class CodeTimeLogin(sublime_plugin.TextCommand):
-    def run(self, edit):
-        launchLoginUrl()
-
-    def is_enabled(self):
-        return (getValue("logged_on", True) is False)
-
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -353,9 +346,9 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
 
 class LaunchCustomDashboard(sublime_plugin.WindowCommand):
     def run(self):
-        d = datetime.datetime.now()
+        d = datetime.now()
         current_time = d.strftime("%m/%d/%Y")
-        t = d - datetime.timedelta(days=7)
+        t = d - timedelta(days=7)
         time_ago = t.strftime("%m/%d/%Y")
         # default range: last 7 days
         default_range = str(time_ago) + ", " + str(current_time)
@@ -458,7 +451,7 @@ class EventListener(sublime_plugin.EventListener):
     def on_load_async(self, view):
         fileName = view.file_name()
         if (fileName is None):
-            fileName = "Untitled"
+            fileName = UNTITLED
 
         active_data = PluginData.get_active_data(view)
 
@@ -485,7 +478,7 @@ class EventListener(sublime_plugin.EventListener):
     def on_close(self, view):
         fileName = view.file_name()
         if (fileName is None):
-            fileName = "Untitled"
+            fileName = UNTITLED
 
         if view.name() == CODETIME_TREEVIEW_NAME:
             handleCloseTreeView()
@@ -524,12 +517,12 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData = {}
         
         if (fileName is None):
-            fileName = "Untitled"
+            fileName = UNTITLED
             
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
         
         # If file is untitled then log that msg and set file open metrics to 1
-        if fileName == "Untitled":
+        if fileName == UNTITLED:
             log("Code Time: opened file untitled")
             fileInfoData['open'] = 1
         else:
@@ -705,8 +698,6 @@ def initializeUserInfo(initializedAnonUser):
         # print('about to send initial payload')
         PluginData.send_initial_payload()
         sendHeartbeat('INSTALLED')
-        # print('about to show login prompt')
-        showLoginPrompt()
 
 def userStatusHandler():
     getUserStatus()

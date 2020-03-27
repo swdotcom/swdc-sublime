@@ -1,12 +1,11 @@
 import sublime
 import os
 from .SoftwareUtil import *
-from .SoftwareTimeSummaryData import *
+from .SoftwareOffline import *
 from .SoftwareHttp import *
 
 # send the data that has been saved offline
 def sendOfflineData():
-    print('sending offline data')
     batchSendData('/data/batch', getSoftwareDataStoreFile())
     sublime.active_window().run_command('force_update_session_summary')
 
@@ -37,7 +36,6 @@ def batchSendData(api, file, isArray=False):
 
 def batchSendPayloadData(api, file, payloads):
     if (payloads is not None and len(payloads) > 0):
-        log('sending batch payloads')
 
         # go through the payloads array 50 at a time
         batch = []

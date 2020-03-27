@@ -19,8 +19,10 @@ def dashboardMgrInit():
         return 
     
     currentDay = getItem('currentDay')
-    setInterval(lambda: newDayChecker(True), DAY_CHECK_TIMER_INTERVAL)
+    setInterval(lambda: newDayChecker(False), DAY_CHECK_TIMER_INTERVAL)
 
+    newDayTimer = Timer(1, newDayChecker, args=[True])
+    newDayTimer.start()
 
 def newDayChecker(isInit=False):
     global currentDay
@@ -45,31 +47,6 @@ def newDayChecker(isInit=False):
         refreshTreeView()
     elif isInit:
         refreshTreeView()
-
-
-def updateSessionSummaryFromServer():
-    jwt = getItem('jwt')
-    response = requestIt("GET", '/sessions/summary?refresh=true', None, jwt)
-    if response is not None and isResponseOk(response):
-        print('got session summary!')
-        respData = json.loads(response.read().decode('utf-8'))
-        summary = getSessionSummaryData()
-        updateCurrents = summary['currentDayMinutes'] < respData['currentDayMinutes']
-
-        for item in respData.items():
-            key = item[0]
-            val = item[1]
-
-            if updateCurrents and key.startswith('current'):
-                summary[key] = val 
-            elif not key.startswith('current'):
-                summary[key] = val
-
-        log('summary data: {}'.format(summary))
-        saveSessionSummaryToDisk(summary)
-    else:
-        print('failed getting session summary')
-
 
 def launchCodeTimeMetrics():
     fetchCodeTimeMetricsDashboard()

@@ -1,8 +1,7 @@
 from threading import Thread, Timer, Event, Lock
 import os
 import json
-import time
-import datetime 
+import time as timeModule
 import socket
 import sublime_plugin, sublime
 import sys
@@ -10,7 +9,7 @@ import uuid
 import platform
 import re, uuid
 import webbrowser
-from urllib.parse import quote_plus
+from datetime import *
 from subprocess import Popen, PIPE, check_output, CalledProcessError
 from .SoftwareHttp import *
 from .SoftwareSettings import *
@@ -28,6 +27,8 @@ sessionMap = {}
 buildTreeLock = Lock()
 
 PROJECT_DIR = None
+NO_PROJ_NAME = 'Unnamed'
+UNTITLED = 'Untitled'
 
 '''
 In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
@@ -39,7 +40,6 @@ myCache = {}
 runningResourceCmd = False
 loggedInCacheState = False
 isFocused = True 
-timezone=''
 
 def updateOnlineStatus():
     online = serverIsAvailable()
@@ -71,26 +71,25 @@ def getOs():
     return system
 
 def getTimezone():
-    global timezone
+    myTimezone = None 
     try:
-        timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()
+        myTimezone = datetime.now(timezone.utc).astimezone().tzname()
     except Exception:
         pass
-        keystrokeCountObj.timezone = ''
-    return timezone
+    return myTimezone
 
 def getNowTimes():
-    nowInSec = round(time.time())
-    localNowInSec = nowInSec - time.timezone
+    nowInSec = round(timeModule.time())
+    localNowInSec = nowInSec - timeModule.timezone
 
     try: # Adjust for DST
-        if time.localtime().tm_isdst == 0:
+        if timeModule.localtime().tm_isdst == 0:
             pass 
         else:
             localNowInSec += (60 * 60)
     except Exception:
         pass 
-    day = datetime.datetime.fromtimestamp(localNowInSec).date().isoformat()
+    day = datetime.fromtimestamp(localNowInSec).date().isoformat()
     return {
         'nowInSec': nowInSec,
         'localNowInSec': localNowInSec,
@@ -157,7 +156,7 @@ def getFirstOpenProject():
     openProjects = getOpenProjects()
     if len(openProjects) > 0:
         return openProjects[0]
-    return None 
+    return '' 
 
 def getProjectDirectory():
     global PROJECT_DIR 
@@ -169,7 +168,7 @@ def getProjectDirectory():
 def getProjectNameAndDirectory():
     rootPath = getFirstOpenProject()
     if not rootPath:
-        return { "directory": '', "name": ''}
+        return { "directory": UNTITLED, "name": NO_PROJ_NAME}
     
     return { "directory": rootPath, "name": os.path.basename(rootPath)}
 
@@ -510,8 +509,8 @@ def fetchCustomDashboard(date_range):
         date_range_arr = [x.strip() for x in date_range.split(',')]
         startDate = date_range_arr[0] 
         endDate = date_range_arr[1] 
-        start = int(time.mktime(datetime.datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
-        end = int(time.mktime(datetime.datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
+        start = int(timeModule.mktime(datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
+        end = int(timeModule.mktime(datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
     except Exception:
         sublime.error_message(
             'Invalid date range'
@@ -545,7 +544,7 @@ def launchCustomDashboard():
 def getAppJwt():
     serverAvailable = serverIsAvailable()
     if (serverAvailable):
-        now = round(time.time())
+        now = round(timeModule.time())
         api = "/data/apptoken?token=" + str(now)
         response = requestIt("GET", api, None, None)
         if (response is not None):
@@ -626,7 +625,7 @@ def sendHeartbeat(reason):
         payload = {}
         payload["pluginId"] = PLUGIN_ID
         payload["os"] = getOs()
-        payload["start"] = round(time.time())
+        payload["start"] = round(timeModule.time())
         payload["version"] = VERSION
         payload["hostname"] = getHostname()
         payload["trigger_annotaion"] = reason

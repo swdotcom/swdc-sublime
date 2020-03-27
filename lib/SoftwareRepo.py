@@ -1,7 +1,7 @@
 import sublime_plugin, sublime
 import time
 import re
-import datetime 
+from datetime import *
 from urllib.parse import quote_plus
 from .SoftwareModels import CommitChangeStats
 from .SoftwareHttp import *
@@ -10,7 +10,7 @@ from .SoftwareSettings import *
 
 # gather git commits
 def gatherCommits(rootDir):
-	if (rootDir is None):
+	if (rootDir is None or rootDir == ''):
 		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
@@ -231,7 +231,7 @@ def getLastCommit(rootDir):
 
 
 def gatherRepoMembers(rootDir):
-	if (rootDir is None):
+	if (rootDir is None or rootDir == ''):
 		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
@@ -324,8 +324,8 @@ def getUncommittedChanges(projectDir):
     return getChangeStats(projectDir, cmd)
 
 def getTodaysCommits(projectDir):
-	today = datetime.datetime.now().date()
-	todayStart = int(datetime.datetime(today.year, today.month, today.day).timestamp())
+	today = datetime.now().date()
+	todayStart = int(datetime(today.year, today.month, today.day).timestamp())
 	resourceInfo = getResourceInfo(projectDir)
 	authorOption = ' --author={}'.format(resourceInfo['email']) if resourceInfo and resourceInfo['email'] else ''
 	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(todayStart), authorOption]
