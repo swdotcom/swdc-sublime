@@ -29,7 +29,6 @@ def updateWcTime():
     updateTimeData(SECONDS_INCREMENT)
 
 def dispatchStatusViewUpdate():
-    print('dispatching update!!')
     updateStatusBarWithSummaryData()
     refreshTreeView()
 

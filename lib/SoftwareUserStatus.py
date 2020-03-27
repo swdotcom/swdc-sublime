@@ -13,7 +13,6 @@ LOGIN_LABEL = "Log in"
 
 def isLoggedOn(serverAvailable):
     jwt = getItem("jwt")
-    print('using jwt: {}'.format(jwt))
     if (serverAvailable and jwt is not None):
 
         user = getUser(serverAvailable)
@@ -21,7 +20,6 @@ def isLoggedOn(serverAvailable):
             setItem("name", user.get("email"))
             setItem("jwt", user.get("plugin_jwt"))
             return True
-        print('did not validate user')
 
         api = "/users/plugin/state"
         response = requestIt("GET", api, None, jwt)
@@ -30,7 +28,6 @@ def isLoggedOn(serverAvailable):
         if (responseOk is True):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
-                print(responseObj)
                 state = responseObj.get("state", None)
                 if (state is not None and state == "OK"):
                     email = responseObj.get("email", None)
@@ -60,8 +57,6 @@ def getUserStatus():
     # check if they're logged in or not
     loggedOn = isLoggedOn(serverAvailable)
 
-    print('user is logged on? {}'.format(loggedOn))
-
     setValue("logged_on", loggedOn)
     
     currentUserStatus = {}
@@ -76,7 +71,6 @@ def getUserStatus():
     return currentUserStatus
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
-    # print('trying {}'.format(tryCountUntilFoundUser))
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedOn", None)
     if (loggedInUser is True or tryCountUntilFoundUser <= 0):  

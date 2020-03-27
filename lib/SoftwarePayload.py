@@ -21,7 +21,6 @@ def batchSendData(api, file, isArray=False):
         return 
 
     try:
-        # print('batch sending {}'.format(file))
         if os.path.exists(file):
             payloads = None 
             if isArray:
@@ -56,5 +55,4 @@ def batchSendPayloadData(api, file, payloads):
 
 def postBootstrapPayload(payload):
     batch = [payload]
-    print('sending bootstrap payload')
     requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))

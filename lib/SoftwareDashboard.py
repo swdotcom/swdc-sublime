@@ -43,7 +43,6 @@ def newDayChecker(isInit=False):
         setItem('currentDay', currentDay)
         setItem('latestPayloadTimestampEndUtc', 0)
 
-        # print('Updating session summary from server')
         refreshTreeView()
     elif isInit:
         refreshTreeView()

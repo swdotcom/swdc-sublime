@@ -113,7 +113,6 @@ def getTodayTimeDataSummary():
         try:
             timeData = next(load for load in payloads if load['day'] == day and load['project']['directory'] == projectNameAndDir['directory'])
         except Exception:
-            print('unable to extract payloads')
     if not timeData:
         timeData = TimeData()
         timeData['day'] = day 
@@ -171,7 +170,6 @@ def getAverageDailyTime(sessionSummaryData):
     return {"data": averageDailyMinutes, "formatted": humanizeMinutes(averageDailyMinutes)}
 
 def clearSessionSummaryData():
-    print('CLEARING')
     emptyData = SessionSummary()
     saveSessionSummaryToDisk(emptyData)
 

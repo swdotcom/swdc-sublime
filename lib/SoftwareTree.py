@@ -37,10 +37,8 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
     def run(self):
         if not shouldOpen:
-            print("don't open")
             return
 
-        print('Refreshing tree')
         global tree_view 
         global orig_layout
         self.currentKeystrokeStats = SessionSummary()
@@ -263,7 +261,6 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             display: inline;
             }
         </style>''' + ''.join(result) + '</body>'
-        # print(html)
         self.phantom = sublime.Phantom(sublime.Region(0), html, sublime.LAYOUT_BLOCK, on_navigate=self.on_click)
         self.phantom_set.update([self.phantom])
 
@@ -656,7 +653,6 @@ def handleCloseTreeView():
     tree_view = None
     # global orig_layout
     
-    # print(orig_layout)
     # groups = set()
     # window = sublime.active_window()
     # for view in window.views():

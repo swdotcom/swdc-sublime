@@ -438,10 +438,6 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
-    # def on_new(self, view):
-    #     if len(sublime.windows()) == 1 and len(sublime.active_window().sheets()) == 1 and len(sublime.active_window().views()) == 1:
-    #         print('whats up')
-
     def on_activated_async(self, view):
         focusWindow()
 
@@ -688,14 +684,12 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
-    # print('initializing user info')
 
     initialized = getItem('sublime_CtInit')
     if not initialized:
         setItem('sublime_CtInit', True)
         updateSessionSummaryFromServer()
         refreshTreeView()
-        # print('about to send initial payload')
         PluginData.send_initial_payload()
         sendHeartbeat('INSTALLED')
 

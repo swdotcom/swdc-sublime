@@ -43,7 +43,6 @@ isFocused = True
 
 def updateOnlineStatus():
     online = serverIsAvailable()
-    # print("Checking online status")
     if (online is True):
         setValue("online", True)
         print(getValue("online", True))
@@ -635,7 +634,6 @@ def sendHeartbeat(reason):
             response = requestIt("POST", api, json.dumps(payload), jwt)
 
             if (response is not None and isResponseOk(response) is False):
-                print(response.__dict__)
                 log("Code Time: Unable to send heartbeat ping")
         except Exception as ex:
             log("Code Time: Unable to send heartbeat: %s" % ex)
