@@ -5,15 +5,11 @@
     },
     {
         "command": "launch_custom_dashboard",
-        "caption": "Generate a Custom Dashboard"
+        "caption": "Open a Custom Dashboard"
     },
     {
         "command": "go_to_software",
         "caption": "Web Dashboard"
-    },
-    {
-        "command": "code_time_login",
-        "caption": "Log in to see your coding data in Code Time"
     },
     {
         "command": "pause_kpm_updates",
@@ -34,5 +30,9 @@
     {
         "command": "show_console_message",
         "caption": "Show Console Message"
+    },
+    {
+        "command": "show_tree_view",
+        "caption": "Show Tree View"
     }
 ]

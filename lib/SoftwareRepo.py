@@ -1,14 +1,16 @@
 import sublime_plugin, sublime
 import time
 import re
+from datetime import *
 from urllib.parse import quote_plus
+from .SoftwareModels import CommitChangeStats
 from .SoftwareHttp import *
 from .SoftwareUtil import *
 from .SoftwareSettings import *
 
 # gather git commits
 def gatherCommits(rootDir):
-	if (rootDir is None):
+	if (rootDir is None or rootDir == ''):
 		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
@@ -229,7 +231,7 @@ def getLastCommit(rootDir):
 
 
 def gatherRepoMembers(rootDir):
-	if (rootDir is None):
+	if (rootDir is None or rootDir == ''):
 		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
@@ -279,4 +281,50 @@ def gatherRepoMembers(rootDir):
 				except Exception as ex:
 					log("Code Time: Unable to complete repo member metric update: %s" % ex)
 
-# eof
+
+def accumulateStatChanges(results):
+	stats = CommitChangeStats()
+	if results:
+		for line in results:
+			if 'insertion' in line and 'deletion' in line:
+				parts = line.strip().split(' ')
+				fileCount = int(parts[0])
+				stats['fileCount'] += fileCount 
+				stats['commitCount'] += 1
+
+				for x in range(1, len(parts)):
+					part = parts[x]
+					if 'insertion' in part:
+						numInsertions = int(parts[x - 1])
+						stats['insertions'] += numInsertions
+					elif 'deletion' in part:
+						numDeletions = int(parts[x - 1])
+						stats['deletions'] += numDeletions
+	return stats 
+
+def getChangeStats(projectDir, cmd):
+	changeStats = CommitChangeStats()
+
+	if not projectDir:
+		return changeStats 
+
+	resultList = getCommandResultList(cmd, projectDir)
+
+	if not resultList:
+		return changeStats    
+
+	changeStats = accumulateStatChanges(resultList)
+
+	return changeStats
+
+def getUncommittedChanges(projectDir):
+    cmd = ['git', 'diff', '--stat']
+    return getChangeStats(projectDir, cmd)
+
+def getTodaysCommits(projectDir):
+	today = datetime.now().date()
+	todayStart = int(datetime(today.year, today.month, today.day).timestamp())
+	resourceInfo = getResourceInfo(projectDir)
+	authorOption = ' --author={}'.format(resourceInfo['email']) if resourceInfo and resourceInfo['email'] else ''
+	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(todayStart), authorOption]
+	return getChangeStats(projectDir, cmd)

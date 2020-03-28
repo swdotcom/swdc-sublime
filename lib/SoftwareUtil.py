@@ -1,9 +1,7 @@
-# Copyright (c) 2018 by Software.com
-from threading import Thread, Timer, Event
+from threading import Thread, Timer, Event, Lock
 import os
 import json
-import time
-import datetime
+import time as timeModule
 import socket
 import sublime_plugin, sublime
 import sys
@@ -11,36 +9,40 @@ import uuid
 import platform
 import re, uuid
 import webbrowser
-from urllib.parse import quote_plus
-from subprocess import Popen, PIPE
+from datetime import *
+from subprocess import Popen, PIPE, check_output, CalledProcessError
 from .SoftwareHttp import *
 from .SoftwareSettings import *
 
 # the plugin version
-VERSION = '0.9.4'
+VERSION = '1.0.0'
 PLUGIN_ID = 1
-SETTINGS_FILE = 'Software.sublime_settings'
-SETTINGS = sublime.load_settings(SETTINGS_FILE)
+
+DASHBOARD_LABEL_WIDTH = 25
+DASHBOARD_VALUE_WIDTH = 25
+MARKER_WIDTH = 4
 
 sessionMap = {}
 
+buildTreeLock = Lock()
+
+PROJECT_DIR = None
+NO_PROJ_NAME = 'Unnamed'
+UNTITLED = 'Untitled'
+
+'''
+In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
+have easy TTL cache options available
+'''
+# TODO: implement a TTL cache
+myCache = {}
+
 runningResourceCmd = False
 loggedInCacheState = False
-timezone=''
-
-def getValue(key, defaultValue):
-    global SETTINGS
-    print("Got value!")
-    return SETTINGS.get(key, defaultValue)
-
-def setValue(key, value):
-    global SETTINGS
-    print("Set value!")
-    return SETTINGS.set(key, value)
+isFocused = True 
 
 def updateOnlineStatus():
-    online = checkOnline()
-    print("Checking online status")
+    online = serverIsAvailable()
     if (online is True):
         setValue("online", True)
         print(getValue("online", True))
@@ -52,10 +54,6 @@ def updateOnlineStatus():
 def log(message):
     if (getValue("software_logging_on", True)):
         print(message)
-
-# .
-def getUrlEndpoint():
-    return getValue("software_dashboard_url", "https://app.software.com")
 
 def getOsUsername():
     homedir = os.path.expanduser('~')
@@ -72,27 +70,30 @@ def getOs():
     return system
 
 def getTimezone():
-    global timezone
+    myTimezone = None 
     try:
-        timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()
+        myTimezone = datetime.now(timezone.utc).astimezone().tzname()
     except Exception:
         pass
-        keystrokeCountObj.timezone = ''
-    return timezone
+    return myTimezone
 
-def getLocalStart():
-    now = round(time.time())
-    local_start = now - time.timezone
-    try:
-        #If current timezone is not in DST, value of tm_ist will be 0
-        if time.localtime().tm_isdst == 0:
-            pass
+def getNowTimes():
+    nowInSec = round(timeModule.time())
+    localNowInSec = nowInSec - timeModule.timezone
+
+    try: # Adjust for DST
+        if timeModule.localtime().tm_isdst == 0:
+            pass 
         else:
-            # we're in DST, add 1
-            local_start += (60 * 60)
+            localNowInSec += (60 * 60)
     except Exception:
-        pass
-    return local_start
+        pass 
+    day = datetime.fromtimestamp(localNowInSec).date().isoformat()
+    return {
+        'nowInSec': nowInSec,
+        'localNowInSec': localNowInSec,
+        'day': day
+    }
 
 def getHostname():
     try:
@@ -100,7 +101,7 @@ def getHostname():
     except Exception:
         return os.uname().nodename
 
-# fetch a value from the .software/sesion.json file
+# fetch a value from the .software/session.json file
 def getItem(key):
     val = sessionMap.get(key, None)
     if (val is not None):
@@ -124,6 +125,52 @@ def setItem(key, value):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
+def focusWindow():
+    global isFocused
+    isFocused = True
+
+def blurWindow():
+    global isFocused
+    isFocused = False 
+
+def isFocused():
+    global isFocused
+    return isFocused 
+
+def refreshTreeView():
+    buildTreeLock.acquire()
+    sublime.active_window().run_command('open_tree_view')
+    buildTreeLock.release()
+
+def getOpenProjects():
+    folders = None 
+    if sublime.active_window().project_data():
+        folders = sublime.active_window().project_data()['folders']
+    if folders is None:
+        return []
+    openProjectNames = list(map(lambda x: x['path'], folders))
+    return openProjectNames
+
+def getFirstOpenProject():
+    openProjects = getOpenProjects()
+    if len(openProjects) > 0:
+        return openProjects[0]
+    return '' 
+
+def getProjectDirectory():
+    global PROJECT_DIR 
+    if PROJECT_DIR is not None:
+        return PROJECT_DIR 
+    else:
+        return getFirstOpenProject()
+
+def getProjectNameAndDirectory():
+    rootPath = getFirstOpenProject()
+    if not rootPath:
+        return { "directory": UNTITLED, "name": NO_PROJ_NAME}
+    
+    return { "directory": rootPath, "name": os.path.basename(rootPath)}
+
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
     sessionFile = os.path.join(file, 'session.json')
@@ -137,6 +184,50 @@ def getSoftwareSessionAsJson():
     except Exception:
         return {}
 
+def getFileDataAsJson(file):
+    data = None 
+    if os.path.isfile(file):
+        with open(file) as f:
+            try:
+                data = json.load(f)
+            except Exception as ex:
+                # log('Unable to read session info: %s' % ex)
+                # os.remove(file)
+                print('unable to read: %s' % ex)
+    return data 
+
+def getFileDataArray(file):
+    payloads = []
+    if os.path.isfile(file):
+        with open(file) as f:
+            try:
+                contents = json.load(f)
+                if (isinstance(contents, list)):    
+                    payloads = contents 
+                else:
+                    payloads.append(contents)
+            except Exception as ex:
+                log('Error reading file array data: %s' % ex)
+                os.remove(file)
+    return payloads 
+
+def getFileDataPayloadsAsJson(file):
+    payloads = []
+    if os.path.isfile(file):
+        try:
+            with open(file) as f:
+                for line in f:
+                    if (line and line.strip()):
+                        line = line.rstrip()
+                        # convert to object
+                        json_obj = json.loads(line)
+                        # convert to json to send
+                        payloads.append(json_obj)
+        except Exception as ex:
+            log('Unable to read file data payload: %s' % ex)
+            return []
+    return payloads 
+
 def getSoftwareSessionFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'session.json')
@@ -145,6 +236,40 @@ def getSoftwareDataStoreFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'data.json')
 
+def getPluginEventsFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'events.json')
+
+def getFileChangeSummaryFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'fileChangeSummary.json')
+
+def getDashboardFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'CodeTime.txt')
+
+def getTimeDataSummaryFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'projectTimeData.json')
+
+def getMinutesSinceLastPayload():
+    minutesSinceLastPayload = 1
+    lastPayloadEnd = getItem('latestPayloadTimestampEndUtc')
+    if lastPayloadEnd is not None:
+        nowTimes = getNowTimes()
+        nowInSec = nowTimes['nowInSec']
+        # diff from the previous end time
+        diffInSec = nowInSec - lastPayloadEnd
+
+        if diffInSec > 0 and diffInSec < getSessionThresholdSeconds():
+            minutesSinceLastPayload = diffInSec / 60
+
+    return minutesSinceLastPayload
+
+def getSessionThresholdSeconds():
+    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
+    return thresholdSeconds
+
 def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')
     softwareDataDir = os.path.join(softwareDataDir, '.software')
@@ -152,13 +277,23 @@ def getSoftwareDir(autoCreate):
         os.makedirs(softwareDataDir, exist_ok=True)
     return softwareDataDir
 
-def getDashboardFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'CodeTime.txt')
-
 def getCustomDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CustomDashboard.txt')
+
+def getCommandResultList(cmd, projectDir):
+    try:
+        result = check_output(cmd, cwd=projectDir)
+    except CalledProcessError as ex:
+        if ex.output != b'': # Suppress trivial error 
+            log('Error running {}: {}'.format(cmd, ex.output))
+        return []
+    
+    result = result.decode('UTF-8').strip().replace('\r\n', '\r').replace('\n', '\r')
+    # Remove initial spaces
+    result = re.sub(r'^\s+', '', result).split('\r')
+    return result 
+    
 
 # execute the applescript command
 def runCommand(cmd, args = []):
@@ -328,31 +463,28 @@ def getResourceInfo(rootDir):
     except Exception as e:
         return {}
 
-def checkOnline():
+def serverIsAvailable():
     # non-authenticated ping, no need to set the Authorization header
     response = requestIt("GET", "/ping", None, getItem("jwt"))
-    if (isResponsOk(response)):
+    if (isResponseOk(response)):
         return True
     else:
         return False
 
-def refetchUserStatusLazily(tryCountUntilFoundUser):
-    currentUserStatus = getUserStatus()
-    loggedInUser = currentUserStatus.get("loggedInUser", None)
-    if (loggedInUser is not None or tryCountUntilFoundUser <= 0):
-        return
+def launchSubmitFeedback():
+    webbrowser.open('mailto:cody@software.com')
 
-    # start the time
-    tryCountUntilFoundUser -= 1
-    t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
-    t.start()
+def getLocalREADMEFile():
+    return os.path.join(os.path.dirname(__file__), '..', 'README.md')
 
-def launchLoginUrl():
-    webUrl = getUrlEndpoint()
-    jwt = getItem("jwt")
-    webUrl += "/onboarding?token=" + jwt
-    webbrowser.open(webUrl)
-    refetchUserStatusLazily(10)
+# TODO: figure out how to do markdown preview
+def displayReadmeIfNotExists(): 
+    readmeFile = getLocalREADMEFile()
+    sublime.active_window().open_file(readmeFile)
+    # fileUri = 'markdown-preview://{}'.format(readmeFile)
+    # displayed = getItem('sublime_CtReadme')
+    # if not displayed:
+        # setItem('sublime_CtReadme', True)
 
 def launchSpotifyLoginUrl():
     api_endpoint = getValue("software_api_endpoint", "api.software.com")
@@ -360,10 +492,6 @@ def launchSpotifyLoginUrl():
     spotify_url="https://api.software.com/auth/spotify?token="+jwt
     # spotify_url = "https://"+ api_endpoint + "/auth/spotify?token=" + jwt
     webbrowser.open(spotify_url)
-
-def launchWebDashboardUrl():
-    webUrl = getUrlEndpoint() + "/login"
-    webbrowser.open(webUrl)
 
 def isMac():
     if sys.platform == "darwin":
@@ -380,8 +508,8 @@ def fetchCustomDashboard(date_range):
         date_range_arr = [x.strip() for x in date_range.split(',')]
         startDate = date_range_arr[0] 
         endDate = date_range_arr[1] 
-        start = int(time.mktime(datetime.datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
-        end = int(time.mktime(datetime.datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
+        start = int(timeModule.mktime(datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
+        end = int(timeModule.mktime(datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
     except Exception:
         sublime.error_message(
             'Invalid date range'
@@ -413,9 +541,9 @@ def launchCustomDashboard():
     sublime.active_window().open_file(file)
 
 def getAppJwt():
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
     if (serverAvailable):
-        now = round(time.time())
+        now = round(timeModule.time())
         api = "/data/apptoken?token=" + str(now)
         response = requestIt("GET", api, None, None)
         if (response is not None):
@@ -451,7 +579,7 @@ def createAnonymousUser(serverAvailable):
         api = "/data/onboard"
         try:
             response = requestIt("POST", api, json.dumps(payload), appJwt)
-            if (response is not None and isResponsOk(response)):
+            if (response is not None and isResponseOk(response)):
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
@@ -469,7 +597,7 @@ def getUser(serverAvailable):
     if (jwt and serverAvailable):
         api = "/users/me"
         response = requestIt("GET", api, None, jwt)
-        if (isResponsOk(response)):
+        if (isResponseOk(response)):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
                 user = responseObj.get("data", None)
@@ -484,76 +612,19 @@ def validateEmail(email):
         return True
     return False
 
-def isLoggedOn(serverAvailable):
-    jwt = getItem("jwt")
-    if (serverAvailable and jwt is not None):
 
-        user = getUser(serverAvailable)
-        if (user is not None and validateEmail(user.get("email", None))):
-            setItem("name", user.get("email"))
-            setItem("jwt", user.get("plugin_jwt"))
-            return True
-
-        api = "/users/plugin/state"
-        response = requestIt("GET", api, None, jwt)
-
-        responseOk = isResponsOk(response)
-        if (responseOk is True):
-            try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                
-                state = responseObj.get("state", None)
-                if (state is not None and state == "OK"):
-                    email = responseObj.get("emai", None)
-                    setItem("name", email)
-                    pluginJwt = responseObj.get("jwt", None)
-                    if (pluginJwt is not None and pluginJwt != jwt):
-                        setItem("jwt", pluginJwt)
-
-                    # state is ok, return True
-                    return True
-                elif (state is not None and state == "NOT_FOUND"):
-                    setItem("jwt", None)
-
-            except Exception as ex:
-                log("Code Time: Unable to retrieve logged on response: %s" % ex)
-
-    setItem("name", None)
-    return False
-
-
-def getUserStatus():
-    global loggedInCacheState
-
-    currentUserStatus = {}
-
-    serverAvailable = checkOnline()
-
-    # check if they're logged in or not
-    loggedOn = isLoggedOn(serverAvailable)
-
-    setValue("logged_on", loggedOn)
-    
-    currentUserStatus = {}
-    currentUserStatus["loggedOn"] = loggedOn
-
-    if (loggedOn is True and loggedInCacheState != loggedOn):
-        log("Code Time: Logged on")
-        sendHeartbeat("STATE_CHANGE:LOGGED_IN:true")
-
-    loggedInCacheState = loggedOn
-
-    return currentUserStatus
+def getLoggedInCacheState():
+    return loggedInCacheState
 
 def sendHeartbeat(reason):
     jwt = getItem("jwt")
-    serverAvailable = checkOnline()
+    serverAvailable = serverIsAvailable()
     if (jwt is not None and serverAvailable):
 
         payload = {}
         payload["pluginId"] = PLUGIN_ID
         payload["os"] = getOs()
-        payload["start"] = round(time.time())
+        payload["start"] = round(timeModule.time())
         payload["version"] = VERSION
         payload["hostname"] = getHostname()
         payload["trigger_annotaion"] = reason
@@ -562,7 +633,7 @@ def sendHeartbeat(reason):
         try:
             response = requestIt("POST", api, json.dumps(payload), jwt)
 
-            if (response is not None and isResponsOk(response) is False):
+            if (response is not None and isResponseOk(response) is False):
                 log("Code Time: Unable to send heartbeat ping")
         except Exception as ex:
             log("Code Time: Unable to send heartbeat: %s" % ex)
@@ -584,9 +655,7 @@ def humanizeMinutes(minutes):
         humanizedStr = "1 min"
     else:
         humanizedStr = '{:1.0f}'.format(minutes) + " min"
-
     return humanizedStr
-
 
 def getDashboardRow(label, value):
     dashboardLabel = getDashboardLabel(label, DASHBOARD_LABEL_WIDTH)
@@ -624,3 +693,30 @@ def getDashboardDataDisplay(widthLen, data):
         content += " "
     return "%s%s" % (content, data)
 
+def getIcons():
+    try:
+        dirname = os.path.dirname(__file__)
+        icons_file = os.path.join(dirname, '../icons.json')
+        with open(icons_file, 'r') as f:
+            icons_dict = json.load(f)
+            return icons_dict
+    except Exception:
+        return {}
+
+#TODO:  Ensure this has equivalent functionality as numeral().format('0 a') in JS
+def formatNumWithK(num):
+    if num == 0: 
+        return '0'
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{} {}'.format('{:.1f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude]).strip()
+
+def setInterval(func, sec): 
+    def func_wrapper():
+        setInterval(func, sec) 
+        func()  
+    t = Timer(sec, func_wrapper)
+    t.start()
+    return t

@@ -1,10 +1,7 @@
-
-# Copyright (c) 2018 by Software.com
-
 import http
 import json
 import sublime_plugin, sublime
-from .SoftwareUtil import *
+from .SoftwareSettings import *
 
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
@@ -14,15 +11,17 @@ def httpLog(message):
     if (getValue("software_logging_on", True)):
         print(message)
 
-def redispayStatus():
+def redisplayStatus():
     global lastMsg
     showStatus(lastMsg)
 
 def toggleStatus():
     global lastMsg
     showStatusVal = getValue("show_code_time_status", True)
-    
-    if (showStatusVal is True):
+    setValue("show_code_time_status", not showStatusVal)
+
+    # Change the setting before displaying the new one
+    if (not showStatusVal is True):
         showStatus(lastMsg)
     else:
         # show clock icon unicode
@@ -40,7 +39,7 @@ def showStatus(msg):
             msg = "⏱"
         else:
             lastMsg = msg
-
+        
         if (active_window is not None):
             for view in active_window.views():
                 if (view is not None):
@@ -48,7 +47,7 @@ def showStatus(msg):
     except RuntimeError:
         httpLog(msg)
 
-def isResponsOk(response):
+def isResponseOk(response):
     if (response is not None and int(response.status) < 300):
         return True
     return False
