@@ -113,6 +113,7 @@ def getTodayTimeDataSummary():
         try:
             timeData = next(load for load in payloads if load['day'] == day and load['project']['directory'] == projectNameAndDir['directory'])
         except Exception:
+            pass 
     if not timeData:
         timeData = TimeData()
         timeData['day'] = day 
