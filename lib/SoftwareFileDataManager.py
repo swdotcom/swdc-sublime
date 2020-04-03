@@ -1,8 +1,10 @@
+from threading import Lock
 from .SoftwareUtil import *
 from .SoftwareModels import SessionSummary
 import os 
 import json 
 
+sessionSummaryLock = Lock()
 
 # get the session summary data
 def getSessionSummaryData():
@@ -27,6 +29,7 @@ def coalesceMissingSessionSummaryAttributes(data):
     return data
 
 def getSessionSummaryFileAsJson():
+    sessionSummaryLock.acquire()
     try:
         with open(getSessionSummaryFile()) as sessionSummaryFile:
             sessionSummaryData = json.load(sessionSummaryFile)
@@ -34,11 +37,14 @@ def getSessionSummaryFileAsJson():
         sessionSummaryData = SessionSummary()
         log("Code Time: Session summary file fetch error: %s" % ex)
     sessionSummaryData = coalesceMissingSessionSummaryAttributes(sessionSummaryData)
+    sessionSummaryLock.release()
     return sessionSummaryData
 
 def saveSessionSummaryToDisk(sessionSummaryData):
     content = json.dumps(sessionSummaryData, indent=4)
 
     sessionFile = getSessionSummaryFile()
+    sessionSummaryLock.acquire()
     with open(sessionFile, 'w') as f:
         f.write(content)
+    sessionSummaryLock.release()

@@ -1,5 +1,4 @@
-import sublime_plugin, sublime
-import datetime 
+import sublime_plugin, sublime 
 from copy import deepcopy
 from threading import Thread, Timer, Event 
 from .SoftwareOffline import getSessionSummaryData
@@ -17,6 +16,7 @@ orig_layout = None
 NO_ID = 'NO_ID'
 CODETIME_TREEVIEW_NAME = 'Code Time Tree View'
 shouldOpen = True
+mainSections = ['code-time-actions', 'activity-metrics', 'project-metrics']
 
 def setShouldOpen(val):
     global shouldOpen
@@ -30,17 +30,15 @@ was opened so state can be maintained across draws.
 open_state = set()
 
 # IDs for code time action buttons
-CODE_TIME_ACTIONS = {'advanced-metrics', 'open-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback'}
+CODE_TIME_ACTIONS = {'advanced-metrics', 'open-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback', 'google-signup', 'github-signup', 'email-signup'}
 
 # TODO: rare bug where tree isn't clickable (possibly slow wifi)
 class OpenTreeView(sublime_plugin.WindowCommand):
 
     def run(self):
         if not shouldOpen:
-            print("don't open")
             return
 
-        print('Refreshing tree')
         global tree_view 
         global orig_layout
         self.currentKeystrokeStats = SessionSummary()
@@ -72,22 +70,13 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                     'id': 'code-time-actions',
                     'name': 'CODE TIME',
                     'dir': True,
-                    'expanded': False,
+                    'expanded': True,
                     'childs': [
                         {
                             'depth': 2,
                             'id': 'advanced-metrics',
                             'icon': 'paw',
                             'name': 'See advanced metrics',
-                            'dir': False,
-                            'expanded': False,
-                            'childs': None
-                        },
-                        { 
-                            'depth': 2,
-                            'id': 'open-dashboard',
-                            'icon': 'dashboard',
-                            'name': 'Open dashboard',
                             'dir': False,
                             'expanded': False,
                             'childs': None
@@ -118,6 +107,15 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                             'dir': False,
                             'expanded': False,
                             'childs': None
+                        },
+                        { 
+                            'depth': 2,
+                            'id': 'open-dashboard',
+                            'icon': 'dashboard',
+                            'name': 'View summary',
+                            'dir': False,
+                            'expanded': False,
+                            'childs': None
                         }
                     ]
                 }
@@ -126,6 +124,8 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
         # Build tree nodes
         data = getSessionSummaryData()
+
+        self.addConnectionStatusIcons()
         self.buildMetricsNodes(data)
         self.buildCommitTreeNodes()
         self.expand(self.tree, '')
@@ -191,24 +191,39 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         elif command == 'learn-more':
             displayReadmeIfNotExists()
         elif command == 'advanced-metrics':
-            loggedIn = getLoggedInCacheState()
-            if not loggedIn:
-                launchLoginUrl()
-            else:
-                launchWebDashboardUrl()
+            launchWebDashboardUrl()
         elif command == 'submit-feedback':
             launchSubmitFeedback()
+        elif command == 'google-signup':
+            launchLoginUrl('google')
+        elif command == 'github-signup':
+            launchLoginUrl('github')
+        elif command == 'email-signup':
+            launchLoginUrl('software')
+
+    def getAuthTypeLabelAndIcon(self):
+        authType = getItem('authType')
+
+        if (authType == 'google'):
+            return { "label": 'Connected using Google', "icon": 'google-icon' }
+        elif (authType == 'github'):
+            return { "label": 'Connected using GitHub', "icon": 'github-icon' }
+        elif (authType == 'software'):
+            return { "label": 'Connected using email', "icon": 'envelope-icon' }
+        return { "label": 'Connected', "icon": 'envelope-icon' } 
 
     def on_click(self, url):
         comps = url.split('/')
 
-        # print(comps[1])
+        # Don't close or open this
+        if comps[1] in mainSections:
+            return
+
         if comps[1] in CODE_TIME_ACTIONS:
             self.performCodeTimeAction(comps[1])
             return 
 
         if comps[0] == 'expand':
-            # print('looking for ', comps[1])
             self.expand(self.tree, comps[1])
 
     '''
@@ -246,11 +261,13 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             display: inline;
             }
         </style>''' + ''.join(result) + '</body>'
-        # print(html)
         self.phantom = sublime.Phantom(sublime.Region(0), html, sublime.LAYOUT_BLOCK, on_navigate=self.on_click)
         self.phantom_set.update([self.phantom])
 
     def render_subtree(self, item, result):
+        if 'id' in item and item['id'] in open_state:
+            item['expanded'] = True
+
         global icons
         if not item['dir']:
             if 'icon' in item:
@@ -275,11 +292,10 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                 margin=(item['depth'] * 20) - 10,
                 index=item['id'] if 'id' in item else NO_ID,
                 name=item['name'],
-                sign='▼' if (item['expanded'] or item['id'] in open_state) else '▶'))
+                sign='' if ('id' in item and item['id'] in mainSections) else ('▼' if (item['expanded']) else '▶')))
 
         # if directory with things
-        if item['childs'] != None and (item['expanded'] or item['id'] in open_state):
-            item['expanded'] = True
+        if item['childs'] != None and item['expanded']:
             for child in item['childs']:
                 self.render_subtree(child, result)
 
@@ -296,6 +312,52 @@ class OpenTreeView(sublime_plugin.WindowCommand):
                 self.currentKeystrokeStats.currentDayLinesAdded = fileInfo.linesAdded
                 self.currentKeystrokeStats.currentDayLinesRemoved = fileInfo.linesRemoved
 
+    def addConnectionStatusIcons(self):
+        if not getItem('name'):
+            self.addSignupButtons()
+        else:
+            authObj = self.getAuthTypeLabelAndIcon()
+            connectedNode = {
+                'depth': 2,
+                'id': 'connected-type-button',
+                'icon': authObj['icon'],
+                'name': authObj['label'],
+                'dir': False,
+                'expanded': False,
+                'childs': None
+            }
+            self.tree['childs'][0]['childs'].insert(0, connectedNode)
+
+    def addSignupButtons(self):
+        googleSignup = {
+            'depth': 2,
+            'id': 'google-signup',
+            'icon': 'google-icon',
+            'name': 'Sign up with Google',
+            'dir': False,
+            'expanded': False,
+            'childs': None
+        }
+        githubSignup = {
+            'depth': 2,
+            'id': 'github-signup',
+            'icon': 'github-icon',
+            'name': 'Sign up with GitHub',
+            'dir': False,
+            'expanded': False,
+            'childs': None
+        }
+        emailSignup = {
+            'depth': 2,
+            'id': 'email-signup',
+            'icon': 'envelope-icon',
+            'name': 'Sign up with email',
+            'dir': False,
+            'expanded': False,
+            'childs': None
+        }
+        self.tree['childs'][0]['childs'] = [googleSignup, githubSignup, emailSignup] + self.tree['childs'][0]['childs']
+
     # data is an object of shape returned by SessionSummary()
     def buildMetricsNodes(self, data):
         # delete the current (ACTIVITY METRICS) from tree['childs']
@@ -307,7 +369,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             'id': 'activity-metrics',
             'name': 'ACTIVITY METRICS',
             'dir': True,
-            'expanded': False,
+            'expanded': True,
             'childs': []
         }
 
@@ -370,7 +432,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
 
     def buildCodeTimeMetricsItem(self, id, label, todayValue, avgValue=None, globalAvgValue=None, avgIcon=None):
-        todayString = datetime.datetime.today().strftime('%a')
+        todayString = datetime.today().strftime('%a')
         item = {
             'depth': 2,
             'id': id,
@@ -537,7 +599,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             'id': 'project-metrics',
             'name': 'PROJECT METRICS',
             'dir': True,
-            'expanded': False,
+            'expanded': True,
             'childs': []
         }
 
@@ -591,7 +653,6 @@ def handleCloseTreeView():
     tree_view = None
     # global orig_layout
     
-    # print(orig_layout)
     # groups = set()
     # window = sublime.active_window()
     # for view in window.views():

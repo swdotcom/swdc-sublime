@@ -12,10 +12,6 @@
         "caption": "Web Dashboard"
     },
     {
-        "command": "code_time_login",
-        "caption": "Log in to see your coding data in Code Time"
-    },
-    {
         "command": "pause_kpm_updates",
         "caption": "Pause Code Time"
     },

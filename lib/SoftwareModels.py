@@ -5,7 +5,8 @@ def TimeData():
         "editor_seconds": 0,
         "session_seconds": 0,
         "file_seconds": 0,
-        "day": ''
+        "day": '',
+        "project": Project()
     }
     return template 
 
@@ -59,5 +60,23 @@ def CommitChangeStats():
         "deletions": 0,
         "fileCount": 0,
         "commitCount": 0
+    }
+    return template 
+
+def Project():
+    template = {
+        "directory": '',
+        "name": '',
+        "identifier": '',
+        "resource": Resource()
+    }
+    return template 
+
+def Resource():
+    template = {
+        "identifier": '',
+        "branch": '',
+        "tag": '',
+        "email": ''
     }
     return template 

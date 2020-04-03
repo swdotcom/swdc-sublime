@@ -1,11 +1,13 @@
+import sublime
 import os
 from .SoftwareUtil import *
-from .SoftwareTimeSummaryData import *
+from .SoftwareOffline import *
 from .SoftwareHttp import *
 
 # send the data that has been saved offline
 def sendOfflineData():
     batchSendData('/data/batch', getSoftwareDataStoreFile())
+    sublime.active_window().run_command('force_update_session_summary')
 
 def sendOfflineEvents():
     batchSendData('/data/event', getPluginEventsFile())
@@ -19,7 +21,6 @@ def batchSendData(api, file, isArray=False):
         return 
 
     try:
-        # print('batch sending {}'.format(file))
         if os.path.exists(file):
             payloads = None 
             if isArray:
@@ -34,7 +35,6 @@ def batchSendData(api, file, isArray=False):
 
 def batchSendPayloadData(api, file, payloads):
     if (payloads is not None and len(payloads) > 0):
-        log('sending batch payloads')
 
         # go through the payloads array 50 at a time
         batch = []
@@ -52,3 +52,7 @@ def batchSendPayloadData(api, file, payloads):
             requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
         
         os.remove(file)
+
+def postBootstrapPayload(payload):
+    batch = [payload]
+    requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))

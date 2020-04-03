@@ -8,6 +8,7 @@ from .SoftwareOffline import *
 from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
+from .SoftwarePayload import *
 
 currentDay = None 
 DAY_CHECK_TIMER_INTERVAL = 60
@@ -18,8 +19,10 @@ def dashboardMgrInit():
         return 
     
     currentDay = getItem('currentDay')
-    setInterval(lambda: newDayChecker(True), DAY_CHECK_TIMER_INTERVAL)
+    setInterval(lambda: newDayChecker(False), DAY_CHECK_TIMER_INTERVAL)
 
+    newDayTimer = Timer(1, newDayChecker, args=[True])
+    newDayTimer.start()
 
 def newDayChecker(isInit=False):
     global currentDay
@@ -40,42 +43,9 @@ def newDayChecker(isInit=False):
         setItem('currentDay', currentDay)
         setItem('latestPayloadTimestampEndUtc', 0)
 
-        print('Updating session summary from server')
-        updateSessionSummaryFromServer()
         refreshTreeView()
-
     elif isInit:
         refreshTreeView()
-
-
-def updateSessionSummaryFromServer():
-    jwt = getItem('jwt')
-    response = requestIt("GET", '/sessions/summary', None, jwt)
-    if response is not None and isResponseOk(response):
-        print('got session summary!')
-        respData = json.loads(response.read().decode('utf-8'))
-        summary = getSessionSummaryData()
-        updateCurrents = summary['currentDayMinutes'] < respData['currentDayMinutes']
-
-        for item in respData.items():
-            key = item[0]
-            val = item[1]
-
-            if updateCurrents and key.startswith('current'):
-                summary[key] = val 
-            elif not key.startswith('current'):
-                summary[key] = val
-
-        log('summary data: {}'.format(summary))
-        saveSessionSummaryToDisk(summary)
-    else:
-        print('failed getting session summary')
-
-
-
-def getDashboardFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'CodeTime.txt')
 
 def launchCodeTimeMetrics():
     fetchCodeTimeMetricsDashboard()
@@ -115,7 +85,7 @@ def fetchCodeTimeMetricsDashboard():
     dashboardFile = getDashboardFile()
     dashboardContent = ""
 
-    d = datetime.datetime.now()
+    d = datetime.now()
 
     formattedDate = d.strftime("%a %b %d %I:%M %p")
     dashboardContent += "CODE TIME          (Last updated on %s)\n\n" % formattedDate
