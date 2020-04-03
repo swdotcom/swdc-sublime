@@ -43,10 +43,16 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         global orig_layout
         self.currentKeystrokeStats = SessionSummary()
         window = self.window
+
         orig_view = window.active_view()
         
         # Create tree view if it doesn't exist yet
         if tree_view is None:
+            layout = window.get_layout()
+            layout['cols'] = [0, 1]
+            layout['rows'] = [0, 1]
+            layout['cells'] = [[0,0,1,1]]
+            window.set_layout(layout)
             self.build_tree_layout()
 
         self.phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
