@@ -254,4 +254,7 @@ def storePayload(payload):
     except Exception as ex:
         log('Error appending to the Software data store file: %s' % ex)
 
+    nowTimes = getNowTimes()
+    setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
+
 
