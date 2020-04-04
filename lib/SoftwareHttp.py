@@ -26,6 +26,7 @@ def toggleStatus():
     else:
         # show clock icon unicode
         showStatus("⏱")
+    sublime.active_window().run_command('open_tree_view')
 
 # update the status bar message
 def showStatus(msg):
