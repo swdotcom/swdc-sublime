@@ -1,15 +1,60 @@
 import sublime_plugin, sublime
-import time
 import re
 from datetime import *
 from urllib.parse import quote_plus
-from .SoftwareModels import CommitChangeStats
+from .SoftwareModels import CommitChangeStats, ContributorMember
 from .SoftwareHttp import *
 from .SoftwareUtil import *
 from .SoftwareSettings import *
 
-# gather git commits
-def gatherCommits(rootDir):
+ONE_HOUR_IN_SEC = 60 * 60
+ONE_DAY_SEC = ONE_HOUR_IN_SEC * 24
+ONE_WEEK_SEC = ONE_DAY_SEC * 7
+
+def accumulateStatChanges(results):
+	stats = CommitChangeStats()
+	if results:
+		for line in results:
+			if 'changed' in line and ('insertion' in line or 'deletion' in line):
+				parts = line.strip().split(' ')
+				fileCount = int(parts[0])
+				stats['fileCount'] += fileCount 
+				stats['commitCount'] += 1
+
+				for x in range(1, len(parts)):
+					part = parts[x]
+					if 'insertion' in part:
+						numInsertions = int(parts[x - 1])
+						stats['insertions'] += numInsertions
+					elif 'deletion' in part:
+						numDeletions = int(parts[x - 1])
+						stats['deletions'] += numDeletions
+	return stats 
+
+
+def getChangeStats(projectDir, cmd):
+	changeStats = CommitChangeStats()
+
+	if not projectDir:
+		return changeStats 
+
+	resultList = getCommandResultList(cmd, projectDir)
+
+	# if cmd == ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since=1586070000.0', '--until=1586674800.0']:
+	print(resultList)
+
+	if not resultList:
+		return changeStats    
+
+	changeStats = accumulateStatChanges(resultList)
+
+	return changeStats
+
+def getUncommittedChanges(projectDir):
+    cmd = ['git', 'diff', '--stat']
+    return getChangeStats(projectDir, cmd)
+
+def getHistoricalCommits(rootDir):
 	if (rootDir is None or rootDir == ''):
 		return
 
@@ -53,7 +98,8 @@ def gatherCommits(rootDir):
 		if (commitList is not None and len(commitList) > 0):
 			commit = None
 			commits = []
-			for line in commitList:
+			for i in range(len(commitList)):
+				line = commitList[i]
 				# trim the line..
 				line = line.strip()
 
@@ -230,7 +276,36 @@ def getLastCommit(rootDir):
 	return latestCommit
 
 
-def gatherRepoMembers(rootDir):
+def getRepoContributors(projectDir, filterOutNonEmails=False):
+	contributors = []
+	if not projectDir:
+		return contributors
+	
+	repoContributorInfo = getRepoUsers(projectDir, filterOutNonEmails)
+
+	if repoContributorInfo and repoContributorInfo['members']:
+		for member in repoContributorInfo['members']:
+			contributor = ContributorMember()
+			contributor['name'] = member['name']
+			contributor['email'] = member['email']
+			contributor['identifier'] = repoContributorInfo['identifier']
+			contributors.append(contributor)
+	
+	return contributors 
+
+def processRepoContributors(projectDir):
+	if not projectDir:
+		return 
+
+	repoContributorInfo = getRepoUsers(projectDir)
+
+	if repoContributorInfo:
+		response = requestIt("POST", '/repo/contributors', repoContributorInfo, getItem('jwt'))
+
+		if response and isResponseOk(response):
+			log('Code Time: repo contributor updated')
+
+def getRepoUsers(rootDir, filterOutNonEmails=False):
 	if (rootDir is None or rootDir == ''):
 		return
 
@@ -261,70 +336,86 @@ def gatherRepoMembers(rootDir):
 				if (devInfoParts is not None and len(devInfoParts) > 1):
 					name = devInfoParts[0]
 					email = devInfoParts[1]
-					if (devListMap.get(email) is None):
+
+					validEmail = normalizeGithubEmail(email, filterOutNonEmails)
+					if validEmail:
+						if (devListMap.get(email) is None):
+							members.append({'name': name.strip(), 'email': email.strip()})
 						devListMap[email] = name
-						
-						members.append({'name': name.strip(), 'email': email.strip()})
-
-
-		# members: [{'email': 'xavluiz@gmail.com', 'name': 'Xavier'}, {'email': 'brettmstevens7@gmail.com', 'name': 'brettmstevens7'}, {'email': '39741693+o4sw@users.noreply.github.com', 'name': 'o4sw'}]
-        # sending: {"members": [{"email": "xavluiz@gmail.com", "name": "Xavier"}, {"email": "brettmstevens7@gmail.com", "name": "brettmstevens7"}, {"email": "39741693+o4sw@users.noreply.github.com", "name": "o4sw"}], "identifier": "https://github.com/swdotcom/swdc-sublime.git", "tag": "tags/0.4.7", "branch": "master"}
-		if (len(members) > 0):
 			repoData['members'] = members
+			return repoData 
+	return None 
 
-			response = requestIt("POST", "/repo/members", json.dumps(repoData), getItem("jwt"))
-			if (response is not None):
-				responseObjStr = response.read().decode('utf-8')
-				try:
-					responseObj = json.loads(responseObjStr)
-					log("Code Time: %s" % responseObj.get("message", "Repo member update complete"))
-				except Exception as ex:
-					log("Code Time: Unable to complete repo member metric update: %s" % ex)
+def getTodaysCommits(projectDir, useAuthor=True):
+	today = getToday()
+	return getCommitsInRange(projectDir, today['start'], today['end'], useAuthor)
 
+def getYesterdaysCommits(projectDir, useAuthor=True):
+	yesterday = getYesterday()
+	return getCommitsInRange(projectDir, yesterday['start'], yesterday['end'], useAuthor)
 
-def accumulateStatChanges(results):
-	stats = CommitChangeStats()
-	if results:
-		for line in results:
-			if 'insertion' in line and 'deletion' in line:
-				parts = line.strip().split(' ')
-				fileCount = int(parts[0])
-				stats['fileCount'] += fileCount 
-				stats['commitCount'] += 1
+def getThisWeeksCommits(projectDir, useAuthor=True):
+	thisWeek = getThisWeek()
+	return getCommitsInRange(projectDir, thisWeek['start'], thisWeek['end'], useAuthor)
 
-				for x in range(1, len(parts)):
-					part = parts[x]
-					if 'insertion' in part:
-						numInsertions = int(parts[x - 1])
-						stats['insertions'] += numInsertions
-					elif 'deletion' in part:
-						numDeletions = int(parts[x - 1])
-						stats['deletions'] += numDeletions
-	return stats 
-
-def getChangeStats(projectDir, cmd):
-	changeStats = CommitChangeStats()
-
-	if not projectDir:
-		return changeStats 
-
-	resultList = getCommandResultList(cmd, projectDir)
-
-	if not resultList:
-		return changeStats    
-
-	changeStats = accumulateStatChanges(resultList)
-
-	return changeStats
-
-def getUncommittedChanges(projectDir):
-    cmd = ['git', 'diff', '--stat']
-    return getChangeStats(projectDir, cmd)
-
-def getTodaysCommits(projectDir):
-	today = datetime.now().date()
-	todayStart = int(datetime(today.year, today.month, today.day).timestamp())
+def getCommitsInRange(projectDir, start, end, useAuthor=True):
 	resourceInfo = getResourceInfo(projectDir)
-	authorOption = ' --author={}'.format(resourceInfo['email']) if resourceInfo and resourceInfo['email'] else ''
-	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(todayStart), authorOption]
+	authorOption = '--author={}'.format(resourceInfo['email']) if useAuthor and resourceInfo and resourceInfo['email'] else ''
+	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(start), '--until={}'.format(end)]
+	if authorOption:
+		cmd.append(authorOption)
+	# print(' '.join(cmd))
 	return getChangeStats(projectDir, cmd)
+
+def getLastCommitId(projectDir, email):
+	cmd = ['git', 'log',  '--pretty="%H,%s"', '--max-count=1']
+	if email:
+		cmd.append('--author={}'.format(email))
+	resultList = getCommandResultList(cmd, projectDir)
+	if resultList and len(resultList) > 0:
+		lastCommit = resultList[0]
+		# Get rid of surrounding quotations
+		if lastCommit[0] == '"':
+			lastCommit = lastCommit[1:]
+		if lastCommit[len(lastCommit) - 1] == '"':
+			lastCommit = lastCommit[:-1]		
+		parts = lastCommit.split(',')
+		if parts and len(parts) == 2:
+			return {
+				"commitId": parts[0],
+				"comment": parts[1]
+			}
+	return {}
+
+def getRepoConfigUserEmail(projectDir):
+	cmd = ['git', 'config', '--get', '--global', 'user.email']
+	return getCommandResultLine(cmd, projectDir)
+
+def getRepoUrlLink(projectDir):
+	cmd = ['git', 'config', '--get', 'remote.origin.url']
+	link = getCommandResultLine(cmd, projectDir)
+
+	if link and link.endswith('.git'):
+		link = link[0:link.rindex('.git')]
+	return link 
+
+def getToday():
+	day = datetime.fromtimestamp(round(timeModule.time()))
+	today = datetime(day.year, day.month, day.day)
+	start = today.timestamp()
+	end = start + ONE_DAY_SEC
+	return { "start": int(start), "end": int(end) } 
+
+def getYesterday():
+	day = datetime.fromtimestamp(round(timeModule.time()))
+	today = datetime(day.year, day.month, day.day) - timedelta(days=1)
+	start = today.timestamp()
+	end = start + ONE_DAY_SEC
+	return { "start": int(start), "end": int(end) } 
+
+def getThisWeek():
+	day = datetime.fromtimestamp(round(timeModule.time()))
+	today = datetime(day.year, day.month, day.day) - timedelta(days=(day.weekday() + 1))
+	start = today.timestamp()
+	end = start + ONE_WEEK_SEC
+	return { "start": int(start), "end": int(end) }

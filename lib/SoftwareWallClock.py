@@ -26,7 +26,7 @@ def updateWcTime():
     _wctime = getItem('wctime') or 0
     _wctime += SECONDS_INCREMENT
     setItem('wctime', _wctime)
-    updateTimeData(SECONDS_INCREMENT)
+    incrementEditorSeconds(SECONDS_INCREMENT)
 
 def dispatchStatusViewUpdate():
     updateStatusBarWithSummaryData()
@@ -47,15 +47,9 @@ def setWcTime(seconds):
     setItem('wctime', seconds)
     updateWcTime()
 
-def updateTimeData(seconds):
-    global _wctime
-    updateEditorSeconds(seconds)
-
 def updateBasedOnSessionSeconds(session_seconds):
     editor_seconds = getWcTimeInSeconds()
 
     if editor_seconds < session_seconds:
         editor_seconds = session_seconds + 1
         setWcTime(editor_seconds)
-
-    updateStatusBarWithSummaryData()

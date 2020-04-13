@@ -80,3 +80,19 @@ def Resource():
         "email": ''
     }
     return template 
+
+def ContributorMember():
+    template = {
+        "name": '',
+        "email": '',
+        "identifier": ''
+    }
+    return template 
+
+def CodeTimeSummary():
+    template = {
+        "activeCodeTimeMinutes": 0,
+        "codeTimeMinutes": 0,
+        "fileTimeMinutes": 0
+    }
+    return template 

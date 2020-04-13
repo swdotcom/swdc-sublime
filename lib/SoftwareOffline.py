@@ -3,13 +3,14 @@ from threading import Thread, Timer, Event
 import json
 import os.path
 import time
-import math
 import copy
 from datetime import *
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
-from .SoftwareModels import SessionSummary, KeystrokeAggregate, TimeData, Project
+from .SoftwareModels import SessionSummary, KeystrokeAggregate, TimeData, Project, CodeTimeSummary
 from .SoftwareFileChangeInfoSummaryData import *
+
+# This file is called SessionSummaryDataManager.js in Atom
 
 # Constants
 SERVICE_NOT_AVAIL = "Our service is temporarily unavailable.\n\nPlease try again later.\n"
@@ -35,10 +36,9 @@ def incrementSessionSummaryData(aggregates):
     data['currentDayLinesRemoved'] += aggregates['linesRemoved']
 
     saveSessionSummaryToDisk(data)
-    incrementSessionAndFileSeconds()
 
 
-def getEndOfDayTimes():
+def getEndDayTimes():
     nowTime = getNowTimes()
     utcEndOfDay = endOfDayUnix(nowTime['nowInSec'])
     localEndOfDay = endOfDayUnix(nowTime['localNowInSec'])
@@ -47,15 +47,8 @@ def getEndOfDayTimes():
         "localEndOfDay": localEndOfDay, 
         "day": nowTime['day'] }
 
-# Returns a unixTimestamp as a unixTimestamp but at the end of the day (to the millisecond)
-def endOfDayUnix(unixTimestamp):
-    day = datetime.fromtimestamp(unixTimestamp)
-    endOfDay = datetime(day.year, day.month, day.day) + timedelta(1) - timedelta(0, 0, 0, 1)
-    return math.floor(endOfDay.timestamp())
-
-def getNewTimeDataSummary():
-    endDayTimes = getEndOfDayTimes()
-    project = getCurrentTimeSummaryProject()
+def getNewTimeDataSummary(project):
+    endDayTimes = getEndDayTimes()
 
     timeData = TimeData()
     timeData['day'] = endDayTimes['day']
@@ -64,14 +57,11 @@ def getNewTimeDataSummary():
     timeData['timestamp'] = endDayTimes['utcEndOfDay']
     return timeData 
 
-def getCurrentTimeSummaryProject():
-    project = Project()
-    projectNameAndDir = getProjectNameAndDirectory()
-
-    if projectNameAndDir['directory']:
-        project['directory'] = projectNameAndDir['directory']
-        project['name'] = projectNameAndDir['name']
-
+def getCurrentTimeSummaryProject(project):
+    if not project:
+        project = copy.deepcopy(getActiveProject())
+    
+    if project['directory']:
         resource = getResourceInfo(projectNameAndDir['directory'])
         if resource:
             project['resource'] = resource 
@@ -84,27 +74,80 @@ def getCurrentTimeSummaryProject():
 
 
 def clearTimeDataSummary():
-    data = TimeData()
-    saveTimeDataSummaryToDisk(data)
+    payloads = []
+    summaryFile = getTimeDataSummaryFile()
+    content = json.dumps(payloads, indent=4)
 
-def updateEditorSeconds(editor_seconds):
-    timeData = getTodayTimeDataSummary()
-    timeData['editor_seconds'] += editor_seconds
-    saveTimeDataSummaryToDisk(timeData)
+    with open(summaryFile, 'w') as f:
+        f.write(content)
 
-def incrementSessionAndFileSeconds():
+
+def incrementEditorSeconds(editor_seconds):
+    activeProject = getActiveProject()
+
+    timeData = getTodayTimeDataSummary(activeProject)
+    if timeData:
+        timeData['editor_seconds'] += editor_seconds
+        timeData['editor_seconds'] = max(timeData['editor_seconds'], timeData['session_seconds'])
+        saveTimeDataSummaryToDisk(timeData)
+
+def incrementSessionAndFileSeconds(project):
     minutes_since_payload = getMinutesSinceLastPayload()
-    timeData = getTodayTimeDataSummary()
-    sessionSeconds = minutes_since_payload * 60
-    timeData['session_seconds'] += sessionSeconds
+    timeData = getTodayTimeDataSummary(project)
+
+    if minutes_since_payload > 0:
+        session_seconds = minutes_since_payload * 60
+        timeData['session_seconds'] += session_seconds
+
+    timeData['editor_seconds'] = max(timeData['editor_seconds'], timeData['session_seconds'])
     timeData['file_seconds'] += 60
+    timeData['file_seconds'] = min(timeData['file_seconds'], timeData['session_seconds'])
+
     saveTimeDataSummaryToDisk(timeData)
 
-def getTodayTimeDataSummary():
-    endOfDayTimes = getEndOfDayTimes()
-    day = endOfDayTimes['day']
+def updateSessionFromSummaryApi(currentDayMinutes):
+    endDayTimes = getEndDayTimes()
 
-    projectNameAndDir = getProjectNameAndDirectory()
+    codeTimeSummary = getCodeTimeSummary()
+
+    diffActiveCodeMinutesToAdd = 0
+    if codeTimeSummary['activeCodeTimeMinutes'] < currentDayMinutes:
+        diffActiveCodeMinutesToAdd = currentDayMinutes - codeTimeSummary['activeCodeTimeMinutes']
+    
+    project = getActiveProject()
+    timeData = None 
+    if project:
+        timeData = getTodayTimeDataSummary(project)
+    else:
+        summaryFile = getTimeDataSummaryFile()
+        payloads = getFileDataArray(summaryFile)
+        filteredPayloads = list(filter(lambda x: x['day'] == day, payloads))
+        if filteredPayloads and len(filteredPayloads) > 0:
+            timeData = filteredPayloads[0]
+    
+    if not timeData:
+        project = Project()
+        project['directory'] = NO_PROJ_NAME
+        project['name'] = UNTITLED
+
+        timeData = TimeData()
+        timeData['day'] = day
+        timeData['project'] = project
+        timeData['timestamp'] = endDayTimes['utcEndOfDay']
+        timeData['timestamp_local'] = endDayTimes['localEndOfDay']
+    
+    secondsToAdd = diffActiveCodeMinutesToAdd * 60
+    timeData['session_seconds'] += secondsToAdd
+    timeData['editor_seconds'] += secondsToAdd
+
+    saveTimeDataSummaryToDisk(timeData)
+
+def getTodayTimeDataSummary(project):
+    if not project or not project['directory']:
+        return None 
+    
+    endOfDayTimes = getEndDayTimes()
+    day = endOfDayTimes['day']
 
     timeData = None 
     file = getTimeDataSummaryFile()
@@ -115,10 +158,25 @@ def getTodayTimeDataSummary():
         except Exception:
             pass 
     if not timeData:
-        timeData = TimeData()
-        timeData['day'] = day 
+        timeData = getNewTimeDataSummary(project)
         saveTimeDataSummaryToDisk(timeData)  
     return timeData
+
+def getCodeTimeSummary():
+    summary = CodeTimeSummary()
+    day = getEndDayTimes()['day']
+
+    summaryFile = getTimeDataSummaryFile()
+    payloads = getFileDataArray(summaryFile)
+    filteredPayloads = list(filter(lambda x: x['day'] == day, payloads))
+
+    if filteredPayloads and len(filteredPayloads) > 0:
+        for payload in filteredPayloads:
+            summary['activeCodeTimeMinutes'] += payload['session_seconds'] / 60
+            summary['codeTimeMinutes'] += payload['editor_seconds'] / 60
+            summary['fileTimeMinutes'] += payload['file_seconds'] / 60 
+    
+    return summary 
 
 def saveTimeDataSummaryToDisk(data):
     if not data:
@@ -253,5 +311,8 @@ def storePayload(payload):
             dsFile.write(json.dumps(payload) + "\n")
     except Exception as ex:
         log('Error appending to the Software data store file: %s' % ex)
+
+    nowTimes = getNowTimes()
+    setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
 
 

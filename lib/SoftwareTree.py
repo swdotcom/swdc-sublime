@@ -15,8 +15,9 @@ tree_view = None
 orig_layout = None
 NO_ID = 'NO_ID'
 CODETIME_TREEVIEW_NAME = 'Code Time Tree View'
+REMOTE_URL = None
 shouldOpen = True
-mainSections = ['code-time-actions', 'activity-metrics', 'project-metrics']
+mainSections = ['code-time-actions', 'activity-metrics', 'contributors-node']
 
 def setShouldOpen(val):
     global shouldOpen
@@ -31,6 +32,9 @@ open_state = set()
 
 # IDs for code time action buttons
 CODE_TIME_ACTIONS = {'advanced-metrics', 'open-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback', 'google-signup', 'github-signup', 'email-signup'}
+
+LINK_IDS = set()
+
 
 # TODO: rare bug where tree isn't clickable (possibly slow wifi)
 class OpenTreeView(sublime_plugin.WindowCommand):
@@ -127,7 +131,8 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
         self.addConnectionStatusIcons()
         self.buildMetricsNodes(data)
-        self.buildCommitTreeNodes()
+        # self.buildCommitTreeNodes()
+        self.buildContributorNodes()
         self.expand(self.tree, '')
 
     def build_tree_layout(self):
@@ -200,6 +205,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             launchLoginUrl('github')
         elif command == 'email-signup':
             launchLoginUrl('software')
+            
 
     def getAuthTypeLabelAndIcon(self):
         authType = getItem('authType')
@@ -213,15 +219,22 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         return { "label": 'Connected', "icon": 'envelope-icon' } 
 
     def on_click(self, url):
-        comps = url.split('/')
+        comps = url.split('---')
 
         # Don't close or open this
         if comps[1] in mainSections:
             return
 
+        if comps[1] == REMOTE_URL:
+            sublime.active_window().run_command('generate_contributor_summary')
+
         if comps[1] in CODE_TIME_ACTIONS:
             self.performCodeTimeAction(comps[1])
             return 
+
+        if comps[1] in LINK_IDS:
+            webbrowser.open(comps[1])
+            return
 
         if comps[0] == 'expand':
             self.expand(self.tree, comps[1])
@@ -271,25 +284,25 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         global icons
         if not item['dir']:
             if 'icon' in item:
-                result.append('<div class="file" style="margin-left: {margin}px;"><a href=open/{index}><img height="16" width="16" alt="" src="{icon}"><p> {name}</p></a></div>'.format(
-                    margin=(item['depth'] * 20) - 10,
+                result.append('<div class="file" style="margin-left: {margin}px;"><a href=open---{index}><img height="16" width="16" alt="" src="{icon}"><p> {name}</p></a></div>'.format(
+                    margin=(item['depth'] * 15) - 20,
                     index=item['id'] if 'id' in item else NO_ID,
                     name=item['name'],
                     icon=icons[item['icon']]))
                     # icon='🚀'))
                 return result
             else:
-                result.append('<div class="file" style="margin-left: {margin}px"><a href=open/{index}>{name}</a></div>'.format(
-                    margin=(item['depth'] * 20) - 10,
+                result.append('<div class="file" style="margin-left: {margin}px"><a href=open---{index}>{name}</a></div>'.format(
+                    margin=(item['depth'] * 15) - 20,
                     index=item['id'] if 'id' in item else NO_ID,
                     name=item['name']))
                 return result
 
         # if in a directory
         if item['depth'] > 0:
-            result.append('<div id="{id}" class="dir" style="margin-left: {margin}px"><a href=expand/{index}>{sign}&nbsp;{name}</a></div>'.format(
+            result.append('<div id="{id}" class="dir" style="margin-left: {margin}px"><a href=expand---{index}>{sign}&nbsp;{name}</a></div>'.format(
                 id=item['id'] if 'id' in item else NO_ID,
-                margin=(item['depth'] * 20) - 10,
+                margin=(item['depth'] * 15) - 20,
                 index=item['id'] if 'id' in item else NO_ID,
                 name=item['name'],
                 sign='' if ('id' in item and item['id'] in mainSections) else ('▼' if (item['expanded']) else '▶')))
@@ -361,13 +374,12 @@ class OpenTreeView(sublime_plugin.WindowCommand):
     # data is an object of shape returned by SessionSummary()
     def buildMetricsNodes(self, data):
         # delete the current (ACTIVITY METRICS) from tree['childs']
-        self.tree['childs'] = list(filter(lambda x: x['name'] != 'ACTIVITY METRICS', self.tree['childs']))
+        self.tree['childs'] = list(filter(lambda x: x['name'] != 'DAILY METRICS', self.tree['childs']))
 
         newActivityMetrics = {
-            'index': 2,
             'depth': 1,
             'id': 'activity-metrics',
-            'name': 'ACTIVITY METRICS',
+            'name': 'DAILY METRICS',
             'dir': True,
             'expanded': True,
             'childs': []
@@ -426,6 +438,43 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         topCodetimeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'Top files by code time', 'duration_seconds', 'top-codetime-files')
         if topCodetimeFileNodes:
             newActivityMetrics['childs'].append(topCodetimeFileNodes)
+
+        folders = getOpenProjects()
+        
+        openChangesNode = {
+            'depth': 2,
+            'id': 'open-changes',
+            'name': 'Open changes',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+        committedTodayNode = {
+            'depth': 2,
+            'id': 'committed-today',
+            'name': 'Committed today',
+            'dir': True,
+            'expanded': False,
+            'childs': []
+        }
+        
+        if len(folders) > 0:
+            for i in range(len(folders)):
+                directory = folders[i]
+                basename = os.path.basename(directory)
+
+                # Add uncommitted changes
+                currentChangesSummary = getUncommittedChanges(directory)
+                uncommittedNode = self.buildOpenChangesDirNodeItem(basename, 'uncommitted-{}'.format(i), currentChangesSummary['insertions'], currentChangesSummary['deletions'])
+                openChangesNode['childs'].append(uncommittedNode)
+
+                # Add committed changes
+                todaysChangeSummary = getTodaysCommits(directory)
+                committedNode = self.buildOpenChangesDirNodeItem(basename, 'committed-{}'.format(i), todaysChangeSummary['insertions'], todaysChangeSummary['deletions'], todaysChangeSummary['commitCount'], todaysChangeSummary['fileCount'])
+                committedTodayNode['childs'].append(committedNode)
+
+            newActivityMetrics['childs'].append(openChangesNode)
+            newActivityMetrics['childs'].append(committedTodayNode)
 
         # Insert newActivityMetrics into second position of tree['childs']
         self.tree['childs'].insert(1, newActivityMetrics)
@@ -591,57 +640,80 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         
         return node 
 
-    def buildCommitTreeNodes(self):
-        self.tree['childs'] = list(filter(lambda x: x['name'] != 'PROJECT METRICS', self.tree['childs']))
+    # TODO: work on the CSS for this
+    def buildContributorNodes(self):
+        self.tree['childs'] = list(filter(lambda x: x['name'] != 'CONTRIBUTORS', self.tree['childs']))
 
-        newProjectMetrics = {
+        newContributorsNodes = {
             'depth': 1,
-            'id': 'project-metrics',
-            'name': 'PROJECT METRICS',
+            'id': 'contributors-node',
+            'name': 'CONTRIBUTORS',
             'dir': True,
             'expanded': True,
             'childs': []
         }
+        liItems = []
+        projectDir = getProjectDirectory()
+        print('projectDir is {}'.format(projectDir))
 
-        folders = getOpenProjects()
+        if projectDir:
+            contributorMembers = getRepoContributors(projectDir)
+            remoteUrl = getRepoUrlLink(projectDir)
+
+            if contributorMembers and len(contributorMembers) > 0:
+                title = {
+                    'depth': 2,
+                    'id': contributorMembers[0]['identifier'],
+                    'name': contributorMembers[0]['identifier'],
+                    'dir': False,
+                    'expanded': False,
+                    'childs': None 
+                }
+                liItems.append(title)
+                global CODE_TIME_ACTIONS
+                CODE_TIME_ACTIONS.add(contributorMembers[0]['identifier'])
+                global REMOTE_URL
+                REMOTE_URL = contributorMembers[0]['identifier']
+
+                for i in range(len(contributorMembers)):
+                    contributor = contributorMembers[i]
+                    lastCommitInfo = getLastCommitId(projectDir, contributor['email'])
+
+                    memberId = 'member-{}'.format(contributor['email'])
+                    contributorNode = self.buildContributorLiItem(memberId, contributor['email'], lastCommitInfo, remoteUrl)
+                    liItems.append(contributorNode)
+
+        newContributorsNodes['childs'] = liItems
+        self.tree['childs'].append(newContributorsNodes)
+
+    def buildContributorLiItem(self, memberId, label, lastCommitInfo, remoteUrl):
+        link = ''
+        if lastCommitInfo:
+            link = '{}/commit/{}'.format(remoteUrl, lastCommitInfo['commitId'])
         
-        openChangesNode = {
+        liItem = {
             'depth': 2,
-            'id': 'open-changes',
-            'name': 'Open changes',
+            'id': memberId,
+            'name': label,
             'dir': True,
             'expanded': False,
-            'childs': []
+            'childs': []  
         }
-        committedTodayNode = {
-            'depth': 2,
-            'id': 'committed-today',
-            'name': 'Committed today',
-            'dir': True,
-            'expanded': False,
-            'childs': []
-        }
-        
-        if len(folders) > 0:
-            for i in range(len(folders)):
-                directory = folders[i]
-                basename = os.path.basename(directory)
 
-                # Add uncommitted changes
-                currentChangesSummary = getUncommittedChanges(directory)
-                uncommittedNode = self.buildOpenChangesDirNodeItem(basename, 'uncommitted-{}'.format(i), currentChangesSummary['insertions'], currentChangesSummary['deletions'])
-                openChangesNode['childs'].append(uncommittedNode)
+        if lastCommitInfo:
+            global LINK_IDS
+            LINK_IDS.add(link)
+            child = {
+                'depth': 3,
+                'id': link,
+                'name': lastCommitInfo['comment'],
+                'dir': False,
+                'expanded': False,
+                'childs': None 
+            }
+            liItem['childs'].append(child)
 
-                # Add committed changes
-                todaysChangeSummary = getTodaysCommits(directory)
-                committedNode = self.buildOpenChangesDirNodeItem(basename, 'committed-{}'.format(i), todaysChangeSummary['insertions'], todaysChangeSummary['deletions'], todaysChangeSummary['commitCount'], todaysChangeSummary['fileCount'])
-                committedTodayNode['childs'].append(committedNode)
-
-        newProjectMetrics['childs'].append(openChangesNode)
-        newProjectMetrics['childs'].append(committedTodayNode)
-
-        self.tree['childs'].insert(2, newProjectMetrics)
-
+        return liItem
 
 # If the tree view is closed, collapse its view and set the layout back to its original.
 # TODO: improvements for this method needed b/c the tree view is itself part of the user's 

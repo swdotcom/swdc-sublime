@@ -4,8 +4,9 @@ from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareWallClock import *
+from .SoftwareOffline import *
 
-def updateSessionSummaryFromServer():
+def updateSessionSummaryFromServer(isNewDay=False):
     jwt = getItem('jwt')
     response = requestIt("GET", '/sessions/summary?refresh=true', None, jwt)
     if response is not None and isResponseOk(response):
@@ -17,11 +18,18 @@ def updateSessionSummaryFromServer():
             val = item[1]
 
             if val != None:
-                summary[key] = val 
+                if key == 'currentDayMinutes' and not isNewDay:
+                    try:
+                        currDayMin = int(val)
+                        summary['currentDayMinutes'] = min(summary['currentDayMinutes'], currDayMin)
+                    except Exception:
+                        pass 
+                else:
+                    summary[key] = val 
         
-        updateBasedOnSessionSeconds(summary['currentDayMinutes'] * 60)
+        updateSessionFromSummaryApi(summary['currentDayMinutes'])
 
-        log('summary data: {}'.format(summary))
+        # log('summary data: {}'.format(summary))
         saveSessionSummaryToDisk(summary)
-    else:
-        print('Failed to retrieve session summary from server')
+
+    updateStatusBarWithSummaryData()

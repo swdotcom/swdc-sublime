@@ -5,15 +5,18 @@ from .SoftwareOffline import *
 from .SoftwareHttp import *
 
 # send the data that has been saved offline
-def sendOfflineData():
+def sendOfflineData(isNewDay=False):
     batchSendData('/data/batch', getSoftwareDataStoreFile())
-    sublime.active_window().run_command('force_update_session_summary')
+    timer = Timer(60, lambda: sublime.active_window().run_command('force_update_session_summary', {"isNewDay": isNewDay}))
+    timer.start()
+    
 
 def sendOfflineEvents():
     batchSendData('/data/event', getPluginEventsFile())
 
 def sendOfflineTimeData():
     batchSendData('/data/time', getTimeDataSummaryFile(), isArray=True)
+    clearTimeDataSummary()
 
 def batchSendData(api, file, isArray=False):
     isOnline = serverIsAvailable()

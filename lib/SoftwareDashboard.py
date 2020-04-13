@@ -28,13 +28,13 @@ def newDayChecker(isInit=False):
     global currentDay
     nowTime = getNowTimes()
     if nowTime['day'] != currentDay:
+        clearSessionSummaryData()
         # Send offline data we have
-        sendOfflineData()
+        sendOfflineData(True)
         sendOfflineTimeData()
 
         # Clear all data
         clearWcTime()
-        clearSessionSummaryData()
         clearTimeDataSummary()
         clearFileChangeInfoSummaryData()
 

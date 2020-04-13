@@ -17,6 +17,10 @@ def getSessionSummaryFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'sessionSummary.json')
 
+def clearSessionSummaryFile():
+    data = SessionSummary()
+    saveSessionSummaryToDisk(data)
+
 # Corrects data object if missing keys
 def coalesceMissingSessionSummaryAttributes(data):
     template = SessionSummary()

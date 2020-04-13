@@ -19,6 +19,7 @@ from .lib.SoftwareDashboard import *
 from .lib.SoftwareUserStatus import *
 from .lib.SoftwareModels import *
 from .lib.SoftwareSessionApp import *
+from .lib.SoftwareReportManager import *
 
 DEFAULT_DURATION = 60
 
@@ -89,9 +90,6 @@ class PluginData():
     def send(self):
         # check if it has data
         if PluginData.background_worker and self.hasData():
-            nowTimes = getNowTimes()
-            setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
-
             PluginData.endUnendedFileEndTimes()
             PluginData.background_worker.queue.put(self.json())
 
@@ -174,6 +172,7 @@ class PluginData():
                     project['name'] = projectName
         else:
             project['directory'] = NO_PROJ_NAME
+            project['name'] = UNTITLED
 
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
@@ -230,9 +229,15 @@ class PluginData():
                 for fileName in keystrokeCountObj.source:
                     fileInfo = keystrokeCountObj.source[fileName]
                     if (fileInfo.get("end", 0) == 0):
+                        td = getTodayTimeDataSummary(keystrokeCountObj.project)
+                        editorSeconds = max(td['editor_seconds'], td['session_seconds']) if td else 60
+
                         nowTimes = getNowTimes()
                         fileInfo["end"] = nowTimes['nowInSec']
                         fileInfo["local_end"] = nowTimes['localNowInSec']
+                        fileInfo['cumulative_editor_seconds'] = editorSeconds
+
+                incrementSessionAndFileSeconds(keystrokeCountObj.project)
 
     @staticmethod
     def send_all_datas():
@@ -393,8 +398,13 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
 
 # Testing function
 class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
+    def run(self, isNewDay):
+        updateSessionSummaryFromServer(isNewDay)
+
+class GenerateContributorSummary(sublime_plugin.WindowCommand):
     def run(self):
-        updateSessionSummaryFromServer()
+        projectDir = getProjectDirectory()
+        generateContributorSummary(projectDir)
 
 # Mute Console message
 class HideConsoleMessage(sublime_plugin.TextCommand):
@@ -728,7 +738,7 @@ def setOnlineStatus():
     timer.start()
 
 def getUsersOfFirstProject():
-    gatherRepoMembers(getProjectDirectory())
+    getRepoUsers(getProjectDirectory())
 
 def getHistoricalCommitsOfFirstProject():
-    gatherCommits(getProjectDirectory())
+    getHistoricalCommits(getProjectDirectory())

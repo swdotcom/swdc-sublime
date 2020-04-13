@@ -9,10 +9,14 @@ import uuid
 import platform
 import re, uuid
 import webbrowser
+import locale
+import math
+locale.setlocale(locale.LC_ALL, '')
 from datetime import *
 from subprocess import Popen, PIPE, check_output, CalledProcessError
 from .SoftwareHttp import *
 from .SoftwareSettings import *
+from .SoftwareModels import Project
 
 # the plugin version
 VERSION = '1.0.0'
@@ -29,6 +33,8 @@ buildTreeLock = Lock()
 PROJECT_DIR = None
 NO_PROJ_NAME = 'Unnamed'
 UNTITLED = 'Untitled'
+
+NUMBER_IN_EMAIL_REGEX = r'^\d+\+'
 
 '''
 In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
@@ -164,12 +170,23 @@ def getProjectDirectory():
     else:
         return getFirstOpenProject()
 
-def getProjectNameAndDirectory():
+def getActiveProject():
     rootPath = getFirstOpenProject()
+    project = Project()
     if not rootPath:
-        return { "directory": UNTITLED, "name": NO_PROJ_NAME}
+        project['directory'] = UNTITLED
+        project['name'] = NO_PROJ_NAME
+        return project 
     
-    return { "directory": rootPath, "name": os.path.basename(rootPath)}
+    projectName = os.path.basename(rootPath)
+    project['name'] = projectName if projectName else rootPath 
+    project['directory'] = rootPath
+
+    resourceInfo = getResourceInfo(rootPath)
+    if resourceInfo and resourceInfo['identifier']:
+        project['identifier'] = resourceInfo['identifier']
+        project['resource'] = resourceInfo
+    return project 
 
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
@@ -261,7 +278,7 @@ def getMinutesSinceLastPayload():
         # diff from the previous end time
         diffInSec = nowInSec - lastPayloadEnd
 
-        if diffInSec > 0 and diffInSec < getSessionThresholdSeconds():
+        if diffInSec > 0 and diffInSec <= getSessionThresholdSeconds():
             minutesSinceLastPayload = diffInSec / 60
 
     return minutesSinceLastPayload
@@ -281,10 +298,25 @@ def getCustomDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CustomDashboard.txt')
 
+def getCommandResultLine(cmd, projectDir):
+    resultList = getCommandResultList(cmd, projectDir)
+
+    resultLine = ''
+    if resultList and len(resultList) > 0:
+        for line in resultList:
+            if line and len(line.strip()) > 0:
+                resultLine = line.strip()
+                break 
+    
+    return resultLine 
+
 def getCommandResultList(cmd, projectDir):
+    # print(cmd)
+    # print(projectDir) 
     try:
         result = check_output(cmd, cwd=projectDir)
     except CalledProcessError as ex:
+        # print('reusltlisterrorerror: {}'.format(ex.output))
         if ex.output != b'': # Suppress trivial error 
             log('Error running {}: {}'.format(cmd, ex.output))
         return []
@@ -612,6 +644,15 @@ def validateEmail(email):
         return True
     return False
 
+def normalizeGithubEmail(email, filterOutNonEmails=True):
+    if email:
+        if filterOutNonEmails and ('users.noreply' in email or email.endswith('github.com')):
+            return None 
+        else:
+            found = re.match(NUMBER_IN_EMAIL_REGEX, email)
+            if found and 'users.noreply' in email:
+                return None
+    return email 
 
 def getLoggedInCacheState():
     return loggedInCacheState
@@ -703,6 +744,22 @@ def getIcons():
     except Exception:
         return {}
 
+def formatNumber(num):
+    numberStr = ''
+    try:
+        num = float(num)
+    except Exception as ex:
+        num = 0
+
+    if num >= 1000:
+        numberStr = '{:n}'.format(num)
+    elif num % 1 == 0:
+        numberStr = '{:n}'.format(int(num))
+    else:
+        numberStr = '{:.5n}'.format(num)
+    return numberStr
+    
+
 #TODO:  Ensure this has equivalent functionality as numeral().format('0 a') in JS
 def formatNumWithK(num):
     if num == 0: 
@@ -720,3 +777,13 @@ def setInterval(func, sec):
     t = Timer(sec, func_wrapper)
     t.start()
     return t
+
+# Returns a unixTimestamp as a unixTimestamp but at the end of the day (to the millisecond)
+def endOfDayUnix(unixTimestamp):
+    day = datetime.fromtimestamp(unixTimestamp)
+    endOfDay = datetime(day.year, day.month, day.day) + timedelta(1) - timedelta(0, 0, 0, 1)
+    return math.floor(endOfDay.timestamp())
+
+def startOfDayUnix(unixTimestamp):
+    day = datetime.fromtimestamp(unixTimestamp)
+    return datetime(day.year, day.month, day.day).timestamp()
