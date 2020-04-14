@@ -9,6 +9,7 @@ from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwareRepo import *
 from .SoftwareUserStatus import *
+from .TimeSummaryData import *
 
 icons = {
     "bolt-grey": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAACxLAAAsSwGlPZapAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKkSURBVHgB7dpPbtNAFAbw742D1GWP4BuQGxBOUBcJKWKXI3CDcgM4Qc0uCKkYxB4fAW7gG5AdLOJ5TEqLSqhjO+/Ns1Dnt6nUWEry2fPnvQmQJEmSJMlDRVBUFC/mTO0liOYYr2Gg/HS1fgVDDorY+Q9HfvmdPNyNi6IoTmFILYCbD55DaIuTYwM8iuIT8CiHgs/VuoYhtQC2GeWQYtQwphbAjLMcQp7oI4ypBeBZPv4zv61hTC0AAj+GTFNV77/CmN4k6Fi0fDHzN0xALwAm0fLliCpMQCWAoljmkPL2K8CO1hOQQyaM/3WDCagE0MoDqDERlQDIyQIgb7/+39IJgKRL4I8aE5lBg6dTSWHN7uT72bPl0Msb8u251p5BZxIksqzgcqbZJZSIA/hdBrNpDQ9itcAVngCdMnikEkrEAaiUweOEOQBqbTNxABpl8Bihb/hWc9MkDkCjDB6hCU3TCygSB6BQBo94L6h3jOWToLNaAbiqrtYllMkDYJs9QNguv0QE8gCILbo4ZaxqUT4HtNkq/GkQj+qyt0/1aGyos/Pll/DOiyHXhg+4ijH2b6kejQ02vHZoYn75HfMAQvtsMbR2aD1WiMz+CXCD735pcUxmHgCTfzLkupgT3132TwC7Re8lYcdn1SQ1DaAons8HjP/G+Z+vYcQ0gBZZ7/in67tfbWDENADn0Df+oy97+6zngMWhF8PE9xTGzAK4OT7LD1xSTnE6ZBbANvMHxj9trJa9fWYBOJ8tul5j8Jv/+mxwCHKdGyD1NtcYJgFcnx10NE5itLnG0Dka69X1279dm+tdiQmZPAGeqLjv/7HaXGOYBNDROS6nmvjuspkE/+3+NFMte/uMAvi7cUqG1V4fmyHwp3FKG+aw5hvv95MkSZIkSe7zC7hNx9RHEqHkAAAAAElFTkSuQmCC",
@@ -151,9 +152,11 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             ]
         }
 
-        # Build tree nodes
         data = getSessionSummaryData()
+        codeTimeSummary = getCodeTimeSummary()
+        data.update(codeTimeSummary)
 
+        # Build tree nodes
         self.addConnectionStatusIcons()
         self.buildMetricsNodes(data)
         # self.buildCommitTreeNodes()
@@ -411,15 +414,15 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         }
 
         # EDITOR-TIME stuff
-        editorMinutes = getHumanizedWcTime()
-        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('editor-time', 'Editor time', editorMinutes))
+        editorMinutes = humanizeMinutes(data['codeTimeMinutes']).strip()
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('editor-time', 'Code time', editorMinutes))
 
         # CODE-TIME stuff
-        codeTimeMinutes = humanizeMinutes(data['currentDayMinutes']).strip()
+        codeTimeMinutes = humanizeMinutes(data['activeCodeTimeMinutes']).strip()
         avgDailyMinutes = humanizeMinutes(data['averageDailyMinutes']).strip()
         globalAvgMinutes = humanizeMinutes(data['globalAverageSeconds'] / 60).strip()
         boltIcon = 'bolt' if data['currentDayMinutes'] > data['averageDailyMinutes'] else 'bolt-grey'
-        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('code-time', 'Code time', codeTimeMinutes, avgDailyMinutes, globalAvgMinutes, boltIcon))
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('code-time', 'Active code time', codeTimeMinutes, avgDailyMinutes, globalAvgMinutes, boltIcon))
 
         currLinesAdded = self.currentKeystrokeStats['currentDayLinesAdded'] + data['currentDayLinesAdded']
         linesAdded = formatNumWithK(currLinesAdded)
