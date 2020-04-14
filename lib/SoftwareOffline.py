@@ -182,6 +182,9 @@ def saveTimeDataSummaryToDisk(data):
     except Exception as ex:
         log('Code time: Error writing time summary data:%s' % ex)
 
+    # refresh the tree view with new data
+    refreshTreeView()
+
 
 def getCurrentDayTime(sessionSummaryData):
     currentDayMinutes = 0
