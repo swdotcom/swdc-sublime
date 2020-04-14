@@ -787,3 +787,13 @@ def endOfDayUnix(unixTimestamp):
 def startOfDayUnix(unixTimestamp):
     day = datetime.fromtimestamp(unixTimestamp)
     return datetime(day.year, day.month, day.day).timestamp()
+
+def getEndDayTimes():
+    nowTime = getNowTimes()
+    utcEndOfDay = endOfDayUnix(nowTime['nowInSec'])
+    localEndOfDay = endOfDayUnix(nowTime['localNowInSec'])
+    return { 
+        "utcEndOfDay": utcEndOfDay, 
+        "localEndOfDay": localEndOfDay, 
+        "day": nowTime['day'] }
+        

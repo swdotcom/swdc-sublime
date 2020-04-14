@@ -9,6 +9,7 @@ from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareModels import SessionSummary, KeystrokeAggregate, TimeData, Project, CodeTimeSummary
 from .SoftwareFileChangeInfoSummaryData import *
+from .TimeSummaryData import *
 
 # This file is called SessionSummaryDataManager.js in Atom
 
@@ -36,16 +37,6 @@ def incrementSessionSummaryData(aggregates):
     data['currentDayLinesRemoved'] += aggregates['linesRemoved']
 
     saveSessionSummaryToDisk(data)
-
-
-def getEndDayTimes():
-    nowTime = getNowTimes()
-    utcEndOfDay = endOfDayUnix(nowTime['nowInSec'])
-    localEndOfDay = endOfDayUnix(nowTime['localNowInSec'])
-    return { 
-        "utcEndOfDay": utcEndOfDay, 
-        "localEndOfDay": localEndOfDay, 
-        "day": nowTime['day'] }
 
 def getNewTimeDataSummary(project):
     endDayTimes = getEndDayTimes()
@@ -161,22 +152,6 @@ def getTodayTimeDataSummary(project):
         timeData = getNewTimeDataSummary(project)
         saveTimeDataSummaryToDisk(timeData)  
     return timeData
-
-def getCodeTimeSummary():
-    summary = CodeTimeSummary()
-    day = getEndDayTimes()['day']
-
-    summaryFile = getTimeDataSummaryFile()
-    payloads = getFileDataArray(summaryFile)
-    filteredPayloads = list(filter(lambda x: x['day'] == day, payloads))
-
-    if filteredPayloads and len(filteredPayloads) > 0:
-        for payload in filteredPayloads:
-            summary['activeCodeTimeMinutes'] += payload['session_seconds'] / 60
-            summary['codeTimeMinutes'] += payload['editor_seconds'] / 60
-            summary['fileTimeMinutes'] += payload['file_seconds'] / 60 
-    
-    return summary 
 
 def saveTimeDataSummaryToDisk(data):
     if not data:
