@@ -6,6 +6,7 @@ from .SoftwareStatusManager import *
 SECONDS_INCREMENT = 30
 
 _wctime = 0
+isFocused = True 
 
 def wallClockMgrInit():
     global _wctime
@@ -16,9 +17,8 @@ def wallClockMgrInit():
 
 
 def updateTimeWrapper():
-    if isFocused():
+    if isFocused:
         updateWcTime()
-    updateWcTime()
     dispatchStatusViewUpdate()
 
 
@@ -54,3 +54,15 @@ def updateBasedOnSessionSeconds(session_seconds):
     if editor_seconds < session_seconds:
         editor_seconds = session_seconds + 1
         setWcTime(editor_seconds)
+
+def focusWindow():
+    global isFocused
+    isFocused = True
+
+def blurWindow():
+    global isFocused
+    isFocused = False 
+
+def isFocused():
+    global isFocused
+    return isFocused 

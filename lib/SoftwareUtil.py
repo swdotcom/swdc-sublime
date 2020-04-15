@@ -47,7 +47,6 @@ myCache = {}
 
 runningResourceCmd = False
 loggedInCacheState = False
-isFocused = True 
 
 def updateOnlineStatus():
     online = serverIsAvailable()
@@ -132,18 +131,6 @@ def setItem(key, value):
     sessionFile = getSoftwareSessionFile()
     with open(sessionFile, 'w') as f:
         f.write(content)
-
-def focusWindow():
-    global isFocused
-    isFocused = True
-
-def blurWindow():
-    global isFocused
-    isFocused = False 
-
-def isFocused():
-    global isFocused
-    return isFocused 
 
 def refreshTreeView():
     buildTreeLock.acquire()
