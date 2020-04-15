@@ -682,7 +682,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         }
         liItems = []
         projectDir = getProjectDirectory()
-        print('projectDir is {}'.format(projectDir))
+        # print('projectDir is {}'.format(projectDir))
 
         if projectDir:
             contributorMembers = getRepoContributors(projectDir)

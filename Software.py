@@ -529,7 +529,7 @@ class EventListener(sublime_plugin.EventListener):
         
         # If file is untitled then log that msg and set file open metrics to 1
         if fileName == UNTITLED:
-            log("Code Time: opened file untitled")
+            # log("Code Time: opened file untitled")
             fileInfoData['open'] = 1
         else:
             pass
@@ -655,7 +655,7 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     wallClockMgrInit()
     dashboardMgrInit()
 
-    updateSessionSummaryFromServer()
+    # updateSessionSummaryFromServer()
 
     # fire off timer tasks (seconds, task)
 
@@ -686,7 +686,7 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
     updateOnlineStatusTimer.start()
-    print("Online status timer initialized")
+    # print("Online status timer initialized")
 
     # initializeUserInfo(initializedAnonUser)
     initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
@@ -725,13 +725,13 @@ def showOfflinePrompt():
 
 def setOnlineStatus():
     online = serverIsAvailable()
-    log("Code Time: Checking online status...")
+    # log("Code Time: Checking online status...")
     if (online is True):
         setValue("online", True)
-        log("Code Time: Online")
+        # log("Code Time: Online")
     else:
         setValue("online", False)
-        log("Code Time: Offline")
+        # log("Code Time: Offline")
 
     # run the check in another 1 minute
     timer = Timer(60 * 1, setOnlineStatus)

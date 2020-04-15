@@ -88,9 +88,10 @@ def requestIt(method, api, payload, jwt):
         # make the request
         if (payload is None):
             payload = {}
-            httpLog("Code Time: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
+            # httpLog("Code Time: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
         else:
-            httpLog("Code Time: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+            pass
+            # httpLog("Code Time: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
         
 
         # send the request

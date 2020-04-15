@@ -53,7 +53,7 @@ def getCurrentTimeSummaryProject(project):
         project = copy.deepcopy(getActiveProject())
     
     if project['directory']:
-        resource = getResourceInfo(projectNameAndDir['directory'])
+        resource = getResourceInfo(project['directory'])
         if resource:
             project['resource'] = resource 
             project['identifier'] = resource['identifier']
@@ -98,6 +98,7 @@ def incrementSessionAndFileSeconds(project):
 
 def updateSessionFromSummaryApi(currentDayMinutes):
     endDayTimes = getEndDayTimes()
+    day = endDayTimes['day']
 
     codeTimeSummary = getCodeTimeSummary()
 
@@ -145,7 +146,8 @@ def getTodayTimeDataSummary(project):
     payloads = getFileDataArray(file)
     if len(payloads) > 0:
         try:
-            timeData = next(load for load in payloads if load['day'] == day and load['project']['directory'] == projectNameAndDir['directory'])
+            # same day and same project directory
+            timeData = next(load for load in payloads if load['day'] == day and load['project']['directory'] == project['directory'])
         except Exception:
             pass 
     if not timeData:
@@ -221,7 +223,6 @@ def storePayload(payload):
 
     fileChangeInfoMap = getFileChangeSummaryAsJson()
     aggregate = KeystrokeAggregate()
-    # print(payload)
 
     if payload['project']:
         aggregate['directory'] = payload['project']['directory'] or NO_PROJ_NAME

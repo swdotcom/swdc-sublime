@@ -18,6 +18,7 @@ def wallClockMgrInit():
 def updateTimeWrapper():
     if isFocused():
         updateWcTime()
+    updateWcTime()
     dispatchStatusViewUpdate()
 
 
