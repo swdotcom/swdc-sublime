@@ -349,8 +349,6 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     wallClockMgrInit()
     dashboardMgrInit()
 
-    # updateSessionSummaryFromServer()
-
     # fire off timer tasks (seconds, task)
 
     setOnlineStatusTimer = Timer(2, setOnlineStatus)
