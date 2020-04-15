@@ -97,18 +97,23 @@ def fetchCodeTimeMetricsDashboard():
 
     # summary = getSessionSummaryStatus()
     summary = getSessionSummaryData()
-    if (summary is not None):
-        averageTime = getAverageDailyTime(summary)["formatted"]
-        hoursCodedToday = getCurrentDayTime(summary)["formatted"]
+    codeTimeSummary = getCodeTimeSummary()
+    if (summary is not None and codeTimeSummary is not None):
+        currentDayMinutes = int(codeTimeSummary.get("activeCodeTimeMinutes", 0))
+        averageDailyMinutes = int(summary.get("averageDailyMinutes", 0))
+        currentDayEditorMinutes = int(codeTimeSummary.get("codeTimeMinutes", 0))
+
+        currentDayMinutesStr = humanizeMinutes(currentDayMinutes)
+        averageDailyMinutesStr = humanizeMinutes(currentDayMinutes)
+        currentDayEditorMinutesStr = humanizeMinutes(currentDayEditorMinutes)
 
         liveshareTime = None 
         if summary['liveshareMinutes']:
             liveshareTime = humanizeMinutes(summary['liveshareMinutes'])
 
-        currentEditorMinutesStr = getHumanizedWcTime()
-        dashboardContent += getDashboardRow('Editor time today', currentEditorMinutesStr)
-        dashboardContent += getDashboardRow("Code time today", hoursCodedToday)
-        dashboardContent += getDashboardRow("90-day avg", averageTime)
+        dashboardContent += getDashboardRow("Code time today", currentDayEditorMinutesStr)
+        dashboardContent += getDashboardRow("Active code time today", currentDayMinutesStr)
+        dashboardContent += getDashboardRow("Average active code time", averageDailyMinutesStr)
         if liveshareTime:
             dashboardContent += getDashboardRow('Live Share', liveshareTime)
         dashboardContent += "\n"
