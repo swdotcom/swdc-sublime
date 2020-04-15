@@ -19,7 +19,7 @@ from .SoftwareSettings import *
 from .SoftwareModels import Project
 
 # the plugin version
-VERSION = '1.0.2'
+VERSION = '1.0.3'
 PLUGIN_ID = 1
 
 DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
