@@ -22,6 +22,8 @@ from .SoftwareModels import Project
 VERSION = '1.0.2'
 PLUGIN_ID = 1
 
+DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
+
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
 MARKER_WIDTH = 4
@@ -45,7 +47,6 @@ myCache = {}
 
 runningResourceCmd = False
 loggedInCacheState = False
-isFocused = True 
 
 def updateOnlineStatus():
     online = serverIsAvailable()
@@ -130,18 +131,6 @@ def setItem(key, value):
     sessionFile = getSoftwareSessionFile()
     with open(sessionFile, 'w') as f:
         f.write(content)
-
-def focusWindow():
-    global isFocused
-    isFocused = True
-
-def blurWindow():
-    global isFocused
-    isFocused = False 
-
-def isFocused():
-    global isFocused
-    return isFocused 
 
 def refreshTreeView():
     buildTreeLock.acquire()

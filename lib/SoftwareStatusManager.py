@@ -1,17 +1,21 @@
 from .SoftwareUtil import *
 from .SoftwareHttp import *
 from .SoftwareFileDataManager import *
-
+from .TimeSummaryData import *
 
 def updateStatusBarWithSummaryData():
+    codeTimeSummary = getCodeTimeSummary()
     sessionSummaryData = getSessionSummaryFileAsJson()
 
-    currentDayMinStr = humanizeMinutes(int(sessionSummaryData.get('currentDayMinutes', 0)))
+    currentDayMinutes = int(codeTimeSummary.get("activeCodeTimeMinutes", 0))
+    averageDailyMinutes = int(sessionSummaryData.get("averageDailyMinutes", 0))
 
-    inFlowIcon = ""
-    if (sessionSummaryData.get("currentDayMinutes", 0) > sessionSummaryData.get("averageDailyMinutes", 0)):
+    inFlowIcon = "🕑"
+    if (currentDayMinutes > averageDailyMinutes):
         inFlowIcon = "🚀"
-
+    
+    currentDayMinStr = humanizeMinutes(currentDayMinutes)
     statusMsg = inFlowIcon + "" + currentDayMinStr
 
     showStatus(statusMsg)
+    

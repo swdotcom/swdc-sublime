@@ -25,11 +25,11 @@ def writeProjectContributorCommitDashboardFromGitLogs(projectDir):
     userWeeksChangeStats = getThisWeeksCommits(projectDir)
 
     contributorsTodaysChangeStats = getTodaysCommits(projectDir, False)
-    print(contributorsTodaysChangeStats)
+    # print(contributorsTodaysChangeStats)
     contributorsYesterdaysChangeStats = getYesterdaysCommits(projectDir, False)
-    print(contributorsYesterdaysChangeStats)
+    # print(contributorsYesterdaysChangeStats)
     contributorsWeeksChangeStats = getThisWeeksCommits(projectDir, False)
-    print(contributorsWeeksChangeStats)
+    # print(contributorsWeeksChangeStats)
 
     dashboardContent = ''
 

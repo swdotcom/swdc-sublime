@@ -2,10 +2,13 @@ import sublime, sublime_plugin
 from .SoftwareUtil import *
 from .SoftwareOffline import *
 from .SoftwareStatusManager import *
+from .KpmManager import *
+from .TimeSummaryData import *
 
 SECONDS_INCREMENT = 30
 
 _wctime = 0
+isFocused = True 
 
 def wallClockMgrInit():
     global _wctime
@@ -14,12 +17,11 @@ def wallClockMgrInit():
     log('------- Intializing Wallclock ----------')
     updateStatusBarWithSummaryData()
 
-
 def updateTimeWrapper():
-    if isFocused():
+    hasData = PluginData.hasKeystrokeData()
+    if isFocused or hasData:
         updateWcTime()
     dispatchStatusViewUpdate()
-
 
 def updateWcTime():
     global _wctime
@@ -53,3 +55,15 @@ def updateBasedOnSessionSeconds(session_seconds):
     if editor_seconds < session_seconds:
         editor_seconds = session_seconds + 1
         setWcTime(editor_seconds)
+
+def focusWindow():
+    global isFocused
+    isFocused = True
+
+def blurWindow():
+    global isFocused
+    isFocused = False 
+
+def isFocused():
+    global isFocused
+    return isFocused 

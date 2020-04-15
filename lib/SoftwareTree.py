@@ -415,14 +415,14 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
         # EDITOR-TIME stuff
         editorMinutes = humanizeMinutes(data['codeTimeMinutes']).strip()
-        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('editor-time', 'Code time', editorMinutes))
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('code-time', 'Code time', editorMinutes))
 
         # CODE-TIME stuff
         codeTimeMinutes = humanizeMinutes(data['activeCodeTimeMinutes']).strip()
         avgDailyMinutes = humanizeMinutes(data['averageDailyMinutes']).strip()
         globalAvgMinutes = humanizeMinutes(data['globalAverageSeconds'] / 60).strip()
         boltIcon = 'bolt' if data['currentDayMinutes'] > data['averageDailyMinutes'] else 'bolt-grey'
-        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('code-time', 'Active code time', codeTimeMinutes, avgDailyMinutes, globalAvgMinutes, boltIcon))
+        newActivityMetrics['childs'].append(self.buildCodeTimeMetricsItem('active-code-time', 'Active code time', codeTimeMinutes, avgDailyMinutes, globalAvgMinutes, boltIcon))
 
         currLinesAdded = self.currentKeystrokeStats['currentDayLinesAdded'] + data['currentDayLinesAdded']
         linesAdded = formatNumWithK(currLinesAdded)
@@ -682,7 +682,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         }
         liItems = []
         projectDir = getProjectDirectory()
-        print('projectDir is {}'.format(projectDir))
+        # print('projectDir is {}'.format(projectDir))
 
         if projectDir:
             contributorMembers = getRepoContributors(projectDir)
