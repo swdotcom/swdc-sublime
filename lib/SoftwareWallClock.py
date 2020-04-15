@@ -2,6 +2,7 @@ import sublime, sublime_plugin
 from .SoftwareUtil import *
 from .SoftwareOffline import *
 from .SoftwareStatusManager import *
+from .KpmManager import *
 
 SECONDS_INCREMENT = 30
 
@@ -15,12 +16,11 @@ def wallClockMgrInit():
     log('------- Intializing Wallclock ----------')
     updateStatusBarWithSummaryData()
 
-
 def updateTimeWrapper():
-    if isFocused:
+    hasData = PluginData.hasKeystrokeData()
+    if isFocused or hasData:
         updateWcTime()
     dispatchStatusViewUpdate()
-
 
 def updateWcTime():
     global _wctime

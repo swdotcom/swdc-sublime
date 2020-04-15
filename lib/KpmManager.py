@@ -3,6 +3,7 @@ from queue import Queue
 import sublime_plugin, sublime
 from .SoftwareOffline import *
 from .SoftwarePayload import *
+from .SoftwareUtil import *
 
 DEFAULT_DURATION = 60
 
@@ -38,7 +39,7 @@ class BackgroundWorker():
 class PluginData():
     __slots__ = ('source', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone')
     background_worker = BackgroundWorker(1, post_json)
-    active_datas = {}
+    active_datas = {} # active projects, where each entry is a project directory
     line_counts = {}
     send_timer = None
 
@@ -83,6 +84,16 @@ class PluginData():
                 fileInfo['add'] > 0 or
                 fileInfo['netkeys'] > 0):
                 return True
+        return False
+    
+    @staticmethod
+    def hasKeystrokeData():
+        for dir in PluginData.active_datas:
+            keystrokeCountObj = PluginData.active_datas[dir]
+            if keystrokeCountObj is not None and keystrokeCountObj.source is not None:
+                # check if the source object is empty
+                if bool(keystrokeCountObj.source):
+                    return True
         return False
 
     @staticmethod
