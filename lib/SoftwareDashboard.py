@@ -9,6 +9,7 @@ from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwarePayload import *
+from .TimeSummaryData import *
 
 currentDay = None 
 DAY_CHECK_TIMER_INTERVAL = 60

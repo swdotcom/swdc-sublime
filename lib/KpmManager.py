@@ -4,6 +4,7 @@ import sublime_plugin, sublime
 from .SoftwareOffline import *
 from .SoftwarePayload import *
 from .SoftwareUtil import *
+from .TimeSummaryData import *
 
 DEFAULT_DURATION = 60
 
