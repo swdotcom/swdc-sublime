@@ -60,14 +60,13 @@ def getNewTimeDataSummary(project):
     timeData['timestamp'] = endDayTimes['utcEndOfDay']
     return timeData
 
-def getTodayTimeDataSummary(project):
+def findTimeDataSummary(project):
     if not project or not project['directory']:
-        return None 
+        return None
     
-    endOfDayTimes = getEndDayTimes()
-    day = endOfDayTimes['day']
+    endDayTimes = getEndDayTimes()
 
-    timeData = None 
+    timeData = None
     file = getTimeDataSummaryFile()
     payloads = getFileDataArray(file)
     if len(payloads) > 0:
@@ -75,7 +74,13 @@ def getTodayTimeDataSummary(project):
             # same day and same project directory
             timeData = next(load for load in payloads if load['day'] == day and load['project']['directory'] == project['directory'])
         except Exception:
-            pass 
+            pass
+    return timeData
+
+
+def getTodayTimeDataSummary(project):
+    timeData = findTimeDataSummary(project)
+    # not found, create one since we passed the non-null project and dir
     if not timeData:
         timeData = getNewTimeDataSummary(project)
         saveTimeDataSummaryToDisk(timeData)  
