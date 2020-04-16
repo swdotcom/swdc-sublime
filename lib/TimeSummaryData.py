@@ -1,4 +1,5 @@
 import sublime_plugin, sublime
+import copy
 from .SoftwareUtil import *
 from .SoftwareModels import CodeTimeSummary, TimeData
 
@@ -65,6 +66,7 @@ def findTimeDataSummary(project):
         return None
     
     endDayTimes = getEndDayTimes()
+    day = endDayTimes['day']
 
     timeData = None
     file = getTimeDataSummaryFile()
