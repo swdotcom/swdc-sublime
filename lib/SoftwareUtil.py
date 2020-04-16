@@ -462,6 +462,9 @@ def getResourceInfo(rootDir):
         resourceInfo = {}
         tag = runResourceCmd(['git', 'describe', '--all'], rootDir)
 
+        if (rootDir is None or isGitProject(rootDir) is False):
+            return {}
+
         if (tag):
             resourceInfo['tag'] = tag
         identifier = runResourceCmd(['git', 'config', '--get', 'remote.origin.url'], rootDir)
@@ -785,4 +788,11 @@ def getEndDayTimes():
         "utcEndOfDay": utcEndOfDay, 
         "localEndOfDay": localEndOfDay, 
         "day": nowTime['day'] }
-        
+
+def isGitProject(projectDir):
+    if (projectDir is None):
+        return False
+    elif (os.path.exists(os.path.join(projectDir, '.git')) is False):
+        return False
+    else:
+        return True
