@@ -55,7 +55,7 @@ def getUncommittedChanges(projectDir):
     return getChangeStats(projectDir, cmd)
 
 def getHistoricalCommits(rootDir):
-	if (rootDir is None or rootDir == ''):
+	if (rootDir is None or rootDir == '' or isGitProject(rootDir) is False):
 		return
 
 	resourceInfoDict = getResourceInfo(rootDir)
@@ -236,7 +236,7 @@ def buildRepoKey(identifier, branch, tag):
 def getLastCommit(rootDir):
 	
 	# get the repo info to get the last commit from the app
-	if (rootDir is None):
+	if (rootDir is None or isGitProject(rootDir) is False):
 		return None
 
     # get the repo url, branch, and tag
