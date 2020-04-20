@@ -229,8 +229,7 @@ class PluginData():
                         fileInfo["local_end"] = nowTimes['localNowInSec']
                         fileInfo['cumulative_editor_seconds'] = editorSeconds
                         sessionMinutes = td['session_seconds'] / 60
-
-                incrementSessionAndFileSeconds(keystrokeCountObj.project, sessionMinutes)
+                        incrementSessionAndFileSeconds(keystrokeCountObj.project, sessionMinutes)
 
     @staticmethod
     def send_all_datas():

@@ -22,6 +22,8 @@ LONG_THRESHOLD_HOURS = 12
 SHORT_THRESHOLD_HOURS = 4
 NO_TOKEN_THRESHOLD_HOURS = 2
 
+lastSavedKeystrokeStats = None
+
 def getSummaryInfoFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'SummaryInfo.txt')
@@ -205,6 +207,25 @@ def storePayload(payload):
 
     nowTimes = getNowTimes()
     setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
+
+def getLastSavedKeystrokeStats():
+    global lastSavedKeystrokeStats
+    if lastSavedKeystrokeStats is None:
+        updateLastSavedKeystrokeStats()
+    return lastSavedKeystrokeStats
+
+def updateLastSavedKeystrokeStats():
+    global lastSavedKeystrokeStats
+    dataStoreFile = getSoftwareDataStoreFile()
+    try:
+        with open(dataStoreFile, "a") as dsFile:
+            currentPayloads = getFileDataPayloadsAsJson(dataStoreFile)
+            if (currentPayloads is not None and len(currentPayloads) > 0):
+                currentPayloads
+                sortedPayloads = list(sorted(currentPayloads, key=lambda payload: payload['start'], reverse=True))
+                lastSavedKeystrokeStats = sortedPayloads[0]
+    except Exception as ex:
+        log('Error sorting current payloads: %s' % ex)
 
 def validateAndUpdateCumulativeData(payload, sessionMinutes):
     td = incrementSessionAndFileSeconds(payload['project'], sessionMinutes)
