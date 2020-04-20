@@ -122,17 +122,20 @@ def clearTimeDataSummary():
     with open(summaryFile, 'w') as f:
         f.write(content)
 
-def incrementSessionAndFileSeconds(project):
-    minutes_since_payload = getMinutesSinceLastPayload()
+def incrementSessionAndFileSeconds(project, sessionMinutes):
     timeData = getTodayTimeDataSummary(project)
 
-    if minutes_since_payload > 0:
-        session_seconds = minutes_since_payload * 60
+    if (timeData):
+        session_seconds = sessionMinutes * 60
         timeData['session_seconds'] += session_seconds
+        # max editor seconds should be equal to or greater than session seconds
+        timeData['editor_seconds'] = max(timeData['editor_seconds'], timeData['session_seconds'])
+        timeData['file_seconds'] += 60
+        # max file seconds should not be greater than session seconds
+        timeData['file_seconds'] = min(timeData['file_seconds'], timeData['session_seconds'])
 
-    timeData['editor_seconds'] = max(timeData['editor_seconds'], timeData['session_seconds'])
-    timeData['file_seconds'] += 60
-    timeData['file_seconds'] = min(timeData['file_seconds'], timeData['session_seconds'])
+        saveTimeDataSummaryToDisk(timeData)
 
-    saveTimeDataSummaryToDisk(timeData)
-	
+        return timeData
+        
+    return None

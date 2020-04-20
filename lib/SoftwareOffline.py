@@ -37,6 +37,27 @@ def incrementSessionSummaryData(aggregates):
 
     saveSessionSummaryToDisk(data)
 
+def getTimeBetweenLastPayload():
+    sessionMinutes = 1
+    elapsedSeconds = 60
+    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
+
+    # the last payload end time is reset within the new day checker
+    if (lastPayloadEnd and lastPayloadEnd > 0):
+        nowTimes = getNowTimes()
+        nowInSec = nowTimes['nowInSec']
+        # diff from the prev end time
+        elapsedSeconds = max(60, nowInSec - lastPayloadEnd)
+
+        # if it's less than the threshold, add minutes to the session time
+        if (elapsedSeconds > 0 and elapsedSeconds <= getSessionThresholdSeconds()):
+            # if it's still the same session, add the gap time in minutes
+            sessionMinutes = elapsedSeconds / 60
+        
+        sessionMinutes = max(1, sessionMinutes)
+
+    return { sessionMinutes, elapsedSeconds }
+
 def updateSessionFromSummaryApi(currentDayMinutes):
     endDayTimes = getEndDayTimes()
     day = endDayTimes['day']
@@ -156,7 +177,11 @@ def storePayload(payload):
             # non aggregates, just set
             existingFileInfo['lines'] = fileInfo['lines']
             existingFileInfo['length'] = fileInfo['length']
-
+    
+    # add the elapsed and cumulative times to the payload
+    sessionMinutes, elapsedSeconds = getTimeBetweenLastPayload()
+    payload['elapsed_seconds'] = elapsedSeconds
+    validateAndUpdateCumulativeData(payload, sessionMinutes)
 
     incrementSessionSummaryData(aggregate)
 
@@ -181,4 +206,39 @@ def storePayload(payload):
     nowTimes = getNowTimes()
     setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
 
+def validateAndUpdateCumulativeData(payload, sessionMinutes):
+    td = incrementSessionAndFileSeconds(payload['project'], sessionMinutes)
 
+    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
+
+    if lastPayloadEnd == 0:
+        isNewDay = 1
+    else:
+        isNewDay = 0
+    
+    # get the current payloads so we can compare our last cumulative seconds
+    lastKpm = getLastSavedKeystrokeStats()
+    if lastKpm:
+        if (lastKpm['cumulative_editor_seconds'] is None or lastKpm['cumulative_session_seconds'] is None):
+            lastKpm = None
+        if (lastKpm is not None and getFormattedDay(lastKpm['start']) != getFormattedDay(payload['start'])):
+            lastKpm = None
+    
+    # isNewDay = 1 if the last payload timestamp is zero
+    payload['new_day'] = isNewDay
+
+    # get editor seconds
+    cumulative_editor_seconds = 60
+    cumulative_session_seconds = 60
+    if (td is not None):
+        # use data from the timedata object
+        cumulative_editor_seconds = td['editor_seconds']
+        cumulative_session_seconds = td['session_seconds']
+    elif lastKpm:
+        # no time data; used the last recorded kpm data
+        cumulative_editor_seconds = lastKpm['editor_seconds'] + 60
+        cumulative_session_seconds = lastKpm['session_seconds'] + 60
+    
+    # update the cumulative seconds
+    payload['cumulative_editor_seconds'] = cumulative_editor_seconds
+    payload['cumulative_session_seconds'] = cumulative_session_seconds

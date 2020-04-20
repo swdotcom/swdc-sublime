@@ -60,3 +60,4 @@ def batchSendPayloadData(api, file, payloads):
 def postBootstrapPayload(payload):
     batch = [payload]
     requestIt("POST", "/data/batch", json.dumps(batch), getItem("jwt"))
+    
