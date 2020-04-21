@@ -1,4 +1,4 @@
-from threading import Thread, Timer, Event, Lock
+from threading import Thread, Timer, Event, Lock, current_thread
 import os
 import json
 import time as timeModule
@@ -134,6 +134,7 @@ def setItem(key, value):
 
 def refreshTreeView():
     buildTreeLock.acquire()
+    # print('thread {} refreshing'.format(current_thread().ident))
     sublime.active_window().run_command('open_tree_view')
     buildTreeLock.release()
 
