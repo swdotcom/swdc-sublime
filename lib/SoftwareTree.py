@@ -36,7 +36,8 @@ orig_layout = None
 NO_ID = 'NO_ID'
 CODETIME_TREEVIEW_NAME = 'Code Time Tree View'
 REMOTE_URL = None
-shouldOpen = True
+shouldOpen = False 
+phantom_set = None 
 mainSections = ['code-time-actions', 'activity-metrics', 'contributors-node']
 
 def setShouldOpen(val):
@@ -65,6 +66,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
         global tree_view 
         global orig_layout
+        global phantom_set
         self.currentKeystrokeStats = SessionSummary()
         window = self.window
 
@@ -79,7 +81,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             window.set_layout(layout)
             self.build_tree_layout()
 
-        self.phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
+        phantom_set = sublime.PhantomSet(tree_view, 'software_tree')
 
         if len(window.views()) == 1:
             window.focus_group(1)
@@ -161,13 +163,14 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         self.buildMetricsNodes(data)
         # self.buildCommitTreeNodes()
         self.buildContributorNodes()
+        # print(len(self.tree['childs']))
         self.expand(self.tree, '')
 
     def build_tree_layout(self):
         global tree_view 
         global orig_layout 
         window = self.window 
-        window.set_sidebar_visible(False)
+        # window.set_sidebar_visible(False) 
         layout = window.get_layout()
         orig_layout = deepcopy(layout)
         if len(layout['cols']) < 3:
@@ -272,6 +275,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
           Sublime's "minihtml" engine has some large restrictions
     '''
     def rebuild_phantom(self):
+        global phantom_set 
         result = self.render_subtree(self.tree, [])
         html = '''<body id="tree">
             <style>
@@ -303,7 +307,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
             }
         </style>''' + ''.join(result) + '</body>'
         self.phantom = sublime.Phantom(sublime.Region(0), html, sublime.LAYOUT_BLOCK, on_navigate=self.on_click)
-        self.phantom_set.update([self.phantom])
+        phantom_set.update([self.phantom])
 
     def render_subtree(self, item, result):
         if 'id' in item and item['id'] in open_state:
