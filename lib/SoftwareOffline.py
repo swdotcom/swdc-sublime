@@ -234,7 +234,8 @@ def validateAndUpdateCumulativeData(payload, sessionMinutes):
     lastPayload = getLastSavedKeystrokeStats()
 
     # if it's a new day, clear the last payload and time data
-    if isNewDay():
+    isNewDay = getIsNewDay()
+    if isNewDay:
         lastPayload = None
         if td:
             td = None
@@ -242,11 +243,11 @@ def validateAndUpdateCumulativeData(payload, sessionMinutes):
     # set new_day in the payload based on last timestamp in session.json
     lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
     if lastPayloadEnd == 0:
-        isNewDay = 1
+        newDay = 1
     else:
-        isNewDay = 0
+        newDay = 0
 
-    payload['new_day'] = isNewDay
+    payload['new_day'] = newDay
 
     # get editor seconds
     cumulative_editor_seconds = 60

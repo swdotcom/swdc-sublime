@@ -793,7 +793,7 @@ def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
 
-def isNewDay():
+def getIsNewDay():
     day = getNowTimes()['day']
     currentDay = getItem('currentDay')
     if (currentDay != day):

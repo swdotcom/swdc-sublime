@@ -63,7 +63,7 @@ def findTimeDataSummary(project):
     if not project or not project['directory']:
         return None
     
-    nowTimes = nowTimes()
+    nowTimes = getNowTimes()
     day = nowTimes['day']
 
     timeData = None
