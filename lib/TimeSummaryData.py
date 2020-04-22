@@ -45,9 +45,9 @@ def getCodeTimeSummary():
 
     if filteredPayloads and len(filteredPayloads) > 0:
         for payload in filteredPayloads:
-            summary['activeCodeTimeMinutes'] += payload['session_seconds'] / 60
-            summary['codeTimeMinutes'] += payload['editor_seconds'] / 60
-            summary['fileTimeMinutes'] += payload['file_seconds'] / 60 
+            summary['activeCodeTimeMinutes'] += (payload['session_seconds'] / 60)
+            summary['codeTimeMinutes'] += (payload['editor_seconds'] / 60)
+            summary['fileTimeMinutes'] += (payload['file_seconds'] / 60)
     
     return summary
 

@@ -30,9 +30,10 @@ def getSummaryInfoFile():
 
 def incrementSessionSummaryData(aggregates):
     data = getSessionSummaryData()
-    incrementMinutes = getMinutesSinceLastPayload()
+    timeBetweenLastPayload = getTimeBetweenLastPayload()
+    sessionMinutes = timeBetweenLastPayload['sessionMinutes']
 
-    data['currentDayMinutes'] += incrementMinutes
+    data['currentDayMinutes'] += sessionMinutes
     data['currentDayKeystrokes'] += aggregates['keystrokes']
     data['currentDayLinesAdded'] += aggregates['linesAdded']
     data['currentDayLinesRemoved'] += aggregates['linesRemoved']
@@ -47,7 +48,7 @@ def getTimeBetweenLastPayload():
     lastPayloadEnd = getItem("latestPayloadTimestampEndUtc") # will be 0 if new day
 
     # the last payload end time is reset within the new day checker
-    if (lastPayloadEnd and lastPayloadEnd > 0):
+    if (lastPayloadEnd is not None and lastPayloadEnd > 0):
         nowTimes = getNowTimes()
         nowInSec = nowTimes['nowInSec']
         # diff from the prev end time
@@ -60,7 +61,7 @@ def getTimeBetweenLastPayload():
         
         sessionMinutes = max(1, sessionMinutes)
 
-    return { sessionMinutes, elapsedSeconds }
+    return { 'sessionMinutes': sessionMinutes, 'elapsedSeconds': elapsedSeconds }
 
 def updateSessionFromSummaryApi(currentDayMinutes):
     day = getNowTimes()['day']
@@ -182,9 +183,9 @@ def storePayload(payload):
             existingFileInfo['length'] = fileInfo['length']
     
     # add the elapsed and cumulative times to the payload
-    sessionMinutes, elapsedSeconds = getTimeBetweenLastPayload()
-    payload['elapsed_seconds'] = elapsedSeconds
-    validateAndUpdateCumulativeData(payload, sessionMinutes)
+    timeBetweenLastPayload = getTimeBetweenLastPayload()
+    payload['elapsed_seconds'] = timeBetweenLastPayload['elapsedSeconds']
+    validateAndUpdateCumulativeData(payload, timeBetweenLastPayload['sessionMinutes'])
 
     incrementSessionSummaryData(aggregate)
 

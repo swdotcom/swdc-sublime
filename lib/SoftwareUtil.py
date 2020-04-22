@@ -259,20 +259,6 @@ def getTimeDataSummaryFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'projectTimeData.json')
 
-def getMinutesSinceLastPayload():
-    minutesSinceLastPayload = 1
-    lastPayloadEnd = getItem('latestPayloadTimestampEndUtc')
-    if lastPayloadEnd is not None:
-        nowTimes = getNowTimes()
-        nowInSec = nowTimes['nowInSec']
-        # diff from the previous end time
-        diffInSec = nowInSec - lastPayloadEnd
-
-        if diffInSec > 0 and diffInSec <= getSessionThresholdSeconds():
-            minutesSinceLastPayload = diffInSec / 60
-
-    return minutesSinceLastPayload
-
 def getSessionThresholdSeconds():
     thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
     return thresholdSeconds
