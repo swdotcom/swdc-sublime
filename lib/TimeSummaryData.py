@@ -37,7 +37,7 @@ def saveTimeDataSummaryToDisk(data):
 
 def getCodeTimeSummary():
     summary = CodeTimeSummary()
-    day = getEndDayTimes()['day']
+    day = getNowTimes()['day']
 
     summaryFile = getTimeDataSummaryFile()
     payloads = getFileDataArray(summaryFile)
@@ -52,21 +52,19 @@ def getCodeTimeSummary():
     return summary
 
 def getNewTimeDataSummary(project):
-    endDayTimes = getEndDayTimes()
+    nowTimes = getNowTimes()
 
     timeData = TimeData()
-    timeData['day'] = endDayTimes['day']
-    timeData['project'] = project 
-    timeData['timestamp_local'] = endDayTimes['localEndOfDay']
-    timeData['timestamp'] = endDayTimes['utcEndOfDay']
+    timeData['day'] = nowTimes['day']
+    timeData['project'] = project
     return timeData
 
 def findTimeDataSummary(project):
     if not project or not project['directory']:
         return None
     
-    endDayTimes = getEndDayTimes()
-    day = endDayTimes['day']
+    nowTimes = nowTimes()
+    day = nowTimes['day']
 
     timeData = None
     file = getTimeDataSummaryFile()

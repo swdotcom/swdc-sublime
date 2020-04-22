@@ -40,9 +40,11 @@ def incrementSessionSummaryData(aggregates):
     saveSessionSummaryToDisk(data)
 
 def getTimeBetweenLastPayload():
+    # default to 1 minute
     sessionMinutes = 1
     elapsedSeconds = 60
-    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
+
+    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc") # will be 0 if new day
 
     # the last payload end time is reset within the new day checker
     if (lastPayloadEnd and lastPayloadEnd > 0):
@@ -61,8 +63,7 @@ def getTimeBetweenLastPayload():
     return { sessionMinutes, elapsedSeconds }
 
 def updateSessionFromSummaryApi(currentDayMinutes):
-    endDayTimes = getEndDayTimes()
-    day = endDayTimes['day']
+    day = getNowTimes()['day']
 
     codeTimeSummary = getCodeTimeSummary()
 
@@ -230,22 +231,21 @@ def updateLastSavedKeystrokeStats():
 def validateAndUpdateCumulativeData(payload, sessionMinutes):
     td = incrementSessionAndFileSeconds(payload['project'], sessionMinutes)
 
-    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
+    lastPayload = getLastSavedKeystrokeStats()
 
+    # if it's a new day, clear the last payload and time data
+    if isNewDay():
+        lastPayload = None
+        if td:
+            td = None
+    
+    # set new_day in the payload based on last timestamp in session.json
+    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
     if lastPayloadEnd == 0:
         isNewDay = 1
     else:
         isNewDay = 0
-    
-    # get the current payloads so we can compare our last cumulative seconds
-    lastKpm = getLastSavedKeystrokeStats()
-    if lastKpm:
-        if (lastKpm['cumulative_editor_seconds'] is None or lastKpm['cumulative_session_seconds'] is None):
-            lastKpm = None
-        if (lastKpm is not None and getFormattedDay(lastKpm['start']) != getFormattedDay(payload['start'])):
-            lastKpm = None
-    
-    # isNewDay = 1 if the last payload timestamp is zero
+
     payload['new_day'] = isNewDay
 
     # get editor seconds
@@ -255,11 +255,18 @@ def validateAndUpdateCumulativeData(payload, sessionMinutes):
         # use data from the timedata object
         cumulative_editor_seconds = td['editor_seconds']
         cumulative_session_seconds = td['session_seconds']
-    elif lastKpm:
+    elif lastPayload:
         # no time data; used the last recorded kpm data
-        cumulative_editor_seconds = lastKpm['editor_seconds'] + 60
-        cumulative_session_seconds = lastKpm['session_seconds'] + 60
+        if (lastPayload['cumulative_editor_seconds'] is not None):
+            cumulative_editor_seconds = lastPayload['cumulative_editor_seconds'] + 60
+        else:
+            log('Error: No editor seconds in last payload.')
+
+        if (lastPayload['cumulative_session_seconds'] is not None):
+            cumulative_session_seconds = lastPayload['cumulative_session_seconds'] + 60
+        else:
+            log('Error: No session seconds in last payload.')
     
-    # update the cumulative seconds
+    # update the cumulative editor seconds
     payload['cumulative_editor_seconds'] = cumulative_editor_seconds
     payload['cumulative_session_seconds'] = cumulative_session_seconds

@@ -781,15 +781,6 @@ def startOfDayUnix(unixTimestamp):
     day = datetime.fromtimestamp(unixTimestamp)
     return datetime(day.year, day.month, day.day).timestamp()
 
-def getEndDayTimes():
-    nowTime = getNowTimes()
-    utcEndOfDay = endOfDayUnix(nowTime['nowInSec'])
-    localEndOfDay = endOfDayUnix(nowTime['localNowInSec'])
-    return { 
-        "utcEndOfDay": utcEndOfDay, 
-        "localEndOfDay": localEndOfDay, 
-        "day": nowTime['day'] }
-
 def isGitProject(projectDir):
     if (projectDir is None):
         return False
@@ -801,3 +792,11 @@ def isGitProject(projectDir):
 def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
+
+def isNewDay():
+    day = getNowTimes()['day']
+    currentDay = getItem('currentDay')
+    if (currentDay != day):
+        return True
+    else: 
+        return False
