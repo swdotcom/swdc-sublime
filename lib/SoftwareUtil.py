@@ -19,7 +19,7 @@ from .SoftwareSettings import *
 from .SoftwareModels import Project
 
 # the plugin version
-VERSION = '1.0.6'
+VERSION = '1.0.7'
 PLUGIN_ID = 1
 
 DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
@@ -84,21 +84,22 @@ def getTimezone():
         pass
     return myTimezone
 
+def getUtcOffset():
+    timestamp = timeModule.time()
+    time_local = datetime.fromtimestamp(timestamp)
+    time_utc = datetime.utcfromtimestamp(timestamp)
+    offset_in_sec = round((time_local - time_utc).total_seconds())
+    return offset_in_sec
+
 def getNowTimes():
     nowInSec = round(timeModule.time())
-    localNowInSec = nowInSec - timeModule.timezone
-
-    try: # Adjust for DST
-        if timeModule.localtime().tm_isdst == 0:
-            pass 
-        else:
-            localNowInSec += (60 * 60)
-    except Exception:
-        pass 
-    day = datetime.fromtimestamp(localNowInSec).date().isoformat()
+    offsetInSec = getUtcOffset()
+    localNowInSec = round(nowInSec + offsetInSec)
+    day = datetime.now().date().isoformat()
     return {
         'nowInSec': nowInSec,
         'localNowInSec': localNowInSec,
+        'offsetInSec': offsetInSec,
         'day': day
     }
 
