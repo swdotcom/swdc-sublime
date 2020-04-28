@@ -91,8 +91,6 @@ def updateSessionFromSummaryApi(currentDayMinutes):
         timeData = TimeData()
         timeData['day'] = day
         timeData['project'] = project
-        timeData['timestamp'] = endDayTimes['utcEndOfDay']
-        timeData['timestamp_local'] = endDayTimes['localEndOfDay']
     
     secondsToAdd = diffActiveCodeMinutesToAdd * 60
     timeData['session_seconds'] += secondsToAdd

@@ -11,14 +11,9 @@ from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwarePayload import *
 from .TimeSummaryData import *
 
-currentDay = None 
 DAY_CHECK_TIMER_INTERVAL = 60
 
 def dashboardMgrInit():
-    global currentDay
-    if currentDay is not None:
-        return 
-    
     currentDay = getItem('currentDay')
     setInterval(lambda: newDayChecker(False), DAY_CHECK_TIMER_INTERVAL)
 
@@ -26,9 +21,8 @@ def dashboardMgrInit():
     newDayTimer.start()
 
 def newDayChecker(isInit=False):
-    global currentDay
-    nowTime = getNowTimes()
-    if nowTime['day'] != currentDay:
+    isNewDay = getIsNewDay()
+    if isNewDay:
         clearSessionSummaryData()
         # Send offline data we have
         sendOfflineData(True)
@@ -39,7 +33,8 @@ def newDayChecker(isInit=False):
         clearTimeDataSummary()
         clearFileChangeInfoSummaryData()
 
-        currentDay = nowTime['day']
+        nowTimes = getNowTimes()
+        currentDay = nowTimes['day']
 
         setItem('currentDay', currentDay)
         setItem('latestPayloadTimestampEndUtc', 0)
