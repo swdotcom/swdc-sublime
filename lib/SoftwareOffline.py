@@ -131,6 +131,7 @@ def setSessionSummaryLiveshareMinutes(minutes):
 
 # store the payload offline...
 def storePayload(payload):
+    nowTimes = getNowTimes()
 
     fileChangeInfoMap = getFileChangeSummaryAsJson()
     aggregate = KeystrokeAggregate()
@@ -186,6 +187,10 @@ def storePayload(payload):
     payload['elapsed_seconds'] = timeBetweenLastPayload['elapsedSeconds']
     validateAndUpdateCumulativeData(payload, timeBetweenLastPayload['sessionMinutes'])
 
+    # set the end time
+    payload['end'] = nowTimes['nowInSec']
+    payload['local_end'] =nowTimes['localNowInSec']
+
     incrementSessionSummaryData(aggregate)
 
     # push the stats to the file so other editor windows can have it
@@ -206,7 +211,6 @@ def storePayload(payload):
     except Exception as ex:
         log('Error appending to the Software data store file: %s' % ex)
 
-    nowTimes = getNowTimes()
     setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
 
 def getLastSavedKeystrokeStats():
