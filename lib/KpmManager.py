@@ -5,6 +5,7 @@ from .SoftwareOffline import *
 from .SoftwarePayload import *
 from .SoftwareUtil import *
 from .TimeSummaryData import *
+from .Constants import *
 
 DEFAULT_DURATION = 60
 

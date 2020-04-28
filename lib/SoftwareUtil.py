@@ -17,12 +17,10 @@ from subprocess import Popen, PIPE, check_output, CalledProcessError
 from .SoftwareHttp import *
 from .SoftwareSettings import *
 from .SoftwareModels import Project
+from .Constants import *
 
 # the plugin version
 VERSION = '1.0.7'
-PLUGIN_ID = 1
-
-DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
 
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
@@ -33,8 +31,6 @@ sessionMap = {}
 buildTreeLock = Lock()
 
 PROJECT_DIR = None
-NO_PROJ_NAME = 'Unnamed'
-UNTITLED = 'Untitled'
 
 NUMBER_IN_EMAIL_REGEX = r'^\d+\+'
 
@@ -166,6 +162,7 @@ def getActiveProject():
     project = Project()
     if not rootPath:
         project['directory'] = UNTITLED
+        global NO_PROJ_NAME
         project['name'] = NO_PROJ_NAME
         return project 
     

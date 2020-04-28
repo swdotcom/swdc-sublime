@@ -21,6 +21,7 @@ from .lib.SoftwareModels import *
 from .lib.SoftwareSessionApp import *
 from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
+from .lib.Constants import *
 
 DEFAULT_DURATION = 60
 
