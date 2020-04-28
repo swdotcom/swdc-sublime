@@ -11,7 +11,7 @@
 </p>
 
 <p align="center" style="margin: 0 10%">
-  <img src="https://swdc-static-assets.s3-us-west-1.amazonaws.com/code-time-sublime-text.png" alt="Code Time for Sublime Text" />
+  <img src="https://swdc-sublime.s3-us-west-2.amazonaws.com/code-time-sublime-text.png" alt="Code Time for Sublime Text" />
 </p>
 
 <br />
@@ -23,6 +23,12 @@
 The Code Time web app has data visualizations and settings you can customize, such as your work hours and rates per project for advanced time tracking. You can also connect Google Calendar to visualize your Code Time vs. meetings in a single calendar.
 
 You can connect multiple code editors on multiple devices using the same email account.
+
+To connect your web account, open the tree view (Tools > Code Time > Show Tree View) and choose GitHub, Google, or email.
+
+<p align="center" style="margin: 0 10%">
+  <img src="https://swdc-sublime.s3-us-west-2.amazonaws.com/sublime-tree-view.png" alt="Code Time Tree View for Sublime Text" />
+</p>
 
 **2. Track your progress during the day**
 
