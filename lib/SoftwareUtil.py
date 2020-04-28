@@ -20,7 +20,7 @@ from .SoftwareModels import Project
 from .Constants import *
 
 # the plugin version
-VERSION = '1.0.7'
+VERSION = '2.2.0'
 
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
