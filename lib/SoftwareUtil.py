@@ -105,6 +105,13 @@ def getHostname():
     except Exception:
         return os.uname().nodename
 
+def getActiveWindowId():
+    try:
+        return sublime.active_window().id()
+    except Exception as ex:
+        print("Code Time: unable to retrieve active window: %s" % ex)
+        return None
+
 # fetch a value from the .software/session.json file
 def getItem(key):
     val = sessionMap.get(key, None)

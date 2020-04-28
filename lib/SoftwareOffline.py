@@ -189,7 +189,11 @@ def storePayload(payload):
 
     # set the end time
     payload['end'] = nowTimes['nowInSec']
-    payload['local_end'] =nowTimes['localNowInSec']
+    payload['local_end'] = nowTimes['localNowInSec']
+
+    # set the hostname and workspace
+    payload['hostname'] = getHostname()
+    payload['workspace_name'] = getActiveWindowId()
 
     incrementSessionSummaryData(aggregate)
 
