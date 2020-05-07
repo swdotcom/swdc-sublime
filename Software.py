@@ -6,7 +6,8 @@ import time as timeModule
 from datetime import *
 import json
 import os
-import sublime_plugin, sublime
+import sublime_plugin
+import sublime
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
@@ -29,7 +30,8 @@ SETTINGS = {}
 
 check_online_interval_sec = 60 * 10
 retry_counter = 0
-activated = False 
+activated = False
+
 
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -39,10 +41,13 @@ class GoToSoftware(sublime_plugin.TextCommand):
         return (getValue("logged_on", True) is True)
 
 # Command to launch the code time metrics "launch_code_time_metrics"
+
+
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
         codetimemetricsthread.start()
+
 
 class LaunchCustomDashboard(sublime_plugin.WindowCommand):
     def run(self):
@@ -52,13 +57,16 @@ class LaunchCustomDashboard(sublime_plugin.WindowCommand):
         time_ago = t.strftime("%m/%d/%Y")
         # default range: last 7 days
         default_range = str(time_ago) + ", " + str(current_time)
-        self.window.show_input_panel("Enter a start and end date (format: MM/DD/YYYY):", default_range, self.on_done, None, None)
+        self.window.show_input_panel(
+            "Enter a start and end date (format: MM/DD/YYYY):", default_range, self.on_done, None, None)
 
     def on_done(self, result):
         setValue("date_range", result)
         launchCustomDashboard()
 
 # connect spotify menu
+
+
 class ConnectSpotify(sublime_plugin.TextCommand):
     def run(self, edit):
         launchSpotifyLoginUrl()
@@ -77,6 +85,7 @@ class ShowTreeView(sublime_plugin.WindowCommand):
         setShouldOpen(True)
         refreshTreeView()
 
+
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
@@ -85,16 +94,18 @@ class SoftwareTopForty(sublime_plugin.TextCommand):
         return (getValue("online", True) is True)
 
 
-
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         log("toggling status bar metrics")
         toggleStatus()
 
 # Testing function
+
+
 class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
     def run(self, isNewDay):
         updateSessionSummaryFromServer(isNewDay)
+
 
 class GenerateContributorSummary(sublime_plugin.WindowCommand):
     def run(self):
@@ -102,6 +113,8 @@ class GenerateContributorSummary(sublime_plugin.WindowCommand):
         generateContributorSummary(projectDir)
 
 # Mute Console message
+
+
 class HideConsoleMessage(sublime_plugin.TextCommand):
     def run(self, edit):
         log("Code Time: Console Messages Disabled !")
@@ -112,6 +125,8 @@ class HideConsoleMessage(sublime_plugin.TextCommand):
         return (getValue("software_logging_on", True) is True)
 
 # Command to re-enable Console message
+
+
 class ShowConsoleMessage(sublime_plugin.TextCommand):
     def run(self, edit):
         log("Code Time: Console Messages Enabled !")
@@ -120,8 +135,10 @@ class ShowConsoleMessage(sublime_plugin.TextCommand):
 
     def is_enabled(self):
         return (getValue("software_logging_on", True) is False)
-    
+
 # Command to pause kpm metrics
+
+
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         log("software kpm metrics paused")
@@ -132,6 +149,8 @@ class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
         return (getValue("software_telemetry_on", True) is True)
 
 # Command to re-enable kpm metrics
+
+
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         log("software kpm metrics enabled")
@@ -142,6 +161,8 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
         return (getValue("software_telemetry_on", True) is False)
 
 # Runs once instance per view (i.e. tab, or single file window)
+
+
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
@@ -157,7 +178,8 @@ class EventListener(sublime_plugin.EventListener):
         active_data = PluginData.get_active_data(view)
 
         # get the file info to increment the open metric
-        fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
+        fileInfoData = PluginData.get_file_info_and_initialize_if_none(
+            active_data, fileName)
         if fileInfoData is None:
             return
 
@@ -173,7 +195,7 @@ class EventListener(sublime_plugin.EventListener):
         log('Code Time: opened file %s' % fileName)
 
         # show last status message
-        redisplayStatus() 
+        redisplayStatus()
 
     # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
@@ -187,7 +209,8 @@ class EventListener(sublime_plugin.EventListener):
         active_data = PluginData.get_active_data(view)
 
         # get the file info to increment the close metric
-        fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
+        fileInfoData = PluginData.get_file_info_and_initialize_if_none(
+            active_data, fileName)
         if fileInfoData is None:
             return
 
@@ -201,9 +224,9 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % fileName)
-        
+
         # show last status message
-        redisplayStatus() 
+        redisplayStatus()
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -214,14 +237,15 @@ class EventListener(sublime_plugin.EventListener):
 
         # add the count for the file
         fileName = view.file_name()
-        
+
         fileInfoData = {}
-        
+
         if (fileName is None):
             fileName = UNTITLED
-            
-        fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, fileName)
-        
+
+        fileInfoData = PluginData.get_file_info_and_initialize_if_none(
+            active_data, fileName)
+
         # If file is untitled then log that msg and set file open metrics to 1
         if fileName == UNTITLED:
             # log("Code Time: opened file untitled")
@@ -235,9 +259,9 @@ class EventListener(sublime_plugin.EventListener):
         fileSize = view.size()
 
         #lines = 0
-        # rowcol gives 0-based line number, need to add one as on editor lines starts from 1 
+        # rowcol gives 0-based line number, need to add one as on editor lines starts from 1
         lines = view.rowcol(fileSize)[0] + 1
-        
+
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
 
@@ -259,15 +283,15 @@ class EventListener(sublime_plugin.EventListener):
                 log('Code Time: linesRemoved incremented')
 
         fileInfoData['lines'] = lines
-        
+
         # subtract the current size of the file from what we had before
         # we'll know whether it's a delete, copy+paste, or kpm.
         currLen = fileInfoData['length']
 
         charCountDiff = 0
-        
+
         if currLen > 0 or currLen == 0:
-        # currLen > 0 only worked for existing file, currlen==0 will work for new file
+            # currLen > 0 only worked for existing file, currlen==0 will work for new file
             charCountDiff = fileSize - currLen
 
         if (not fileInfoData["syntax"]):
@@ -288,7 +312,6 @@ class EventListener(sublime_plugin.EventListener):
                 active_data.project['identifier'] = resourceInfoDict['identifier']
                 active_data.project['resource'] = resourceInfoDict
 
-        
         fileInfoData['length'] = fileSize
 
         if lineDiff == 0 and charCountDiff > 8:
@@ -308,13 +331,17 @@ class EventListener(sublime_plugin.EventListener):
         # update the netkeys and the keystrokes
         # "netkeys" = add - delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
-        fileInfoData['keystrokes'] = fileInfoData['add'] + fileInfoData['delete'] + fileInfoData['paste'] + fileInfoData['linesAdded'] + fileInfoData['linesRemoved']
+        fileInfoData['keystrokes'] = fileInfoData['add'] + \
+            fileInfoData['delete'] + fileInfoData['paste']
 
 #
 # Iniates the plugin tasks once the it's loaded into Sublime.
 #
+
+
 def plugin_loaded():
     initializeUser()
+
 
 def initializeUser():
     # check if the session file is there
@@ -326,19 +353,22 @@ def initializeUser():
         if (serverAvailable is False):
             if (retry_counter == 0):
                 showOfflinePrompt()
-            initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
+            initializeUserTimer = Timer(
+                check_online_interval_sec, initializeUser)
             initializeUserTimer.start()
         else:
             result = createAnonymousUser(serverAvailable)
             if (result is None):
                 if (retry_counter == 0):
                     showOfflinePrompt()
-                initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
+                initializeUserTimer = Timer(
+                    check_online_interval_sec, initializeUser)
                 initializeUserTimer.start()
             else:
                 initializePlugin(True, serverAvailable)
     else:
         initializePlugin(False, serverAvailable)
+
 
 def initializePlugin(initializedAnonUser, serverAvailable):
     PACKAGE_NAME = __name__.split('.')[0]
@@ -382,8 +412,10 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     # print("Online status timer initialized")
 
     # initializeUserInfo(initializedAnonUser)
-    initializeUserThread = Thread(target=initializeUserInfo, args=[initializedAnonUser])
+    initializeUserThread = Thread(
+        target=initializeUserInfo, args=[initializedAnonUser])
     initializeUserThread.start()
+
 
 def initializeUserInfo(initializedAnonUser):
     getUserStatus()
@@ -396,6 +428,7 @@ def initializeUserInfo(initializedAnonUser):
         PluginData.send_initial_payload()
         sendHeartbeat('INSTALLED')
 
+
 def userStatusHandler():
     getUserStatus()
 
@@ -403,18 +436,21 @@ def userStatusHandler():
     if (loggedOn is True):
         # no need to fetch any longer
         return
-    
+
     # re-fetch user info in another 10 minutes
     checkUserAuthTimer = Timer(60 * 10, userStatusHandler)
     checkUserAuthTimer.start()
+
 
 def plugin_unloaded():
     # clean up the background worker
     PluginData.background_worker.queue.join()
 
+
 def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
     sublime.message_dialog(infoMsg)
+
 
 def setOnlineStatus():
     online = serverIsAvailable()
@@ -430,9 +466,10 @@ def setOnlineStatus():
     timer = Timer(60 * 1, setOnlineStatus)
     timer.start()
 
+
 def getUsersOfFirstProject():
     getRepoUsers(getProjectDirectory())
 
+
 def getHistoricalCommitsOfFirstProject():
     getHistoricalCommits(getProjectDirectory())
-    
