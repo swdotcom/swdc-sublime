@@ -7,15 +7,16 @@ from .SoftwareHttp import *
 from .SoftwareDashboard import *
 from .SoftwareSettings import *
 from .SoftwarePayload import *
+from .CommonUtil import *
 
 loggedInCacheState = False 
 LOGIN_LABEL = "Log in"
 
-def isLoggedOn(serverAvailable):
+def isLoggedOn():
     jwt = getItem("jwt")
-    if (serverAvailable and jwt is not None):
+    if (jwt is not None):
 
-        user = getUser(serverAvailable)
+        user = getUser()
         if (user is not None and validateEmail(user.get("email", None))):
             setItem("name", user.get("email"))
             setItem("jwt", user.get("plugin_jwt"))
@@ -52,10 +53,8 @@ def getUserStatus():
 
     currentUserStatus = {}
 
-    serverAvailable = serverIsAvailable()
-
     # check if they're logged in or not
-    loggedOn = isLoggedOn(serverAvailable)
+    loggedOn = isLoggedOn()
 
     setValue("logged_on", loggedOn)
     

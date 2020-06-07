@@ -4,6 +4,7 @@ from .SoftwareUtil import *
 from .SoftwareOffline import *
 from .SoftwareHttp import *
 from .TimeSummaryData import *
+from .CommonUtil import *
 
 # send the data that has been saved offline
 def sendOfflineData(isNewDay=False):

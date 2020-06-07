@@ -11,6 +11,7 @@ from .SoftwareModels import SessionSummary, KeystrokeAggregate, TimeData, Projec
 from .SoftwareFileChangeInfoSummaryData import *
 from .TimeSummaryData import *
 from .Constants import *
+from .CommonUtil import *
 
 # This file is called SessionSummaryDataManager.js in Atom
 

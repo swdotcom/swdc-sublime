@@ -348,7 +348,11 @@ def initializeUser():
     serverAvailable = serverIsAvailable()
     fileExists = softwareSessionFileExists()
     jwt = getItem("jwt")
-    log("JWT VAL: %s" % jwt)
+
+    # print("INITALIZING CODE TIME")
+    # print("JWT: %s" % jwt)
+    # print("file exists: %s" % fileExists)
+
     if (fileExists is False or jwt is None):
         if (serverAvailable is False):
             if (retry_counter == 0):
@@ -357,7 +361,7 @@ def initializeUser():
                 check_online_interval_sec, initializeUser)
             initializeUserTimer.start()
         else:
-            result = createAnonymousUser(serverAvailable)
+            result = createAnonymousUser()
             if (result is None):
                 if (retry_counter == 0):
                     showOfflinePrompt()
@@ -371,8 +375,9 @@ def initializeUser():
 
 
 def initializePlugin(initializedAnonUser, serverAvailable):
-    PACKAGE_NAME = __name__.split('.')[0]
-    log('Code Time: Loaded v%s of package name: %s' % (VERSION, PACKAGE_NAME))
+    name = getPluginName()
+    version = getVersion()
+    log('Code Time: Loaded v%s of package name: %s' % (version, name))
     showStatus("Code Time")
 
     setItem("sublime_lastUpdateTime", None)
@@ -382,7 +387,7 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     # fire off timer tasks (seconds, task)
 
-    setOnlineStatusTimer = Timer(2, setOnlineStatus)
+    setOnlineStatusTimer = Timer(5, setOnlineStatus)
     setOnlineStatusTimer.start()
 
     oneMin = 60
@@ -463,7 +468,7 @@ def setOnlineStatus():
         # log("Code Time: Offline")
 
     # run the check in another 1 minute
-    timer = Timer(60 * 1, setOnlineStatus)
+    timer = Timer(60 * 10, setOnlineStatus)
     timer.start()
 
 

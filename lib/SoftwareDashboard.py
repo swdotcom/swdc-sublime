@@ -10,6 +10,7 @@ from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwarePayload import *
 from .TimeSummaryData import *
+from .CommonUtil import *
 
 DAY_CHECK_TIMER_INTERVAL = 60
 
@@ -50,32 +51,30 @@ def launchCodeTimeMetrics():
 
 
 def fetchCodeTimeMetricsDashboard():
-    serverOnline = serverIsAvailable()
     summaryInfoFile = getSummaryInfoFile()
 
-    if serverOnline:
-        # fetch the backend data
-        islinux = "true"
-        if isWindows() is True or isMac() is True:
-            islinux = "false"
+    # fetch the backend data
+    islinux = "true"
+    if isWindows() is True or isMac() is True:
+        islinux = "false"
 
-        # TODO: find sublime setting for showGitMEtrics and replace true with it
-        showGitMetrics = True 
-        api = '/dashboard?showGit=' + 'true' + '&linux=' + islinux + '&showToday=false'
-        response = requestIt("GET", api, None, getItem("jwt"))
+    # TODO: find sublime setting for showGitMEtrics and replace true with it
+    showGitMetrics = True 
+    api = '/dashboard?showGit=' + 'true' + '&linux=' + islinux + '&showToday=false'
+    response = requestIt("GET", api, None, getItem("jwt"))
 
-        summaryContent = ""
-        try:
-            summaryContent = response.read().decode('utf-8')
-        except Exception as ex:
-            summaryContent = SERVICE_NOT_AVAIL
-            log("Code Time: Unable to read response data: %s" % ex)
+    summaryContent = ""
+    try:
+        summaryContent = response.read().decode('utf-8')
+    except Exception as ex:
+        summaryContent = SERVICE_NOT_AVAIL
+        log("Code Time: Unable to read response data: %s" % ex)
 
-        try:
-            with open(summaryInfoFile, 'w', encoding='utf-8') as f:
-                f.write(summaryContent)
-        except Exception as ex:
-            log("Code Time: Unable to write dashboard summary content: %s" % ex)
+    try:
+        with open(summaryInfoFile, 'w', encoding='utf-8') as f:
+            f.write(summaryContent)
+    except Exception as ex:
+        log("Code Time: Unable to write dashboard summary content: %s" % ex)
 
     # concat summary info with the dashboard file
     dashboardFile = getDashboardFile()

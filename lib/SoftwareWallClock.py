@@ -4,6 +4,7 @@ from .SoftwareOffline import *
 from .SoftwareStatusManager import *
 from .KpmManager import *
 from .TimeSummaryData import *
+from .CommonUtil import *
 
 SECONDS_INCREMENT = 30
 

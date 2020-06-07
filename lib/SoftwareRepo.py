@@ -6,6 +6,7 @@ from .SoftwareModels import CommitChangeStats, ContributorMember
 from .SoftwareHttp import *
 from .SoftwareUtil import *
 from .SoftwareSettings import *
+from .CommonUtil import *
 
 ONE_HOUR_IN_SEC = 60 * 60
 ONE_DAY_SEC = ONE_HOUR_IN_SEC * 24

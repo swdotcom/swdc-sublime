@@ -6,6 +6,7 @@ from .SoftwarePayload import *
 from .SoftwareUtil import *
 from .TimeSummaryData import *
 from .Constants import *
+from .CommonUtil import *
 
 DEFAULT_DURATION = 60
 
@@ -53,7 +54,7 @@ class PluginData():
         self.keystrokes = 0
         self.project = project
         self.pluginId = PLUGIN_ID
-        self.version = VERSION
+        self.version = getVersion()
         self.timezone = getTimezone()
         self.os = getOs()
         self.cumulative_editor_seconds = 0

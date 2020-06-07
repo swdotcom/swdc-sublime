@@ -3,6 +3,7 @@ import copy
 from .SoftwareUtil import *
 from .SoftwareModels import CodeTimeSummary, TimeData
 from .Constants import *
+from .CommonUtil import *
 
 def saveTimeDataSummaryToDisk(data):
     if not data:

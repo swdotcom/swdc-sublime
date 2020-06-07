@@ -18,9 +18,7 @@ from .SoftwareHttp import *
 from .SoftwareSettings import *
 from .SoftwareModels import Project
 from .Constants import *
-
-# the plugin version
-VERSION = '2.2.1'
+from .CommonUtil import *
 
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
@@ -67,38 +65,6 @@ def getOsUsername():
     
     return username
 
-def getOs():
-    system = platform.system()
-    #release = platform.release()
-    return system
-
-def getTimezone():
-    myTimezone = None 
-    try:
-        myTimezone = datetime.now(timezone.utc).astimezone().tzname()
-    except Exception:
-        pass
-    return myTimezone
-
-def getUtcOffset():
-    timestamp = timeModule.time()
-    time_local = datetime.fromtimestamp(timestamp)
-    time_utc = datetime.utcfromtimestamp(timestamp)
-    offset_in_sec = round((time_local - time_utc).total_seconds())
-    return offset_in_sec
-
-def getNowTimes():
-    nowInSec = round(timeModule.time())
-    offsetInSec = getUtcOffset()
-    localNowInSec = round(nowInSec + offsetInSec)
-    day = datetime.now().date().isoformat()
-    return {
-        'nowInSec': nowInSec,
-        'localNowInSec': localNowInSec,
-        'offsetInSec': offsetInSec,
-        'day': day
-    }
-
 def getHostname():
     try:
         return socket.gethostname()
@@ -111,30 +77,6 @@ def getActiveWindowId():
     except Exception as ex:
         print("Code Time: unable to retrieve active window: %s" % ex)
         return None
-
-# fetch a value from the .software/session.json file
-def getItem(key):
-    val = sessionMap.get(key, None)
-    if (val is not None):
-        return val
-    jsonObj = getSoftwareSessionAsJson()
-
-    # return a default of None if key isn't found
-    val = jsonObj.get(key, None)
-
-    return val
-
-# get an item from the session json file
-def setItem(key, value):
-    sessionMap[key] = value
-    jsonObj = getSoftwareSessionAsJson()
-    jsonObj[key] = value
-
-    content = json.dumps(jsonObj)
-
-    sessionFile = getSoftwareSessionFile()
-    with open(sessionFile, 'w') as f:
-        f.write(content)
 
 def refreshTreeView():
     buildTreeLock.acquire()
@@ -188,14 +130,6 @@ def softwareSessionFileExists():
     sessionFile = os.path.join(file, 'session.json')
     return os.path.isfile(sessionFile)
 
-def getSoftwareSessionAsJson():
-    try:
-        with open(getSoftwareSessionFile()) as sessionFile:
-            loadedSessionFile = json.load(sessionFile)
-            return loadedSessionFile
-    except Exception:
-        return {}
-
 def getFileDataAsJson(file):
     data = None 
     if os.path.isfile(file):
@@ -238,11 +172,7 @@ def getFileDataPayloadsAsJson(file):
         except Exception as ex:
             log('Unable to read file data payload: %s' % ex)
             return []
-    return payloads 
-
-def getSoftwareSessionFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'session.json')
+    return payloads
 
 def getSoftwareDataStoreFile():
     file = getSoftwareDir(True)
@@ -267,13 +197,6 @@ def getTimeDataSummaryFile():
 def getSessionThresholdSeconds():
     thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
     return thresholdSeconds
-
-def getSoftwareDir(autoCreate):
-    softwareDataDir = os.path.expanduser('~')
-    softwareDataDir = os.path.join(softwareDataDir, '.software')
-    if (autoCreate is True):
-        os.makedirs(softwareDataDir, exist_ok=True)
-    return softwareDataDir
 
 def getCustomDashboardFile():
     file = getSoftwareDir(True)
@@ -481,7 +404,7 @@ def getResourceInfo(rootDir):
 
 def serverIsAvailable():
     # non-authenticated ping, no need to set the Authorization header
-    response = requestIt("GET", "/ping", None, getItem("jwt"))
+    response = requestIt("GET", "/ping", None, None)
     if (isResponseOk(response)):
         return True
     else:
@@ -557,21 +480,19 @@ def launchCustomDashboard():
     sublime.active_window().open_file(file)
 
 def getAppJwt():
-    serverAvailable = serverIsAvailable()
-    if (serverAvailable):
-        now = round(timeModule.time())
-        api = "/data/apptoken?token=" + str(now)
-        response = requestIt("GET", api, None, None)
-        if (response is not None):
-            responseObjStr = response.read().decode('utf-8')
-            try:
-                responseObj = json.loads(responseObjStr)
-                appJwt = responseObj.get("jwt", None)
-                if (appJwt is not None):
-                    return appJwt
-            except Exception as ex:
-                log("Code Time: Unable to retrieve app token: %s" % ex)
-    return None
+    now = round(timeModule.time())
+    api = "/data/apptoken?token=" + str(now)
+    response = requestIt("GET", api, None, None)
+    if (response is not None):
+        responseObjStr = response.read().decode('utf-8')
+        try:
+            responseObj = json.loads(responseObjStr)
+            appJwt = responseObj.get("jwt", None)
+            if (appJwt is not None):
+                return appJwt
+        except Exception as ex:
+            log("Code Time: Unable to retrieve app token: %s" % ex)
+            return None
 
 # crate a uuid token to establish a connection
 def createToken():
@@ -579,9 +500,9 @@ def createToken():
     uid = uuid.uuid4()
     return uid.hex
 
-def createAnonymousUser(serverAvailable):
+def createAnonymousUser():
     appJwt = getAppJwt()
-    if (serverAvailable and appJwt):
+    if (appJwt):
         username = getOsUsername()
         timezone = getTimezone()
         hostname = getHostname()
@@ -608,9 +529,9 @@ def createAnonymousUser(serverAvailable):
             log("Code Time: Unable to complete anonymous user creation: %s" % ex)
     return None
 
-def getUser(serverAvailable):
+def getUser():
     jwt = getItem("jwt")
-    if (jwt and serverAvailable):
+    if (jwt):
         api = "/users/me"
         response = requestIt("GET", api, None, jwt)
         if (isResponseOk(response)):
@@ -643,14 +564,13 @@ def getLoggedInCacheState():
 
 def sendHeartbeat(reason):
     jwt = getItem("jwt")
-    serverAvailable = serverIsAvailable()
-    if (jwt is not None and serverAvailable):
+    if (jwt is not None):
 
         payload = {}
         payload["pluginId"] = PLUGIN_ID
         payload["os"] = getOs()
         payload["start"] = round(timeModule.time())
-        payload["version"] = VERSION
+        payload["version"] = getVersion()
         payload["hostname"] = getHostname()
         payload["trigger_annotaion"] = reason
 
@@ -783,11 +703,3 @@ def isGitProject(projectDir):
 def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
-
-def getIsNewDay():
-    day = getNowTimes()['day']
-    currentDay = getItem('currentDay')
-    if (currentDay != day):
-        return True
-    else: 
-        return False

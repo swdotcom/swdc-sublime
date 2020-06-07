@@ -5,6 +5,7 @@ from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareOffline import *
+from .CommonUtil import *
 
 def updateSessionSummaryFromServer(isNewDay=False):
     jwt = getItem('jwt')
