@@ -179,7 +179,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
         elif layout['cols'][1] > 0.3:
             # Evenly space the original views
             tree_view_width = min(0.25, layout['cols'][1] / 2.0)
-            new_orig_views = list(map(lambda x: x + (1 - x) * tree_view_width, layout['cols'][1:-1])) 
+            new_orig_views = list([x + (1 - x) * tree_view_width for x in layout['cols'][1:-1]]) 
             layout['cols'] = [0, tree_view_width] + new_orig_views + [layout['cols'][-1]]
 
         layout['cells'] = [[0, 0, 1, len(layout['rows']) - 1]] + [
@@ -407,7 +407,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
     # data is an object of shape returned by SessionSummary()
     def buildMetricsNodes(self, data):
         # delete the current (ACTIVITY METRICS) from tree['childs']
-        self.tree['childs'] = list(filter(lambda x: x['name'] != 'DAILY METRICS', self.tree['childs']))
+        self.tree['childs'] = list([x for x in self.tree['childs'] if x['name'] != 'DAILY METRICS'])
 
         newActivityMetrics = {
             'depth': 1,
@@ -675,7 +675,7 @@ class OpenTreeView(sublime_plugin.WindowCommand):
 
     # TODO: work on the CSS for this
     def buildContributorNodes(self):
-        self.tree['childs'] = list(filter(lambda x: x['name'] != 'CONTRIBUTORS', self.tree['childs']))
+        self.tree['childs'] = list([x for x in self.tree['childs'] if x['name'] != 'CONTRIBUTORS'])
 
         newContributorsNodes = {
             'depth': 1,
