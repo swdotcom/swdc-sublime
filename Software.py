@@ -5,7 +5,6 @@ import webbrowser
 import time as timeModule
 from datetime import *
 import json
-import os
 import sublime_plugin
 import sublime
 from .lib.SoftwareHttp import *
@@ -23,6 +22,7 @@ from .lib.SoftwareSessionApp import *
 from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
 from .lib.Constants import *
+from .lib.Tracker import *
 
 DEFAULT_DURATION = 60
 
@@ -375,6 +375,9 @@ def initializeUser():
 
 
 def initializePlugin(initializedAnonUser, serverAvailable):
+    print("INITIALIZE THE TRACKER!")
+    initialize_tracker()
+    
     name = getPluginName()
     version = getVersion()
     log('Code Time: Loaded v%s of package name: %s' % (version, name))
