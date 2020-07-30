@@ -81,7 +81,7 @@ def updateSessionFromSummaryApi(currentDayMinutes):
     else:
         summaryFile = getTimeDataSummaryFile()
         payloads = getFileDataArray(summaryFile)
-        filteredPayloads = list(filter(lambda x: x['day'] == day, payloads))
+        filteredPayloads = [x for x in payloads if x['day'] == day]
         if filteredPayloads and len(filteredPayloads) > 0:
             timeData = filteredPayloads[0]
     

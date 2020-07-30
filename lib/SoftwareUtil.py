@@ -90,7 +90,7 @@ def getOpenProjects():
         folders = sublime.active_window().project_data()['folders']
     if folders is None:
         return []
-    openProjectNames = list(map(lambda x: x['path'], folders))
+    openProjectNames = list([x['path'] for x in folders])
     return openProjectNames
 
 def getFirstOpenProject():

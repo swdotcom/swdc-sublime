@@ -43,7 +43,7 @@ def getCodeTimeSummary():
 
     summaryFile = getTimeDataSummaryFile()
     payloads = getFileDataArray(summaryFile)
-    filteredPayloads = list(filter(lambda x: x['day'] == day, payloads))
+    filteredPayloads = list([x for x in payloads if x['day'] == day])
 
     if filteredPayloads and len(filteredPayloads) > 0:
         for payload in filteredPayloads:
