@@ -341,6 +341,11 @@ class EventListener(sublime_plugin.EventListener):
 
 def plugin_loaded():
     initializeUser()
+    track_editor_action(
+        jwt=getJwt(),
+        entity="editor",
+        type="activate"
+    )
 
 
 def initializeUser():
@@ -375,9 +380,6 @@ def initializeUser():
 
 
 def initializePlugin(initializedAnonUser, serverAvailable):
-    print("INITIALIZE THE TRACKER!")
-    initialize_tracker()
-    
     name = getPluginName()
     version = getVersion()
     log('Code Time: Loaded v%s of package name: %s' % (version, name))

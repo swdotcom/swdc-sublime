@@ -64,6 +64,15 @@ def getPluginName():
 	pluginName = __name__.split('.')[0]
 	return pluginName
 
+def getJwt(with_prefix = False):
+    jwt = getItem("jwt")
+
+    if(with_prefix or jwt is None):
+        return jwt
+    else:
+        return jwt.split("JWT ")[1]
+
+
 # fetch a value from the .software/session.json file
 def getItem(key):
     jsonObj = getSoftwareSessionAsJson()
