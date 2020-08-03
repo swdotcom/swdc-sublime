@@ -22,7 +22,7 @@ from .lib.SoftwareSessionApp import *
 from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
 from .lib.Constants import *
-from .lib.Tracker import *
+from .lib.TrackerManager import *
 
 DEFAULT_DURATION = 60
 
@@ -194,8 +194,36 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['open'] += 1
         log('Code Time: opened file %s' % fileName)
 
+        track_editor_action(
+            jwt=getJwt(),
+            entity='file',
+            type='open',
+            file_name=self.get_file_name(view),
+            file_path=self.get_file_path(view)
+        )
+
         # show last status message
         redisplayStatus()
+
+    def get_file_name(self, view):
+        # view.file_name() returns the full path:
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        full_path = view.file_name()
+        project_data = sublime.active_window().project_data()
+        project_path = project_data['folders'][0]['path']
+        # => /lib/SoftwareUtil.py
+        return full_path.split(project_path)[1]
+
+    def get_file_path(self, view):
+        # view.file_name() returns the full path:
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        path = view.file_name()
+        delimiter = "/"
+        if(isWindows()):
+            delimiter = "\\"
+
+        # => '/Users/bojacobson/code/software/swdc-sublime/lib'
+        return path.split(path.split(delimiter)[-1])[0][:-1]
 
     # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
