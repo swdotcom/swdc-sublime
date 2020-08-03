@@ -113,7 +113,7 @@ def auth_payload(**kwargs):
 
 def file_payload(**kwargs):
 	hashed_name = hash_value(kwargs['file_name'], 'file_name', kwargs['jwt'])
-	hashed_path = hash_value(kwargs['file_name'], 'file_path', kwargs['jwt'])
+	hashed_path = hash_value(kwargs['file_path'], 'file_path', kwargs['jwt'])
 
 	return SelfDescribingJson(
     	'iglu:com.software/file/jsonschema/1-0-1',

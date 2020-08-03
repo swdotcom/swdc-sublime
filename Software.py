@@ -198,14 +198,17 @@ class EventListener(sublime_plugin.EventListener):
             jwt=getJwt(),
             entity='file',
             type='open',
-            file_name=self.get_file_name(view),
-            file_path=self.get_file_path(view)
+            file_name=get_file_name(view),
+            file_path=get_file_path(view),
+            syntax=get_syntax(view),
+            line_count=lines,
+            character_count=fileSize
         )
 
         # show last status message
         redisplayStatus()
 
-    def get_file_name(self, view):
+    def get_file_name(view):
         # view.file_name() returns the full path:
         # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
         full_path = view.file_name()
@@ -214,7 +217,7 @@ class EventListener(sublime_plugin.EventListener):
         # => /lib/SoftwareUtil.py
         return full_path.split(project_path)[1]
 
-    def get_file_path(self, view):
+    def get_file_path(view):
         # view.file_name() returns the full path:
         # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
         path = view.file_name()
@@ -252,6 +255,17 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % fileName)
+
+        track_editor_action(
+            jwt=getJwt(),
+            entity='file',
+            type='close',
+            file_name=get_file_name(view),
+            file_path=get_file_path(view),
+            syntax=get_syntax(view),
+            line_count=lines,
+            character_count=fileSize
+        )
 
         # show last status message
         redisplayStatus()

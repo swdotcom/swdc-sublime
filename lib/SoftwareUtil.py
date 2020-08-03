@@ -703,3 +703,40 @@ def isGitProject(projectDir):
 def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
+    
+def get_file_name(view):
+    # view.file_name() returns the full path:
+    # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+    full_path = view.file_name()
+    if(full_path is None):
+        return UNTITLED
+    project_data = sublime.active_window().project_data()
+    project_path = project_data['folders'][0]['path']
+    # => /lib/SoftwareUtil.py
+    return full_path.split(project_path)[1]
+
+def get_file_path(view):
+
+    # view.file_name() returns the full path:
+    # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+    path = view.file_name()
+    if(path is None):
+        return UNTITLED
+    delimiter = "/"
+    if(isWindows()):
+        delimiter = "\\"
+
+    # => '/Users/bojacobson/code/software/swdc-sublime/lib'
+    return path.split(path.split(delimiter)[-1])[0][:-1]
+
+def get_syntax(view):
+    path = view.file_name()
+    if(path is None):
+        return ""
+
+    split = path.split(".")
+    
+    if len(split) > 1:
+        return split[-1]
+    else:
+        return ""
