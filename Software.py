@@ -198,8 +198,8 @@ class EventListener(sublime_plugin.EventListener):
             jwt=getJwt(),
             entity='file',
             type='open',
-            file_name=get_file_name(view),
-            file_path=get_file_path(view),
+            file_name=get_file_name(view.file_name()),
+            file_path=get_file_path(view.file_name()),
             syntax=get_syntax(view),
             line_count=lines,
             character_count=fileSize
@@ -207,26 +207,6 @@ class EventListener(sublime_plugin.EventListener):
 
         # show last status message
         redisplayStatus()
-
-    def get_file_name(view):
-        # view.file_name() returns the full path:
-        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
-        full_path = view.file_name()
-        project_data = sublime.active_window().project_data()
-        project_path = project_data['folders'][0]['path']
-        # => /lib/SoftwareUtil.py
-        return full_path.split(project_path)[1]
-
-    def get_file_path(view):
-        # view.file_name() returns the full path:
-        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
-        path = view.file_name()
-        delimiter = "/"
-        if(isWindows()):
-            delimiter = "\\"
-
-        # => '/Users/bojacobson/code/software/swdc-sublime/lib'
-        return path.split(path.split(delimiter)[-1])[0][:-1]
 
     # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
@@ -260,8 +240,8 @@ class EventListener(sublime_plugin.EventListener):
             jwt=getJwt(),
             entity='file',
             type='close',
-            file_name=get_file_name(view),
-            file_path=get_file_path(view),
+            file_name=get_file_name(view.file_name()),
+            file_path=get_file_path(view.file_name()),
             syntax=get_syntax(view),
             line_count=lines,
             character_count=fileSize
@@ -357,6 +337,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['length'] = fileSize
 
         if lineDiff == 0 and charCountDiff > 8:
+            fileInfoData['chars_pasted'] += charCountDiff
             fileInfoData['paste'] += 1
             log('Code Time: pasted incremented')
         elif lineDiff == 0 and charCountDiff == -1:
@@ -388,7 +369,6 @@ def plugin_loaded():
         entity="editor",
         type="activate"
     )
-
 
 def initializeUser():
     # check if the session file is there

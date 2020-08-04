@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+from datetime import datetime
 from .SoftwareHttp import *
 # Add vendor directory to module search path
 # This needs to be here to load the snowplow_tracker library
@@ -10,6 +11,8 @@ from snowplow_tracker import Subject, Tracker, Emitter, SelfDescribingJson
 
 cached_tracker = None
 
+# swdc_tracker will initialize on the first use of it (editor activated event)
+# and use a cached instance for every subsequent call
 def swdc_tracker(use_cache = True):
 	global cached_tracker
 
@@ -81,8 +84,8 @@ def codetime_payload(**kwargs):
 			'pastes': kwargs['pastes'],
 			'lines_added': kwargs['lines_added'],
 			'lines_deleted': kwargs['lines_deleted'],
-			'start_time': kwargs['start_time'],
-			'end_time': kwargs['end_time']
+			'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
+			'end_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat()
 		}
 	)
 

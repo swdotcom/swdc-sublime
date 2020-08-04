@@ -7,6 +7,7 @@ from .SoftwareUtil import *
 from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
+from .TrackerManager import *
 
 DEFAULT_DURATION = 60
 
@@ -14,6 +15,29 @@ DEFAULT_DURATION = 60
 def post_json(json_data):
     # save the data to the offline data file
     storePayload(json.loads(json_data))
+    
+    jwt = getJwt()
+    for filepath, payload in json.loads(json_data)['source'].items():
+        print("TRACKING CODETIME EVENT")
+        print(filepath)
+        track_codetime_event(
+            jwt=jwt,
+            keystrokes=payload['keystrokes'],
+            chars_added=payload['add'],
+            chars_deleted=payload['delete'],
+            chars_pasted=payload['chars_pasted'],
+            pastes=payload['paste'],
+            lines_added=payload['linesAdded'],
+            lines_deleted=payload['linesRemoved'],
+            start_time=payload['local_start'],
+            end_time=payload['local_end'],
+            file_path=get_file_path(filepath),
+            file_name=get_file_name(filepath),
+            syntax=payload['syntax'],
+            line_count=payload['lines'],
+            character_count=payload['length']
+        )
+
 
     PluginData.reset_source_data()
 
@@ -277,6 +301,7 @@ class PluginData():
             fileInfoData['local_start'] = nowTimes['localNowInSec']
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
+            fileInfoData['chars_pasted'] = 0
             keystrokeCount.source[fileName] = fileInfoData
         else:
             # update the end and local_end to zero since the file is still getting modified
@@ -318,7 +343,8 @@ class PluginData():
             "linesRemoved": 0,
             "syntax": "",
             "end": 0,
-            "local_end": 0
+            "local_end": 0,
+            "chars_pasted": 0
         }
         active_data.source[fileName] = fileInfo 
 
