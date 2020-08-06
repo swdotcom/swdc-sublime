@@ -3,6 +3,7 @@ import sys
 import json
 from datetime import datetime
 from .SoftwareHttp import *
+from .blake2 import BLAKE2b
 # Add vendor directory to module search path
 # This needs to be here to load the snowplow_tracker library
 vendor_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'vendor'))
@@ -10,6 +11,8 @@ sys.path.append(vendor_dir)
 from snowplow_tracker import Subject, Tracker, Emitter, SelfDescribingJson
 
 cached_tracker = None
+cached_hashed_values = {}
+refresh_hashed_values = False
 # swdc_tracker will initialize on the first use of it (editor activated event)
 # and use a cached instance for every subsequent call
 def swdc_tracker(use_cache = True):
@@ -33,18 +36,24 @@ def track_codetime_event(**kwargs):
 		event_json = codetime_payload(**kwargs)
 		context = build_context(**kwargs)
 		swdc_tracker().track_self_describing_event(event_json, context)
+		if(refresh_hashed_values):
+			fetch_user_hashed_values()
 
 def track_editor_action(**kwargs):
 	if tracker_enabled():
 		event_json = editor_action_payload(**kwargs)
 		context = build_context(**kwargs)
 		response = swdc_tracker().track_self_describing_event(event_json, context)
+		if(refresh_hashed_values):
+			fetch_user_hashed_values()
 
 def track_ui_interaction(**kwargs):
 	if tracker_enabled():
 		event_json = ui_interaction_payload(**kwargs)
 		context = build_context(**kwargs)
 		swdc_tracker().track_self_describing_event(event_json, context)
+		if(refresh_hashed_values):
+			fetch_user_hashed_values()
 
 def build_context(**kwargs):
 	ctx = []
@@ -187,5 +196,36 @@ def ui_element_payload(**kwargs):
 	)
 
 def hash_value(value, data_type, jwt):
-	# TODO
-	return value
+	if value:
+		hashed_value = BLAKE2b(value.encode(), 64).hexdigest()
+		
+		global cached_hashed_values
+		if hashed_value not in cached_hashed_values.get(data_type, []):
+			encrypt_and_save(value, hashed_value, data_type, jwt)
+			global refresh_hashed_values
+			refresh_hashed_values = True
+
+		return hashed_value
+	else:
+		return ''
+
+def fetch_user_hashed_values():
+	response = requestIt('GET', '/hashed_values', None, getJwt())
+	r = json.loads(response.read().decode('utf-8'))
+	global cached_hashed_values
+	cached_hashed_values = r['data']
+
+def encrypt_and_save(value, hashed_value, data_type, jwt):
+	params = {
+		value: value,
+		hashed_value: hashed_value,
+		data_type: data_type
+	}
+
+	response = requestIt('POST', '/user_encrypted_data', json.dumps(params), jwt)
+	print(json.loads(response.read().decode('utf-8')))
+	if response and isResponseOk(response):
+		return
+	else:
+		print("error POSTing to /user_encrypted_data")
+		print(response)

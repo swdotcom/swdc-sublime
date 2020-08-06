@@ -169,7 +169,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % full_file_path)
 
-        track_editor_action(**editor_action_params(view, 'file', 'close'))
+        Thread(target=track_file_closed, args=(view,)).start()
 
         # show last status message
         redisplayStatus()
@@ -303,6 +303,7 @@ class EventListener(sublime_plugin.EventListener):
 # Iniates the plugin tasks once the it's loaded into Sublime.
 def plugin_loaded():
     initializeUser()
+    fetch_user_hashed_values()
     track_editor_action(
         jwt=getJwt(),
         entity='editor',
@@ -464,6 +465,10 @@ def track_ui_event(command_lookup_key):
         )
     except Exception as ex:
         print("Cannot track ui interaction for command: %s" % ex)
+
+def track_file_closed(view):
+    track_editor_action(**editor_action_params(view, 'file', 'close'))
+    return
 
 def editor_action_params(view, entity, action_type):
     data = PluginData.get_active_data(view)
