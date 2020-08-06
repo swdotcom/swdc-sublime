@@ -3,10 +3,11 @@ from package_control import events
 from queue import Queue
 import webbrowser
 import time as timeModule
-from datetime import *
+import os
 import json
 import sublime_plugin
 import sublime
+from datetime import *
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
 from .lib.SoftwareMusic import *
@@ -23,6 +24,7 @@ from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
 from .lib.Constants import *
 from .lib.TrackerManager import *
+from .lib.ui_interactions import UI_INTERACTIONS
 
 DEFAULT_DURATION = 60
 
@@ -36,55 +38,29 @@ activated = False
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
         launchWebDashboardUrl()
+        track_ui_event('view-web-dashboard')
 
     def is_enabled(self):
         return (getValue("logged_on", True) is True)
 
 # Command to launch the code time metrics "launch_code_time_metrics"
-
-
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
         codetimemetricsthread.start()
+        track_ui_event('view-dashboard')
 
-
-class LaunchCustomDashboard(sublime_plugin.WindowCommand):
-    def run(self):
-        d = datetime.now()
-        current_time = d.strftime("%m/%d/%Y")
-        t = d - timedelta(days=7)
-        time_ago = t.strftime("%m/%d/%Y")
-        # default range: last 7 days
-        default_range = str(time_ago) + ", " + str(current_time)
-        self.window.show_input_panel(
-            "Enter a start and end date (format: MM/DD/YYYY):", default_range, self.on_done, None, None)
-
-    def on_done(self, result):
-        setValue("date_range", result)
-        launchCustomDashboard()
 
 # connect spotify menu
-
-
 class ConnectSpotify(sublime_plugin.TextCommand):
     def run(self, edit):
         launchSpotifyLoginUrl()
-
-    # def is_enabled(self):
-    #     loggedOn = getValue("logged_on", True)
-    #     online = getValue("online", True)
-    #     if (loggedOn is False and online is True):
-    #         return True
-    #     else:
-    #         return False
-
 
 class ShowTreeView(sublime_plugin.WindowCommand):
     def run(self):
         setShouldOpen(True)
         refreshTreeView()
-
+        track_ui_event('show-tree-view')
 
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -98,9 +74,7 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
         log("toggling status bar metrics")
         toggleStatus()
-
-# Testing function
-
+        track_ui_event('toggle-status-bar-metrics')
 
 class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
     def run(self, isNewDay):
@@ -112,57 +86,29 @@ class GenerateContributorSummary(sublime_plugin.WindowCommand):
         projectDir = getProjectDirectory()
         generateContributorSummary(projectDir)
 
-# Mute Console message
-
-
-class HideConsoleMessage(sublime_plugin.TextCommand):
-    def run(self, edit):
-        log("Code Time: Console Messages Disabled !")
-        # showStatus("Paused")
-        setValue("software_logging_on", False)
-
-    def is_enabled(self):
-        return (getValue("software_logging_on", True) is True)
-
-# Command to re-enable Console message
-
-
-class ShowConsoleMessage(sublime_plugin.TextCommand):
-    def run(self, edit):
-        log("Code Time: Console Messages Enabled !")
-        # showStatus("Code Time")
-        setValue("software_logging_on", True)
-
-    def is_enabled(self):
-        return (getValue("software_logging_on", True) is False)
-
-# Command to pause kpm metrics
-
-
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         log("software kpm metrics paused")
         showStatus("Paused")
+        track_ui_event('pause-telemetry')
+        # set value must be below track_ui_event, otherwise we will not catch the event!
         setValue("software_telemetry_on", False)
 
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is True)
 
 # Command to re-enable kpm metrics
-
-
 class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         log("software kpm metrics enabled")
         showStatus("Code Time")
         setValue("software_telemetry_on", True)
+        track_ui_event('enable-telemetry')
 
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is False)
 
 # Runs once instance per view (i.e. tab, or single file window)
-
-
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
@@ -171,48 +117,37 @@ class EventListener(sublime_plugin.EventListener):
         blurWindow()
 
     def on_load_async(self, view):
-        fileName = view.file_name()
-        if (fileName is None):
-            fileName = UNTITLED
+        full_file_path = view.file_name()
+        if (full_file_path is None):
+            full_file_path = UNTITLED
 
         active_data = PluginData.get_active_data(view)
 
         # get the file info to increment the open metric
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(
-            active_data, fileName)
+            active_data, full_file_path)
         if fileInfoData is None:
             return
 
-        fileSize = view.size()
-        fileInfoData['length'] = fileSize
+        fileInfoData['length'] = get_character_count(view)
 
         # get the number of lines
-        lines = view.rowcol(fileSize)[0] + 1
-        fileInfoData['lines'] = lines
+        fileInfoData['lines'] = get_line_count(view)
 
         # we have the fileinfo, update the metric
         fileInfoData['open'] += 1
-        log('Code Time: opened file %s' % fileName)
+        log('Code Time: opened file %s' % full_file_path)
 
-        track_editor_action(
-            jwt=getJwt(),
-            entity='file',
-            type='open',
-            file_name=get_file_name(view.file_name()),
-            file_path=get_file_path(view.file_name()),
-            syntax=get_syntax(view),
-            line_count=lines,
-            character_count=fileSize
-        )
+        track_editor_action(**editor_action_params(view, 'file', 'open'))
 
         # show last status message
         redisplayStatus()
 
     # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
-        fileName = view.file_name()
-        if (fileName is None):
-            fileName = UNTITLED
+        full_file_path = view.file_name()
+        if (full_file_path is None):
+            full_file_path = UNTITLED
 
         if view.name() == CODETIME_TREEVIEW_NAME:
             handleCloseTreeView()
@@ -221,31 +156,20 @@ class EventListener(sublime_plugin.EventListener):
 
         # get the file info to increment the close metric
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(
-            active_data, fileName)
+            active_data, full_file_path)
         if fileInfoData is None:
             return
 
-        fileSize = view.size()
-        fileInfoData['length'] = fileSize
+        fileInfoData['length'] = get_character_count(view)
 
         # get the number of lines
-        lines = view.rowcol(fileSize)[0] + 1
-        fileInfoData['lines'] = lines
+        fileInfoData['lines'] = get_line_count(view)
 
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
-        log('Code Time: closed file %s' % fileName)
+        log('Code Time: closed file %s' % full_file_path)
 
-        track_editor_action(
-            jwt=getJwt(),
-            entity='file',
-            type='close',
-            file_name=get_file_name(view.file_name()),
-            file_path=get_file_path(view.file_name()),
-            syntax=get_syntax(view),
-            line_count=lines,
-            character_count=fileSize
-        )
+        track_editor_action(**editor_action_params(view, 'file', 'close'))
 
         # show last status message
         redisplayStatus()
@@ -258,18 +182,37 @@ class EventListener(sublime_plugin.EventListener):
             return
 
         # add the count for the file
-        fileName = view.file_name()
+        full_file_path = view.file_name()
 
         fileInfoData = {}
 
-        if (fileName is None):
-            fileName = UNTITLED
+        if (full_file_path is None):
+            full_file_path = UNTITLED
 
-        fileInfoData = PluginData.get_file_info_and_initialize_if_none(
-            active_data, fileName)
+        fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, full_file_path)
+        # project data
+        fileInfoData['project_name'] = active_data.project['name']
+        fileInfoData['project_directory'] = active_data.project['directory']
+
+        # file data
+        fileInfoData['file_name'] = format_file_name(full_file_path, active_data.project['directory'])
+        fileInfoData['file_path'] = format_file_path(full_file_path)
+
+        resource_info = active_data.project.get('resource', {})
+        # repo data
+        fileInfoData['repo_identifier'] = resource_info.get('identifier', '')
+        fileInfoData['repo_name'] = resource_info.get('name', '')
+        fileInfoData['owner_id'] = resource_info.get('owner_id', '')
+        fileInfoData['git_branch'] = resource_info.get('branch', '')
+        fileInfoData['git_tag'] = resource_info.get('tag', '')
+
+        # plugin data
+        fileInfoData['plugin_id'] = getPluginId()
+        fileInfoData['plugin_version'] = getVersion()
+        fileInfoData['plugin_name'] = getPluginName()
 
         # If file is untitled then log that msg and set file open metrics to 1
-        if fileName == UNTITLED:
+        if full_file_path == UNTITLED:
             # log("Code Time: opened file untitled")
             fileInfoData['open'] = 1
         else:
@@ -278,19 +221,19 @@ class EventListener(sublime_plugin.EventListener):
         if fileInfoData is None:
             return
 
-        fileSize = view.size()
+        fileSize = get_character_count(view)
 
-        #lines = 0
+        # lines = 0
         # rowcol gives 0-based line number, need to add one as on editor lines starts from 1
-        lines = view.rowcol(fileSize)[0] + 1
+        lines = get_line_count(view)
 
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
 
-            if (PluginData.line_counts.get(fileName) is None):
-                PluginData.line_counts[fileName] = prevLines
+            if (PluginData.line_counts.get(full_file_path) is None):
+                PluginData.line_counts[full_file_path] = prevLines
 
-            prevLines = PluginData.line_counts[fileName]
+            prevLines = PluginData.line_counts[full_file_path]
         elif (prevLines > 0):
             fileInfoData['lines'] = prevLines
 
@@ -357,17 +300,20 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['keystrokes'] = fileInfoData['add'] + \
             fileInfoData['delete'] + fileInfoData['paste']
 
-#
 # Iniates the plugin tasks once the it's loaded into Sublime.
-#
-
-
 def plugin_loaded():
     initializeUser()
     track_editor_action(
         jwt=getJwt(),
-        entity="editor",
-        type="activate"
+        entity='editor',
+        type='activate'
+    )
+
+def plugin_unloaded():
+	track_editor_action(
+        jwt=getJwt(),
+        entity='editor',
+        type='deactivate'
     )
 
 def initializeUser():
@@ -505,3 +451,49 @@ def getUsersOfFirstProject():
 
 def getHistoricalCommitsOfFirstProject():
     getHistoricalCommits(getProjectDirectory())
+
+def track_ui_event(command_lookup_key):
+    global UI_INTERACTIONS
+    try:
+        track_ui_interaction(
+            jwt=getJwt(), 
+            plugin_id=getPluginId(),
+            plugin_version=getVersion(),
+            plugin_name=getPluginName(),
+            **UI_INTERACTIONS[command_lookup_key]
+        )
+    except Exception as ex:
+        print("Cannot track ui interaction for command: %s" % ex)
+
+def editor_action_params(view, entity, action_type):
+    data = PluginData.get_active_data(view)
+
+    if data is None:
+        project_directory = getProjectDirectory()
+        project_name = os.path.basename(project_directory)
+        resource_info = getResourceInfo(project_directory)
+    else:
+        project_directory = data.project['directory']
+        project_name = data.project['name']
+        resource_info = data.project['resource']
+
+    return {
+        'jwt': getJwt(),
+        'entity': entity,
+        'type': action_type,
+        'file_name': format_file_name(view.file_name(), project_directory),
+        'file_path': format_file_path(view.file_name()),
+        'syntax': get_syntax(view),
+        'line_count': get_line_count(view),
+        'character_count': get_character_count(view),
+        'project_name': project_name,
+        'project_directory': project_directory,
+        'repo_identifier': resource_info.get('identifier', ''),
+        'repo_name': resource_info.get('name', ''),
+        'owner_id': resource_info.get('owner_id', ''),
+        'git_branch': resource_info.get('branch', ''),
+        'git_tag': resource_info.get('tag', ''),
+        'plugin_id': getPluginId(),
+        'plugin_version': getVersion(),
+        'plugin_name': getPluginName()
+    }

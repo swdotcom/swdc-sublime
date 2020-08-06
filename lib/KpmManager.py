@@ -18,8 +18,6 @@ def post_json(json_data):
     
     jwt = getJwt()
     for filepath, payload in json.loads(json_data)['source'].items():
-        print("TRACKING CODETIME EVENT")
-        print(filepath)
         track_codetime_event(
             jwt=jwt,
             keystrokes=payload['keystrokes'],
@@ -31,11 +29,13 @@ def post_json(json_data):
             lines_deleted=payload['linesRemoved'],
             start_time=payload['local_start'],
             end_time=payload['local_end'],
-            file_path=get_file_path(filepath),
-            file_name=get_file_name(filepath),
+            file_path=payload['file_path'],
+            file_name=payload['file_name'],
             syntax=payload['syntax'],
             line_count=payload['lines'],
-            character_count=payload['length']
+            character_count=payload['length'],
+            project_name=payload['project_name'],
+            project_directory=payload['project_directory']
         )
 
 
@@ -302,6 +302,10 @@ class PluginData():
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
             fileInfoData['chars_pasted'] = 0
+            fileInfoData['project_name'] = ''
+            fileInfoData['project_directory'] = ''
+            fileInfoData['file_name'] = ''
+            fileInfoData['file_path'] = ''
             keystrokeCount.source[fileName] = fileInfoData
         else:
             # update the end and local_end to zero since the file is still getting modified
@@ -344,7 +348,11 @@ class PluginData():
             "syntax": "",
             "end": 0,
             "local_end": 0,
-            "chars_pasted": 0
+            "chars_pasted": 0,
+            "file_path": "",
+            "file_name": "",
+            "project_name": "",
+            "project_directory": ""
         }
         active_data.source[fileName] = fileInfo 
 

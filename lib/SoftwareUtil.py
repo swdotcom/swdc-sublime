@@ -704,39 +704,46 @@ def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
     
-def get_file_name(path):
-    # path should be the full path
-    # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
-    if path == "Untitled" or path is None:
-        return UNTITLED
+def format_file_name(path, project_path = None):
+    try:
+        # path should be the full path
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        if path == "Untitled" or path is None:
+            return UNTITLED
 
-    project_data = sublime.active_window().project_data()
-    project_path = project_data['folders'][0]['path']
-    # => /lib/SoftwareUtil.py
-    return path.split(project_path)[1]
+        if project_path is None:
+            project_data = sublime.active_window().project_data()
+            project_path = project_data['folders'][0]['path']
+        # => /lib/SoftwareUtil.py
+        return path.split(project_path)[1]
+    except Exception as ex:
+        return path
 
-def get_file_path(path):
-    # path should be the full path
-    # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
-    if(path == "Untitled" or path is None):
-        return UNTITLED
+def format_file_path(path):
+    try:
+        # path should be the full path
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        if(path == "Untitled" or path is None):
+            return UNTITLED
 
-    delimiter = "/"
-    if(isWindows()):
-        delimiter = "\\"
+        delimiter = "/"
+        if(isWindows()):
+            delimiter = "\\"
 
-    # => '/Users/bojacobson/code/software/swdc-sublime/lib'
-    return path.split(path.split(delimiter)[-1])[0][:-1]
+        # => '/Users/bojacobson/code/software/swdc-sublime/lib'
+        return path.split(path.split(delimiter)[-1])[0][:-1]
+    except Exception as ex:
+        return path
 
 def get_syntax(view):
     syntax = view.settings().get('syntax')
     # get the last occurance of the "/" then get the 1st occurance of the .sublime-syntax
     # [language].sublime-syntax
     # Packages/Python/Python.sublime-syntax
-    syntax = syntax[syntax.rfind('/') + 1:-len(".sublime-syntax")]
     if (syntax):
-        return syntax
+        return syntax[syntax.rfind('/') + 1:-len(".sublime-syntax")]
     else:
+        # get it from the file name
         path = view.file_name()
         if path == "Untitled" or path is None:
             return ""
@@ -747,3 +754,11 @@ def get_syntax(view):
             return split[-1]
         else:
             return ""
+
+def get_character_count(view):
+    return view.size()
+
+def get_line_count(view):
+    # rowcol gives 0-based line number, need to add one as on editor lines starts from 1
+    character_count = get_character_count(view) 
+    return view.rowcol(character_count)[0] + 1

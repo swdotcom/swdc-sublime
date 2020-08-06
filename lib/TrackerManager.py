@@ -10,7 +10,6 @@ sys.path.append(vendor_dir)
 from snowplow_tracker import Subject, Tracker, Emitter, SelfDescribingJson
 
 cached_tracker = None
-
 # swdc_tracker will initialize on the first use of it (editor activated event)
 # and use a cached instance for every subsequent call
 def swdc_tracker(use_cache = True):
@@ -26,20 +25,26 @@ def swdc_tracker(use_cache = True):
 		cached_tracker = tracker
 		return tracker
 
+def tracker_enabled():
+	return getValue("software_telemetry_on", True)
+
 def track_codetime_event(**kwargs):
-	event_json = codetime_payload(**kwargs)
-	context = build_context(**kwargs)
-	swdc_tracker().track_self_describing_event(event_json, context)
+	if tracker_enabled():
+		event_json = codetime_payload(**kwargs)
+		context = build_context(**kwargs)
+		swdc_tracker().track_self_describing_event(event_json, context)
 
 def track_editor_action(**kwargs):
-	event_json = editor_action_payload(**kwargs)
-	context = build_context(**kwargs)
-	response = swdc_tracker().track_self_describing_event(event_json, context)
+	if tracker_enabled():
+		event_json = editor_action_payload(**kwargs)
+		context = build_context(**kwargs)
+		response = swdc_tracker().track_self_describing_event(event_json, context)
 
 def track_ui_interaction(**kwargs):
-	event_json = ui_interaction_payload(**kwargs)
-	context = build_context(**kwargs)
-	swdc_tracker().track_self_describing_event(event_json, context)
+	if tracker_enabled():
+		event_json = ui_interaction_payload(**kwargs)
+		context = build_context(**kwargs)
+		swdc_tracker().track_self_describing_event(event_json, context)
 
 def build_context(**kwargs):
 	ctx = []
@@ -146,8 +151,8 @@ def project_payload(**kwargs):
 	return SelfDescribingJson(
 		'iglu:com.software/project/jsonschema/1-0-0',
 		{
-			project_name: hashed_name,
-			project_directory: hashed_directory
+			'project_name': hashed_name,
+			'project_directory': hashed_directory
 		}
 	)
 
@@ -171,7 +176,7 @@ def repo_payload(**kwargs):
 
 def ui_element_payload(**kwargs):
 	return SelfDescribingJson(
-		'iglu:com.software/ui_element/jsonschema/1-0-2',
+		'iglu:com.software/ui_element/jsonschema/1-0-3',
 		{
 			'element_name': kwargs['element_name'],
 			'element_location': kwargs['element_location'],

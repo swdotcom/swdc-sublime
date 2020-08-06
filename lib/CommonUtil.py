@@ -2,7 +2,6 @@ import time as timeModule
 import platform
 import json
 import os
-
 from .Constants import *
 from datetime import *
 
@@ -112,5 +111,7 @@ def getSoftwareDir(autoCreate):
         os.makedirs(softwareDataDir, exist_ok=True)
     return softwareDataDir
 
+def sublime_variables(view):
+    view.window().extract_variables()
 
 
