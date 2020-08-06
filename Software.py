@@ -51,11 +51,6 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
         track_ui_event('view-dashboard')
 
 
-# connect spotify menu
-class ConnectSpotify(sublime_plugin.TextCommand):
-    def run(self, edit):
-        launchSpotifyLoginUrl()
-
 class ShowTreeView(sublime_plugin.WindowCommand):
     def run(self):
         setShouldOpen(True)
@@ -467,11 +462,20 @@ def track_ui_event(command_lookup_key):
         print("Cannot track ui interaction for command: %s" % ex)
 
 def track_file_closed(view):
-    track_editor_action(**editor_action_params(view, 'file', 'close'))
-    return
+    if view.window() is None:
+        return
+    else:
+        # passing in full_file_path here because view.window() can return null in the 
+        # PluginData.get_active_data(view) method after the buffer has closed.
+        track_editor_action(**editor_action_params(view, 'file', 'close', full_file_path=view.file_name()))
+        return
 
-def editor_action_params(view, entity, action_type):
-    data = PluginData.get_active_data(view)
+def editor_action_params(view, entity, action_type, **kwargs):
+    try:
+        data = PluginData.get_active_data(view)
+    except Exception:
+        data = None
+
 
     if data is None:
         project_directory = getProjectDirectory()
@@ -482,12 +486,14 @@ def editor_action_params(view, entity, action_type):
         project_name = data.project['name']
         resource_info = data.project['resource']
 
+    full_file_path = kwargs.get('full_file_path', view.file_name())
+
     return {
         'jwt': getJwt(),
         'entity': entity,
         'type': action_type,
-        'file_name': format_file_name(view.file_name(), project_directory),
-        'file_path': format_file_path(view.file_name()),
+        'file_name': format_file_name(full_file_path, project_directory),
+        'file_path': format_file_path(full_file_path),
         'syntax': get_syntax(view),
         'line_count': get_line_count(view),
         'character_count': get_character_count(view),

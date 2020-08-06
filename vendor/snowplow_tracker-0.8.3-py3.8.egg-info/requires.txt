@@ -1,7 +1,0 @@
-greenlet<1.0,>=0.4.10
-requests<3.0,>=2.2.1
-pycontracts<2.0,>=1.7.6
-celery<5.0,>=4.0
-gevent<2.0,>=1.0.2
-redis<4.0,>=2.9.1
-six<2.0,>=1.9.0

@@ -150,8 +150,8 @@ def plugin_payload(**kwargs):
 			'plugin_id': kwargs['plugin_id'],
 			'plugin_version': kwargs['plugin_version'],
 			'plugin_name': kwargs['plugin_name']
-    	}
-    )
+		}
+	)
 
 def project_payload(**kwargs):
 	hashed_name = hash_value(kwargs['project_name'], "project_name", kwargs['jwt'])
@@ -223,7 +223,6 @@ def encrypt_and_save(value, hashed_value, data_type, jwt):
 	}
 
 	response = requestIt('POST', '/user_encrypted_data', json.dumps(params), jwt)
-	print(json.loads(response.read().decode('utf-8')))
 	if response and isResponseOk(response):
 		return
 	else:

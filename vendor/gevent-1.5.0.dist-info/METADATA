@@ -8,9 +8,9 @@ Author-email: denis.bilenko@gmail.com
 Maintainer: Jason Madden
 Maintainer-email: jason@nextthought.com
 License: MIT
-Project-URL: Bug Tracker, https://github.com/gevent/gevent/issues
 Project-URL: Source Code, https://github.com/gevent/gevent/
 Project-URL: Documentation, http://www.gevent.org
+Project-URL: Bug Tracker, https://github.com/gevent/gevent/issues
 Keywords: greenlet coroutine cooperative multitasking light threads monkey
 Platform: UNKNOWN
 Classifier: License :: OSI Approved :: MIT License

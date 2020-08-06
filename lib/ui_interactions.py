@@ -30,7 +30,6 @@ UI_INTERACTIONS = {
         'icon_name': 'slash-eye',
         'color': 'blue',
         'cta_text': 'Hide status bar metrics'
-
     },
     'submit-feedback': {
         'interaction_type': 'click',
@@ -56,7 +55,6 @@ UI_INTERACTIONS = {
         'icon_name': 'github',
         'color': '',
         'cta_text': 'Sign up with Github'
-
     },
     'email-signup': {
         'interaction_type': 'click',

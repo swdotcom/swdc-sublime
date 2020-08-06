@@ -1,4 +1,4 @@
-#!/Users/bojacobson/.pyenv/versions/3.8.5/bin/python3.8
+#!/System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python
 # -*- coding: utf-8 -*-
 import re
 import sys

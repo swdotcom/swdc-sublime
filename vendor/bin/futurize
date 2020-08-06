@@ -1,12 +1,8 @@
-#!/Users/bojacobson/.pyenv/versions/3.8.5/bin/python3.8
-# EASY-INSTALL-ENTRY-SCRIPT: 'future==0.18.2','console_scripts','futurize'
-__requires__ = 'future==0.18.2'
+#!/System/Library/Frameworks/Python.framework/Versions/2.7/Resources/Python.app/Contents/MacOS/Python
+# -*- coding: utf-8 -*-
 import re
 import sys
-from pkg_resources import load_entry_point
-
+from libfuturize.main import main
 if __name__ == '__main__':
-    sys.argv[0] = re.sub(r'(-script\.pyw?|\.exe)?$', '', sys.argv[0])
-    sys.exit(
-        load_entry_point('future==0.18.2', 'console_scripts', 'futurize')()
-    )
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

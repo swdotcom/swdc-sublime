@@ -30,7 +30,6 @@ except ImportError:
     # Python 3
     from queue import Queue
 
-# from celery import Celery
 import redis
 import requests
 from contracts import contract, new_contract

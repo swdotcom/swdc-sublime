@@ -1,4 +1,0 @@
-pyparsing
-decorator
-six
-future

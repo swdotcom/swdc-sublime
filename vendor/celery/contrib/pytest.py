@@ -75,16 +75,21 @@ def celery_session_app(request,
 
 
 @pytest.fixture(scope='session')
-def celery_session_worker(request,
-                          celery_session_app,
-                          celery_includes,
-                          celery_worker_pool,
-                          celery_worker_parameters):
-    # type: (Any, Celery, Sequence[str], str, Any) -> WorkController
+def celery_session_worker(
+    request,  # type: Any
+    celery_session_app,  # type: Celery
+    celery_includes,  # type: Sequence[str]
+    celery_class_tasks,  # type: str
+    celery_worker_pool,  # type: Any
+    celery_worker_parameters,  # type: Mapping[str, Any]
+):
+    # type: (...) -> WorkController
     """Session Fixture: Start worker that lives throughout test suite."""
     if not NO_WORKER:
         for module in celery_includes:
             celery_session_app.loader.import_task_module(module)
+        for class_task in celery_class_tasks:
+            celery_session_app.tasks.register(class_task)
         with worker.start_worker(celery_session_app,
                                  pool=celery_worker_pool,
                                  **celery_worker_parameters) as w:
@@ -169,6 +174,12 @@ def celery_app(request,
                      parameters=celery_parameters,
                      **config) as app:
         yield app
+
+
+@pytest.fixture(scope='session')
+def celery_class_tasks():
+    """Redefine this fixture to register tasks with the test Celery app."""
+    return []
 
 
 @pytest.fixture()

@@ -7,7 +7,6 @@
     using K/V semantics like _get and _put.
 """
 from __future__ import absolute_import, unicode_literals
-from future.utils import raise_with_traceback
 
 from datetime import datetime, timedelta
 import sys
@@ -38,7 +37,8 @@ from celery.utils.log import get_logger
 from celery.utils.serialization import (create_exception_cls,
                                         ensure_serializable,
                                         get_pickleable_exception,
-                                        get_pickled_exception)
+                                        get_pickled_exception,
+                                        raise_with_context)
 from celery.utils.time import get_exponential_backoff_interval
 
 __all__ = ('BaseBackend', 'KeyValueStoreBackend', 'DisabledBackend')
@@ -454,7 +454,9 @@ class Backend(object):
                             self.max_sleep_between_retries_ms, True) / 1000
                         self._sleep(sleep_amount)
                     else:
-                        raise_with_traceback(BackendStoreError("failed to store result on the backend", task_id=task_id, state=state))
+                        raise_with_context(
+                            BackendStoreError("failed to store result on the backend", task_id=task_id, state=state),
+                        )
                 else:
                     raise
 
@@ -532,7 +534,9 @@ class Backend(object):
                             self.max_sleep_between_retries_ms, True) / 1000
                         self._sleep(sleep_amount)
                     else:
-                        raise_with_traceback(BackendGetMetaError("failed to get meta", task_id=task_id))
+                        raise_with_context(
+                            BackendGetMetaError("failed to get meta", task_id=task_id),
+                        )
                 else:
                     raise
 
