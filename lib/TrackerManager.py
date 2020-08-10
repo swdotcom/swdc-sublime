@@ -99,7 +99,7 @@ def codetime_payload(**kwargs):
 			'lines_added': kwargs['lines_added'],
 			'lines_deleted': kwargs['lines_deleted'],
 			'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
-			'end_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat()
+			'end_time': datetime.utcfromtimestamp(int(kwargs['end_time'])).isoformat()
 		}
 	)
 

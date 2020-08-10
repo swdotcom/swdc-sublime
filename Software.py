@@ -218,8 +218,6 @@ class EventListener(sublime_plugin.EventListener):
 
         fileSize = get_character_count(view)
 
-        # lines = 0
-        # rowcol gives 0-based line number, need to add one as on editor lines starts from 1
         lines = get_line_count(view)
 
         prevLines = fileInfoData['lines']
@@ -255,13 +253,7 @@ class EventListener(sublime_plugin.EventListener):
             charCountDiff = fileSize - currLen
 
         if (not fileInfoData["syntax"]):
-            syntax = view.settings().get('syntax')
-            # get the last occurance of the "/" then get the 1st occurance of the .sublime-syntax
-            # [language].sublime-syntax
-            # Packages/Python/Python.sublime-syntax
-            syntax = syntax[syntax.rfind('/') + 1:-len(".sublime-syntax")]
-            if (syntax):
-                fileInfoData["syntax"] = syntax
+            fileInfoData["syntax"] = get_syntax(view)
 
         PROJECT_DIR = active_data.project['directory']
 
