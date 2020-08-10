@@ -17,6 +17,10 @@ def post_json(json_data):
     storePayload(json.loads(json_data))
     
     jwt = getJwt()
+    plugin_id = getPluginId()
+    plugin_version =  getVersion()
+    plugin_name = getPluginName()
+
     for filepath, payload in json.loads(json_data)['source'].items():
         track_codetime_event(
             jwt=jwt,
@@ -35,7 +39,10 @@ def post_json(json_data):
             line_count=payload['lines'],
             character_count=payload['length'],
             project_name=payload['project_name'],
-            project_directory=payload['project_directory']
+            project_directory=payload['project_directory'],
+            plugin_id=plugin_id,
+            plugin_version=plugin_version,
+            plugin_name=plugin_name
         )
 
 
