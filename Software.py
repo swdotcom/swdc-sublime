@@ -29,7 +29,6 @@ from .lib.ui_interactions import UI_INTERACTIONS
 DEFAULT_DURATION = 60
 
 SETTINGS = {}
-
 check_online_interval_sec = 60 * 10
 retry_counter = 0
 activated = False
@@ -103,16 +102,38 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is False)
 
+
+editor_focused = False
+last_focus_event_sent = None
+
+def check_and_send_unfocus_event(view):
+    global editor_focused
+    global last_focus_event_sent
+
+    if(editor_focused is False and last_focus_event_sent is not 'unfocus'):
+        track_editor_action(**editor_action_params(view, 'editor', 'unfocus'))
+        last_focus_event_sent = 'unfocus'
+        PluginData.send_all_datas()
+
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
-        track_editor_action(**editor_action_params(view, 'file', 'focus'))
+        global editor_focused
+        global last_focus_event_sent
+        editor_focused = True
+        
+        if last_focus_event_sent is not 'focus':
+            track_editor_action(**editor_action_params(view, 'editor', 'focus'))
+            last_focus_event_sent = 'focus'
 
 
     def on_deactivated_async(self, view):
         blurWindow()
-        track_editor_action(**editor_action_params(view, 'file', 'unfocus'))
+        global editor_focused
+        editor_focused = False
+        Timer(5, check_and_send_unfocus_event, [view]).start()
+
 
     def on_load_async(self, view):
         full_file_path = view.file_name()
