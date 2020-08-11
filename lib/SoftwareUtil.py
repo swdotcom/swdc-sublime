@@ -371,7 +371,6 @@ def runResourceCmd(cmdArgs, rootDir):
     else:
         return ""
 
-
 def getResourceInfo(rootDir):
     try:
         resourceInfo = {}
@@ -382,10 +381,23 @@ def getResourceInfo(rootDir):
 
         if (tag):
             resourceInfo['tag'] = tag
+
         identifier = runResourceCmd(['git', 'config', '--get', 'remote.origin.url'], rootDir)
 
         if (identifier):
             resourceInfo['identifier'] = identifier
+            try:
+                resourceInfo['repo_name'] = identifier.split("/")[-1].split(".git")[0]
+            except Exception as ex:
+                print("unable to extract repo_name from identifier: " + identifier)
+                resourceInfo['repo_name'] = ''
+
+            try:
+                resourceInfo['repo_owner_id'] = identifier.split(":")[1].split("/")[0]
+            except Exception as ex:
+                print("unable to extract repo_owner_id from identifier: " + identifier)
+                resourceInfo['repo_owner_id'] = ''
+
         branch = runResourceCmd(['git', 'symbolic-ref', '--short', 'HEAD'], rootDir)
 
         if (branch):

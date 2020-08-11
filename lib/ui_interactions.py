@@ -1,7 +1,7 @@
 UI_INTERACTIONS = {
     'learn-more': {
         'interaction_type': 'click',
-        'element_location': 'ct_menu_`',
+        'element_location': 'ct_menu_tree',
         'element_name': 'ct_learn_more_btn',
         'icon_name': 'document',
         'color': 'yellow',
@@ -53,7 +53,7 @@ UI_INTERACTIONS = {
         'element_location': 'ct_menu_tree',
         'element_name': 'ct_sign_up_github_btn',
         'icon_name': 'github',
-        'color': '',
+        'color': 'white',
         'cta_text': 'Sign up with Github'
     },
     'email-signup': {

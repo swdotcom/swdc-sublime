@@ -11,16 +11,14 @@ from .TrackerManager import *
 
 DEFAULT_DURATION = 60
 
+# this is a test
+
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
     storePayload(json.loads(json_data))
     
     jwt = getJwt()
-    plugin_id = getPluginId()
-    plugin_version =  getVersion()
-    plugin_name = getPluginName()
-
     for filepath, payload in json.loads(json_data)['source'].items():
         track_codetime_event(
             jwt=jwt,
@@ -40,9 +38,14 @@ def post_json(json_data):
             character_count=payload['length'],
             project_name=payload['project_name'],
             project_directory=payload['project_directory'],
-            plugin_id=plugin_id,
-            plugin_version=plugin_version,
-            plugin_name=plugin_name
+            plugin_id=payload['plugin_id'],
+            plugin_version=payload['plugin_version'],
+            plugin_name=payload['plugin_name'],
+            repo_identifier=payload['repo_identifier'],
+            repo_name=payload['repo_name'],
+            owner_id=payload['repo_owner_id'],
+            git_branch=payload['git_branch'],
+            git_tag=payload['git_tag']
         )
 
 
@@ -313,6 +316,14 @@ class PluginData():
             fileInfoData['project_directory'] = ''
             fileInfoData['file_name'] = ''
             fileInfoData['file_path'] = ''
+            fileInfoData['plugin_id'] = ''
+            fileInfoData['plugin_version'] = ''
+            fileInfoData['plugin_name'] = ''
+            fileInfoData['repo_identifier'] = ''
+            fileInfoData['repo_name'] = ''
+            fileInfoData['repo_owner_id'] = ''
+            fileInfoData['git_branch'] = ''
+            fileInfoData['git_tag'] = ''
             keystrokeCount.source[fileName] = fileInfoData
         else:
             # update the end and local_end to zero since the file is still getting modified
@@ -359,7 +370,15 @@ class PluginData():
             "file_path": "",
             "file_name": "",
             "project_name": "",
-            "project_directory": ""
+            "project_directory": "",
+            "plugin_id": "",
+            "plugin_version": "",
+            "plugin_name": "",
+            "repo_identifier": "",
+            "repo_name": "",
+            "owner_id": "",
+            "git_branch": "",
+            "git_tag": ""
         }
         active_data.source[fileName] = fileInfo 
 

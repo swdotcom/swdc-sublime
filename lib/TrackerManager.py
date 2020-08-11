@@ -210,10 +210,14 @@ def hash_value(value, data_type, jwt):
 		return ''
 
 def fetch_user_hashed_values():
-	response = requestIt('GET', '/hashed_values', None, getJwt())
-	data = json.loads(response.read().decode('utf-8'))
-	global cached_hashed_values
-	cached_hashed_values = data
+	try:
+		response = requestIt('GET', '/hashed_values', None, getJwt())
+		data = json.loads(response.read().decode('utf-8'))
+		global cached_hashed_values
+		cached_hashed_values = data
+	except Exception as ex:
+		print("ERROR FETCHING HASHED VALUES")
+		print(ex)
 
 def encrypt_and_save(value, hashed_value, data_type, jwt):
 	params = {
@@ -227,5 +231,3 @@ def encrypt_and_save(value, hashed_value, data_type, jwt):
 		return
 	else:
 		print("error POSTing to /user_encrypted_data for value: " + value)
-		resp = json.loads(response.read().decode('utf-8'))
-		print(resp)

@@ -13,6 +13,7 @@ loggedInCacheState = False
 LOGIN_LABEL = "Log in"
 
 def isLoggedOn():
+    print("calling isLoggedOn")
     jwt = getItem("jwt")
     if (jwt is not None):
 
@@ -49,6 +50,7 @@ def isLoggedOn():
     return False
 
 def getUserStatus():
+    print("calling getUserStatus")
     global loggedInCacheState
 
     currentUserStatus = {}

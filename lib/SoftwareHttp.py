@@ -110,7 +110,7 @@ def requestIt(method, api, payload, jwt):
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        # httpLog("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)
+        # print("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except Exception as ex:
         print("Code Time: Response Error for " + api + ": %s" % ex)

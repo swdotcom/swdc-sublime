@@ -107,9 +107,12 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
+        track_editor_action(**editor_action_params(view, 'file', 'focus'))
+
 
     def on_deactivated_async(self, view):
         blurWindow()
+        track_editor_action(**editor_action_params(view, 'file', 'unfocus'))
 
     def on_load_async(self, view):
         full_file_path = view.file_name()
@@ -196,8 +199,8 @@ class EventListener(sublime_plugin.EventListener):
         resource_info = active_data.project.get('resource', {})
         # repo data
         fileInfoData['repo_identifier'] = resource_info.get('identifier', '')
-        fileInfoData['repo_name'] = resource_info.get('name', '')
-        fileInfoData['owner_id'] = resource_info.get('owner_id', '')
+        fileInfoData['repo_name'] = resource_info.get('repo_name', '')
+        fileInfoData['repo_owner_id'] = resource_info.get('repo_owner_id', '')
         fileInfoData['git_branch'] = resource_info.get('branch', '')
         fileInfoData['git_tag'] = resource_info.get('tag', '')
 
@@ -294,14 +297,20 @@ def plugin_loaded():
     track_editor_action(
         jwt=getJwt(),
         entity='editor',
-        type='activate'
+        type='activate',
+        plugin_id=getPluginId(),
+        plugin_version=getVersion(),
+        plugin_name=getPluginName()
     )
 
 def plugin_unloaded():
 	track_editor_action(
         jwt=getJwt(),
         entity='editor',
-        type='deactivate'
+        type='deactivate',
+        plugin_id=getPluginId(),
+        plugin_version=getVersion(),
+        plugin_name=getPluginName()
     )
 
 def initializeUser():
@@ -463,21 +472,9 @@ def track_file_closed(view):
         return
 
 def editor_action_params(view, entity, action_type, **kwargs):
-    try:
-        data = PluginData.get_active_data(view)
-    except Exception:
-        data = None
-
-
-    if data is None:
-        project_directory = getProjectDirectory()
-        project_name = os.path.basename(project_directory)
-        resource_info = getResourceInfo(project_directory)
-    else:
-        project_directory = data.project['directory']
-        project_name = data.project['name']
-        resource_info = data.project['resource']
-
+    project_directory = getProjectDirectory()
+    project_name = os.path.basename(project_directory)
+    resource_info = getResourceInfo(project_directory)
     full_file_path = kwargs.get('full_file_path', view.file_name())
 
     return {
@@ -492,8 +489,8 @@ def editor_action_params(view, entity, action_type, **kwargs):
         'project_name': project_name,
         'project_directory': project_directory,
         'repo_identifier': resource_info.get('identifier', ''),
-        'repo_name': resource_info.get('name', ''),
-        'owner_id': resource_info.get('owner_id', ''),
+        'repo_name': resource_info.get('repo_name', ''),
+        'owner_id': resource_info.get('repo_owner_id', ''),
         'git_branch': resource_info.get('branch', ''),
         'git_tag': resource_info.get('tag', ''),
         'plugin_id': getPluginId(),
