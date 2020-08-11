@@ -33,7 +33,6 @@ check_online_interval_sec = 60 * 10
 retry_counter = 0
 activated = False
 
-
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
         launchWebDashboardUrl()
@@ -111,9 +110,10 @@ def check_and_send_unfocus_event(view):
     global last_focus_event_sent
 
     if(editor_focused is False and last_focus_event_sent is not 'unfocus'):
+        # this will send off codetime events
+        PluginData.send_all_datas()
         track_editor_action(**editor_action_params(view, 'editor', 'unfocus'))
         last_focus_event_sent = 'unfocus'
-        PluginData.send_all_datas()
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
