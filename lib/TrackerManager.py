@@ -61,15 +61,6 @@ def build_context(**kwargs):
 	if 'jwt' in kwargs:
 		ctx.append(auth_payload(**kwargs))
 
-	if 'start_time' in kwargs and 'end_time' in kwargs:
-		ctx.append(codetime_payload(**kwargs))
-
-	if 'entity' in kwargs:
-		ctx.append(editor_action_payload(**kwargs))
-
-	if 'interaction_type' in kwargs:
-		ctx.append(ui_interaction_payload(**kwargs))
-
 	if 'element_name' in kwargs and 'element_location' in kwargs:
 		ctx.append(ui_element_payload(**kwargs))
 
@@ -89,16 +80,21 @@ def build_context(**kwargs):
 
 def codetime_payload(**kwargs):
 	return SelfDescribingJson(
-		'iglu:com.software/codetime/jsonschema/1-0-1',
+		'iglu:com.software/codetime/jsonschema/1-0-2',
 		{
 			'keystrokes': kwargs['keystrokes'],
-			'chars_added': kwargs['chars_added'],
-			'chars_deleted': kwargs['chars_deleted'],
-			'chars_pasted': kwargs['chars_pasted'],
-			'pastes': kwargs['pastes'],
-			'lines_added': kwargs['lines_added'],
-			'lines_deleted': kwargs['lines_deleted'],
-			'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
+      'lines_added': kwargs['lines_added'],
+      'lines_deleted': kwargs['lines_deleted'],
+      'characters_added': kwargs['characters_added'],
+      'characters_deleted': kwargs['characters_deleted'],
+      'single_deletes': kwargs['single_deletes'],
+      'multi_deletes': kwargs['multi_deletes'],
+      'single_adds': kwargs['single_adds'],
+      'multi_adds': kwargs['multi_adds'],
+      'auto_indents': kwargs['auto_indents'],
+      'replacements': kwargs['replacements'],
+      'is_net_change': kwargs['is_net_change'],
+      'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
 			'end_time': datetime.utcfromtimestamp(int(kwargs['end_time'])).isoformat()
 		}
 	)
@@ -179,7 +175,7 @@ def repo_payload(**kwargs):
 			'repo_name': hashed_name,
 			'owner_id': hashed_owner_id,
 			'git_branch': hashed_git_branch,
-			'git_tag': hashed_git_tag 
+			'git_tag': hashed_git_tag
     	}
     )
 
@@ -198,7 +194,7 @@ def ui_element_payload(**kwargs):
 def hash_value(value, data_type, jwt):
 	if value:
 		hashed_value = BLAKE2b(value.encode(), 64).hexdigest()
-		
+
 		global cached_hashed_values
 		if hashed_value not in cached_hashed_values.get(data_type, []):
 			encrypt_and_save(value, hashed_value, data_type, jwt)

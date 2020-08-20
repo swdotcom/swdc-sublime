@@ -44,7 +44,7 @@ def showStatus(msg):
 
         if (msg is None):
             msg = "Code Time"
-        
+
         if (active_window is not None):
             for view in active_window.views():
                 if (view is not None):
@@ -82,7 +82,7 @@ def requestIt(method, api, payload, jwt):
         else:
             # httpLog("Creating HTTPS Connection")
             connection = http.client.HTTPSConnection(api_endpoint)
-            
+
         if (jwt is not None):
             headers['Authorization'] = jwt
         elif (method is 'POST' and jwt is None):
@@ -96,7 +96,7 @@ def requestIt(method, api, payload, jwt):
         else:
             pass
             # httpLog("Code Time: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
-        
+
         headers['X-SWDC-Plugin-Id'] = getPluginId()
         headers['X-SWDC-Plugin-Name'] = getPluginName()
         headers['X-SWDC-Plugin-Version'] = getVersion()
@@ -110,7 +110,6 @@ def requestIt(method, api, payload, jwt):
         connection.request(method, api, payload, headers)
 
         response = connection.getresponse()
-        # print("Code Time: " + api_endpoint + "" + api + " Response (%d)" % response.status)
         return response
     except Exception as ex:
         print("Code Time: Response Error for " + api + ": %s" % ex)

@@ -1,4 +1,4 @@
-import sublime 
+import sublime
 import webbrowser
 import urllib
 from .SoftwareUtil import *
@@ -9,7 +9,7 @@ from .SoftwareSettings import *
 from .SoftwarePayload import *
 from .CommonUtil import *
 
-loggedInCacheState = False 
+loggedInCacheState = False
 LOGIN_LABEL = "Log in"
 
 def isLoggedOn():
@@ -59,7 +59,7 @@ def getUserStatus():
     loggedOn = isLoggedOn()
 
     setValue("logged_on", loggedOn)
-    
+
     currentUserStatus = {}
     currentUserStatus["loggedOn"] = loggedOn
 
@@ -74,7 +74,7 @@ def getUserStatus():
 def refetchUserStatusLazily(tryCountUntilFoundUser):
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedOn", None)
-    if (loggedInUser is True or tryCountUntilFoundUser <= 0):  
+    if (loggedInUser is True or tryCountUntilFoundUser <= 0):
         sendOfflineData()
         return
 
@@ -93,8 +93,8 @@ def getUrlEndpoint():
 def getLoginUrl(loginType):
     jwt = getItem('jwt')
     encodedJwt = urllib.parse.quote_plus(jwt)
-    api_endpoint = 'https://api.software.com'
-    loginUrl = None 
+    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+    loginUrl = None
     setItem('authType', loginType)
     if (loginType == 'software'):
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
@@ -105,7 +105,7 @@ def getLoginUrl(loginType):
     else:
         print('Login type error: Type was {}, defaulting...'.format(loginType))
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
-    
+
     return loginUrl
 
 def launchWebDashboardUrl():

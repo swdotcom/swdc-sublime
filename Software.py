@@ -122,11 +122,25 @@ class EventListener(sublime_plugin.EventListener):
         global editor_focused
         global last_focus_event_sent
         editor_focused = True
-        
+
         if last_focus_event_sent is not 'focus':
             track_editor_action(**editor_action_params(view, 'editor', 'focus'))
             last_focus_event_sent = 'focus'
 
+        full_file_path = view.file_name()
+        if (full_file_path is None):
+            full_file_path = UNTITLED
+
+        active_data = PluginData.get_active_data(view)
+
+        # get the file info to increment the open metric
+        fileInfoData = PluginData.get_file_info_and_initialize_if_none(
+            active_data, full_file_path)
+        if fileInfoData is None:
+            return
+
+        fileInfoData['length'] = get_character_count(view)
+        fileInfoData['lines'] = get_line_count(view)
 
     def on_deactivated_async(self, view):
         blurWindow()
@@ -241,18 +255,39 @@ class EventListener(sublime_plugin.EventListener):
             return
 
         fileSize = get_character_count(view)
-
         lines = get_line_count(view)
+
+        fileInfoData['keystrokes'] += 1
 
         prevLines = fileInfoData['lines']
         if (prevLines == 0):
-
             if (PluginData.line_counts.get(full_file_path) is None):
                 PluginData.line_counts[full_file_path] = prevLines
-
             prevLines = PluginData.line_counts[full_file_path]
-        elif (prevLines > 0):
-            fileInfoData['lines'] = prevLines
+
+        document_change_counts_and_type = analyzeDocumentChanges(fileInfoData, view)
+        fileInfoData['document_change_info']['lines_added'] += document_change_counts_and_type['lines_added']
+        fileInfoData['document_change_info']['lines_deleted'] += document_change_counts_and_type['lines_deleted']
+        fileInfoData['document_change_info']['characters_added'] += document_change_counts_and_type['characters_added']
+        fileInfoData['document_change_info']['characters_deleted'] += document_change_counts_and_type['characters_deleted']
+
+        change_type = document_change_counts_and_type['change_type']
+        if (change_type == "single_delete"):
+            fileInfoData['document_change_info']['single_deletes'] +=1
+        if (change_type == "multi_delete"):
+            fileInfoData['document_change_info']['is_net_change'] = True
+            fileInfoData['document_change_info']['multi_deletes'] += 1
+        if (change_type == "single_add"):
+            fileInfoData['document_change_info']['single_adds'] += 1
+        if (change_type == "multi_add"):
+            fileInfoData['document_change_info']['is_net_change'] = True
+            fileInfoData['document_change_info']['multi_adds'] += 1
+        if (change_type == "auto_indent"):
+            fileInfoData['document_change_info']['auto_indents'] += 1
+        if (change_type == "replacement"):
+            fileInfoData['document_change_info']['replacements'] += 1
+        if (change_type == "net_zero_change"):
+            fileInfoData['document_change_info']['is_net_change'] = True
 
         lineDiff = 0
         if (prevLines > 0):
@@ -264,10 +299,17 @@ class EventListener(sublime_plugin.EventListener):
                 fileInfoData['linesRemoved'] += abs(lineDiff)
                 log('Code Time: linesRemoved incremented')
 
+        if (lineDiff > 0):
+            fileInfoData['linesAdded'] += lineDiff
+            log('Code Time: linesAdded incremented')
+        elif (lineDiff < 0):
+            fileInfoData['linesRemoved'] += abs(lineDiff)
+            log('Code Time: linesRemoved incremented')
+
         fileInfoData['lines'] = lines
 
         # subtract the current size of the file from what we had before
-        # we'll know whether it's a delete, copy+paste, or kpm.
+
         currLen = fileInfoData['length']
 
         charCountDiff = 0
@@ -308,9 +350,6 @@ class EventListener(sublime_plugin.EventListener):
         # update the netkeys and the keystrokes
         # "netkeys" = add - delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
-        fileInfoData['keystrokes'] = fileInfoData['add'] + \
-            fileInfoData['delete'] + fileInfoData['paste']
-
 # Iniates the plugin tasks once the it's loaded into Sublime.
 def plugin_loaded():
     initializeUser()
@@ -339,10 +378,6 @@ def initializeUser():
     serverAvailable = serverIsAvailable()
     fileExists = softwareSessionFileExists()
     jwt = getItem("jwt")
-
-    # print("INITALIZING CODE TIME")
-    # print("JWT: %s" % jwt)
-    # print("file exists: %s" % fileExists)
 
     if (fileExists is False or jwt is None):
         if (serverAvailable is False):
@@ -405,9 +440,7 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
     updateOnlineStatusTimer.start()
-    # print("Online status timer initialized")
 
-    # initializeUserInfo(initializedAnonUser)
     initializeUserThread = Thread(
         target=initializeUserInfo, args=[initializedAnonUser])
     initializeUserThread.start()
@@ -474,7 +507,7 @@ def track_ui_event(command_lookup_key):
     global UI_INTERACTIONS
     try:
         track_ui_interaction(
-            jwt=getJwt(), 
+            jwt=getJwt(),
             plugin_id=getPluginId(),
             plugin_version=getVersion(),
             plugin_name=getPluginName(),
@@ -487,7 +520,7 @@ def track_file_closed(view):
     if view.window() is None:
         return
     else:
-        # passing in full_file_path here because view.window() can return null in the 
+        # passing in full_file_path here because view.window() can return null in the
         # PluginData.get_active_data(view) method after the buffer has closed.
         track_editor_action(**editor_action_params(view, 'file', 'close', full_file_path=view.file_name()))
         return
