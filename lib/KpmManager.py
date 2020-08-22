@@ -7,13 +7,52 @@ from .SoftwareUtil import *
 from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
+from .TrackerManager import *
 
 DEFAULT_DURATION = 60
+
+# this is a test
 
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
     storePayload(json.loads(json_data))
+
+    jwt = getJwt()
+    for filepath, payload in json.loads(json_data)['source'].items():
+        track_codetime_event(
+            jwt=jwt,
+            keystrokes=payload['keystrokes'],
+            lines_added= payload.get('document_change_info', {})['lines_added'],
+            lines_deleted= payload.get('document_change_info', {})['lines_deleted'],
+            characters_added= payload.get('document_change_info', {})['characters_added'],
+            characters_deleted= payload.get('document_change_info', {})['characters_deleted'],
+            single_deletes= payload.get('document_change_info', {})['single_deletes'],
+            multi_deletes= payload.get('document_change_info', {})['multi_deletes'],
+            single_adds= payload.get('document_change_info', {})['single_adds'],
+            multi_adds= payload.get('document_change_info', {})['multi_adds'],
+            auto_indents= payload.get('document_change_info', {})['auto_indents'],
+            replacements= payload.get('document_change_info', {})['replacements'],
+            is_net_change= payload.get('document_change_info', {})['is_net_change'],
+            start_time=payload['local_start'],
+            end_time=payload['local_end'],
+            file_path=payload['file_path'],
+            file_name=payload['file_name'],
+            syntax=payload['syntax'],
+            line_count=payload['lines'],
+            character_count=payload['length'],
+            project_name=payload['project_name'],
+            project_directory=payload['project_directory'],
+            plugin_id=payload['plugin_id'],
+            plugin_version=payload['plugin_version'],
+            plugin_name=payload['plugin_name'],
+            repo_identifier=payload['repo_identifier'],
+            repo_name=payload['repo_name'],
+            owner_id=payload['repo_owner_id'],
+            git_branch=payload['git_branch'],
+            git_tag=payload['git_tag']
+        )
+
 
     PluginData.reset_source_data()
 
@@ -91,7 +130,7 @@ class PluginData():
                 fileInfo['netkeys'] > 0):
                 return True
         return False
-    
+
     @staticmethod
     def hasKeystrokeData():
         for dir in PluginData.active_datas:
@@ -108,7 +147,7 @@ class PluginData():
 
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
-            
+
             # get the lines so we can add that back
             for fileName in keystrokeCountObj.source:
                 fileInfo = keystrokeCountObj.source[fileName]
@@ -171,7 +210,7 @@ class PluginData():
         old_active_data = None
         if project['directory'] in PluginData.active_datas:
             old_active_data = PluginData.active_datas[project['directory']]
-        
+
         if old_active_data is None:
             new_active_data = PluginData(project)
 
@@ -243,7 +282,7 @@ class PluginData():
 
         if fileName is None or fileName == '':
             fileName = UNTITLED
-        
+
         # create the new FileInfo, which will contain a dictionary
         # of fileName and it's metrics
         fileInfoData = PluginData.get_existing_file_info(fileName)
@@ -269,7 +308,7 @@ class PluginData():
             fileInfoData['netkeys'] = 0
             fileInfoData['keystrokes'] = 0
             fileInfoData['add'] = 0
-            fileInfoData['lines'] = -1
+            fileInfoData['lines'] = 0
             fileInfoData['linesAdded'] = 0
             fileInfoData['linesRemoved'] = 0
             fileInfoData['syntax'] = ""
@@ -277,6 +316,31 @@ class PluginData():
             fileInfoData['local_start'] = nowTimes['localNowInSec']
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
+            fileInfoData['chars_pasted'] = 0
+            fileInfoData['project_name'] = ''
+            fileInfoData['project_directory'] = ''
+            fileInfoData['file_name'] = ''
+            fileInfoData['file_path'] = ''
+            fileInfoData['plugin_id'] = ''
+            fileInfoData['plugin_version'] = ''
+            fileInfoData['plugin_name'] = ''
+            fileInfoData['repo_identifier'] = ''
+            fileInfoData['repo_name'] = ''
+            fileInfoData['repo_owner_id'] = ''
+            fileInfoData['git_branch'] = ''
+            fileInfoData['git_tag'] = ''
+            fileInfoData['document_change_info'] = {}
+            fileInfoData['document_change_info']['lines_added'] = 0
+            fileInfoData['document_change_info']['lines_deleted'] = 0
+            fileInfoData['document_change_info']['characters_added'] = 0
+            fileInfoData['document_change_info']['characters_deleted'] = 0
+            fileInfoData['document_change_info']['single_deletes'] = 0
+            fileInfoData['document_change_info']['multi_deletes'] = 0
+            fileInfoData['document_change_info']['single_adds'] = 0
+            fileInfoData['document_change_info']['multi_adds'] = 0
+            fileInfoData['document_change_info']['auto_indents'] = 0
+            fileInfoData['document_change_info']['replacements'] = 0
+            fileInfoData['document_change_info']['is_net_change'] = False
             keystrokeCount.source[fileName] = fileInfoData
         else:
             # update the end and local_end to zero since the file is still getting modified
@@ -292,7 +356,7 @@ class PluginData():
 
         return fileInfoData
 
-    @staticmethod 
+    @staticmethod
     def send_initial_payload():
         fileName = UNTITLED
         active_data = PluginData.create_empty_payload(fileName, NO_PROJ_NAME)
@@ -300,13 +364,13 @@ class PluginData():
         nowTimes = getNowTimes()
         start = nowTimes['nowInSec'] - 60
         local_start = nowTimes['localNowInSec'] - 60
-        active_data.start = start 
-        active_data.local_start = local_start 
+        active_data.start = start
+        active_data.local_start = local_start
         fileInfo = {
             "add": 1,
             "keystrokes": 1,
             "start": start,
-            "local_start": local_start, 
+            "local_start": local_start,
             "paste": 0,
             "open": 0,
             "close": 0,
@@ -318,9 +382,22 @@ class PluginData():
             "linesRemoved": 0,
             "syntax": "",
             "end": 0,
-            "local_end": 0
+            "local_end": 0,
+            "chars_pasted": 0,
+            "file_path": "",
+            "file_name": "",
+            "project_name": "",
+            "project_directory": "",
+            "plugin_id": "",
+            "plugin_version": "",
+            "plugin_name": "",
+            "repo_identifier": "",
+            "repo_name": "",
+            "owner_id": "",
+            "git_branch": "",
+            "git_tag": ""
         }
-        active_data.source[fileName] = fileInfo 
+        active_data.source[fileName] = fileInfo
 
         dict_data = {key: getattr(active_data, key, None)
                      for key in active_data.__slots__}

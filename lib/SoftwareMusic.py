@@ -6,12 +6,10 @@ from .SoftwareHttp import *
 from .SoftwareUtil import *
 from .CommonUtil import *
 
-
 currentTrackInfo = {}
 
 def gatherMusicInfo():
 	global currentTrackInfo
-
 
 	# get the music track playing
 	# the trackInfo should be a dictionary

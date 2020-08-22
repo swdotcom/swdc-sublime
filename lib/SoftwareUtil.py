@@ -33,7 +33,7 @@ PROJECT_DIR = None
 NUMBER_IN_EMAIL_REGEX = r'^\d+\+'
 
 '''
-In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not 
+In the future consider a TTL cache, but as of right now Python 3.3 (Sublime's version) does not
 have easy TTL cache options available
 '''
 # TODO: implement a TTL cache
@@ -62,7 +62,7 @@ def getOsUsername():
 
     if (username is None or username == ""):
         username = os.environ.get("USER")
-    
+
     return username
 
 def getHostname():
@@ -85,7 +85,7 @@ def refreshTreeView():
     buildTreeLock.release()
 
 def getOpenProjects():
-    folders = None 
+    folders = None
     if sublime.active_window().project_data():
         folders = sublime.active_window().project_data()['folders']
     if folders is None:
@@ -97,12 +97,12 @@ def getFirstOpenProject():
     openProjects = getOpenProjects()
     if len(openProjects) > 0:
         return openProjects[0]
-    return '' 
+    return ''
 
 def getProjectDirectory():
-    global PROJECT_DIR 
+    global PROJECT_DIR
     if PROJECT_DIR is not None:
-        return PROJECT_DIR 
+        return PROJECT_DIR
     else:
         return getFirstOpenProject()
 
@@ -113,17 +113,17 @@ def getActiveProject():
         project['directory'] = UNTITLED
         global NO_PROJ_NAME
         project['name'] = NO_PROJ_NAME
-        return project 
-    
+        return project
+
     projectName = os.path.basename(rootPath)
-    project['name'] = projectName if projectName else rootPath 
+    project['name'] = projectName if projectName else rootPath
     project['directory'] = rootPath
 
     resourceInfo = getResourceInfo(rootPath)
     if resourceInfo and resourceInfo['identifier']:
         project['identifier'] = resourceInfo['identifier']
         project['resource'] = resourceInfo
-    return project 
+    return project
 
 def softwareSessionFileExists():
     file = getSoftwareDir(False)
@@ -131,7 +131,7 @@ def softwareSessionFileExists():
     return os.path.isfile(sessionFile)
 
 def getFileDataAsJson(file):
-    data = None 
+    data = None
     if os.path.isfile(file):
         with open(file) as f:
             try:
@@ -140,7 +140,7 @@ def getFileDataAsJson(file):
                 # log('Unable to read session info: %s' % ex)
                 # os.remove(file)
                 print('unable to read: %s' % ex)
-    return data 
+    return data
 
 def getFileDataArray(file):
     payloads = []
@@ -148,14 +148,14 @@ def getFileDataArray(file):
         with open(file) as f:
             try:
                 contents = json.load(f)
-                if (isinstance(contents, list)):    
-                    payloads = contents 
+                if (isinstance(contents, list)):
+                    payloads = contents
                 else:
                     payloads.append(contents)
             except Exception as ex:
                 log('Error reading file array data: %s' % ex)
                 os.remove(file)
-    return payloads 
+    return payloads
 
 def getFileDataPayloadsAsJson(file):
     payloads = []
@@ -210,26 +210,26 @@ def getCommandResultLine(cmd, projectDir):
         for line in resultList:
             if line and len(line.strip()) > 0:
                 resultLine = line.strip()
-                break 
-    
-    return resultLine 
+                break
+
+    return resultLine
 
 def getCommandResultList(cmd, projectDir):
     # print(cmd)
-    # print(projectDir) 
+    # print(projectDir)
     try:
         result = check_output(cmd, cwd=projectDir)
     except CalledProcessError as ex:
         # print('reusltlisterrorerror: {}'.format(ex.output))
-        if ex.output != b'': # Suppress trivial error 
+        if ex.output != b'': # Suppress trivial error
             log('Error running {}: {}'.format(cmd, ex.output))
         return []
-    
+
     result = result.decode('UTF-8').strip().replace('\r\n', '\r').replace('\n', '\r')
     # Remove initial spaces
     result = re.sub(r'^\s+', '', result).split('\r')
-    return result 
-    
+    return result
+
 
 # execute the applescript command
 def runCommand(cmd, args = []):
@@ -371,7 +371,6 @@ def runResourceCmd(cmdArgs, rootDir):
     else:
         return ""
 
-
 def getResourceInfo(rootDir):
     try:
         resourceInfo = {}
@@ -382,10 +381,23 @@ def getResourceInfo(rootDir):
 
         if (tag):
             resourceInfo['tag'] = tag
+
         identifier = runResourceCmd(['git', 'config', '--get', 'remote.origin.url'], rootDir)
 
         if (identifier):
             resourceInfo['identifier'] = identifier
+            try:
+                resourceInfo['repo_name'] = identifier.split("/")[-1].split(".git")[0]
+            except Exception as ex:
+                print("unable to extract repo_name from identifier: " + identifier)
+                resourceInfo['repo_name'] = ''
+
+            try:
+                resourceInfo['repo_owner_id'] = identifier.split(":")[1].split("/")[0]
+            except Exception as ex:
+                print("unable to extract repo_owner_id from identifier: " + identifier)
+                resourceInfo['repo_owner_id'] = ''
+
         branch = runResourceCmd(['git', 'symbolic-ref', '--short', 'HEAD'], rootDir)
 
         if (branch):
@@ -394,7 +406,7 @@ def getResourceInfo(rootDir):
 
         if (email):
             resourceInfo['email'] = email
-            
+
         if (resourceInfo.get("identifier") is not None):
             return resourceInfo
         else:
@@ -417,7 +429,7 @@ def getLocalREADMEFile():
     return os.path.join(os.path.dirname(__file__), '..', 'README.md')
 
 # TODO: figure out how to do markdown preview
-def displayReadmeIfNotExists(): 
+def displayReadmeIfNotExists():
     readmeFile = getLocalREADMEFile()
     sublime.active_window().open_file(readmeFile)
     # fileUri = 'markdown-preview://{}'.format(readmeFile)
@@ -445,8 +457,8 @@ def isWindows():
 def fetchCustomDashboard(date_range):
     try:
         date_range_arr = [x.strip() for x in date_range.split(',')]
-        startDate = date_range_arr[0] 
-        endDate = date_range_arr[1] 
+        startDate = date_range_arr[0]
+        endDate = date_range_arr[1]
         start = int(timeModule.mktime(datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
         end = int(timeModule.mktime(datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
     except Exception:
@@ -552,12 +564,12 @@ def validateEmail(email):
 def normalizeGithubEmail(email, filterOutNonEmails=True):
     if email:
         if filterOutNonEmails and ('users.noreply' in email or email.endswith('github.com')):
-            return None 
+            return None
         else:
             found = re.match(NUMBER_IN_EMAIL_REGEX, email)
             if found and 'users.noreply' in email:
                 return None
-    return email 
+    return email
 
 def getLoggedInCacheState():
     return loggedInCacheState
@@ -662,11 +674,11 @@ def formatNumber(num):
     else:
         numberStr = '{:.5n}'.format(num)
     return numberStr
-    
+
 
 #TODO:  Ensure this has equivalent functionality as numeral().format('0 a') in JS
 def formatNumWithK(num):
-    if num == 0: 
+    if num == 0:
         return '0'
     magnitude = 0
     while abs(num) >= 1000:
@@ -674,10 +686,10 @@ def formatNumWithK(num):
         num /= 1000.0
     return '{} {}'.format('{:.1f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude]).strip()
 
-def setInterval(func, sec): 
+def setInterval(func, sec):
     def func_wrapper():
-        setInterval(func, sec) 
-        func()  
+        setInterval(func, sec)
+        func()
     t = Timer(sec, func_wrapper)
     t.start()
     return t
@@ -703,3 +715,114 @@ def isGitProject(projectDir):
 def getFormattedDay(unixSeconds):
     # returns a format like '2020/04/19'
     return datetime.fromtimestamp(unixSeconds).strftime("%Y/%m/%d")
+
+def format_file_name(path, project_path = None):
+    try:
+        # path should be the full path
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        if path == "Untitled" or path is None:
+            return UNTITLED
+
+        if project_path is None:
+            project_data = sublime.active_window().project_data()
+            project_path = project_data['folders'][0]['path']
+        # => /lib/SoftwareUtil.py
+        return path.split(project_path)[1]
+    except Exception as ex:
+        return path
+
+def format_file_path(path):
+    try:
+        # path should be the full path
+        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
+        if(path == "Untitled" or path is None):
+            return UNTITLED
+
+        delimiter = "/"
+        if(isWindows()):
+            delimiter = "\\"
+
+        # => '/Users/bojacobson/code/software/swdc-sublime/lib'
+        return path.split(path.split(delimiter)[-1])[0][:-1]
+    except Exception as ex:
+        return path
+
+def get_syntax(view):
+    syntax = view.settings().get('syntax')
+    # get the last occurance of the "/" then get the 1st occurance of the .sublime-syntax
+    # [language].sublime-syntax
+    # Packages/Python/Python.sublime-syntax
+    if (syntax):
+        return syntax[syntax.rfind('/') + 1:-len(".sublime-syntax")]
+    else:
+        # get it from the file name
+        path = view.file_name()
+        if path == "Untitled" or path is None:
+            return ""
+
+        split = path.split(".")
+
+        if len(split) > 1:
+            return split[-1]
+        else:
+            return ""
+
+def get_character_count(view):
+    return view.size()
+
+def get_line_count(view):
+    # rowcol gives 0-based line number, need to add one as on editor lines starts from 1
+    character_count = get_character_count(view)
+    return view.rowcol(character_count)[0] + 1
+
+def analyzeDocumentChanges(file_info_data, view):
+    change_info = {
+        'lines_added': 0,
+        'lines_deleted': 0,
+        'characters_added': 0,
+        'characters_deleted': 0,
+        'change_type': ""
+    }
+
+    extract_change_counts(change_info, file_info_data, view)
+    characterize_change(change_info, file_info_data, view)
+
+    return change_info
+
+def extract_change_counts(change_info, file_info_data, view):
+    prev_line_count = file_info_data['lines']
+    if (prev_line_count == 0):
+        prev_line_count = 1
+    prev_character_count = file_info_data['length']
+
+    new_line_count = get_line_count(view)
+    new_character_count = get_character_count(view)
+
+    line_diff = new_line_count - prev_line_count
+    if (line_diff > 0):
+        change_info['lines_added'] = line_diff
+    else:
+        change_info['lines_deleted'] = abs(line_diff)
+
+    character_diff = new_character_count - prev_character_count
+    if (character_diff > 0):
+        change_info['characters_added'] = character_diff - change_info['lines_added']
+    else:
+        change_info['characters_deleted'] = abs(character_diff) - change_info['lines_deleted']
+
+
+def  characterize_change(change_info, file_info_data, view):
+    if(change_info['characters_deleted'] > 0 or change_info['lines_deleted'] > 0):
+        if (change_info['characters_added'] > 0 or change_info['lines_added'] > 0):
+            change_info['change_type'] = "replacement"
+        else:
+            if (change_info['characters_deleted'] > 1 or change_info['lines_deleted'] > 1):
+                change_info['change_type'] = "multi_delete"
+            elif (change_info['characters_deleted'] == 1 or change_info['lines_deleted'] == 1):
+                change_info['change_type'] = "single_delete"
+    elif (change_info['characters_added'] > 1 or change_info['lines_added'] > 1):
+        change_info['change_type'] = "multi_add"
+    elif (change_info['characters_added'] == 1 or change_info['lines_added'] == 1):
+        change_info['change_type'] = "single_add";
+    else:
+        change_info['change_type'] = "net_zero_change"

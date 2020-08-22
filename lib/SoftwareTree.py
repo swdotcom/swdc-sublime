@@ -11,6 +11,7 @@ from .SoftwareRepo import *
 from .SoftwareUserStatus import *
 from .TimeSummaryData import *
 from .CommonUtil import *
+from .ui_interactions import UI_INTERACTIONS
 
 icons = {
     "bolt-grey": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAACxLAAAsSwGlPZapAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKkSURBVHgB7dpPbtNAFAbw742D1GWP4BuQGxBOUBcJKWKXI3CDcgM4Qc0uCKkYxB4fAW7gG5AdLOJ5TEqLSqhjO+/Ns1Dnt6nUWEry2fPnvQmQJEmSJMlDRVBUFC/mTO0liOYYr2Gg/HS1fgVDDorY+Q9HfvmdPNyNi6IoTmFILYCbD55DaIuTYwM8iuIT8CiHgs/VuoYhtQC2GeWQYtQwphbAjLMcQp7oI4ypBeBZPv4zv61hTC0AAj+GTFNV77/CmN4k6Fi0fDHzN0xALwAm0fLliCpMQCWAoljmkPL2K8CO1hOQQyaM/3WDCagE0MoDqDERlQDIyQIgb7/+39IJgKRL4I8aE5lBg6dTSWHN7uT72bPl0Msb8u251p5BZxIksqzgcqbZJZSIA/hdBrNpDQ9itcAVngCdMnikEkrEAaiUweOEOQBqbTNxABpl8Bihb/hWc9MkDkCjDB6hCU3TCygSB6BQBo94L6h3jOWToLNaAbiqrtYllMkDYJs9QNguv0QE8gCILbo4ZaxqUT4HtNkq/GkQj+qyt0/1aGyos/Pll/DOiyHXhg+4ijH2b6kejQ02vHZoYn75HfMAQvtsMbR2aD1WiMz+CXCD735pcUxmHgCTfzLkupgT3132TwC7Re8lYcdn1SQ1DaAons8HjP/G+Z+vYcQ0gBZZ7/in67tfbWDENADn0Df+oy97+6zngMWhF8PE9xTGzAK4OT7LD1xSTnE6ZBbANvMHxj9trJa9fWYBOJ8tul5j8Jv/+mxwCHKdGyD1NtcYJgFcnx10NE5itLnG0Dka69X1279dm+tdiQmZPAGeqLjv/7HaXGOYBNDROS6nmvjuspkE/+3+NFMte/uMAvi7cUqG1V4fmyHwp3FKG+aw5hvv95MkSZIkSe7zC7hNx9RHEqHkAAAAAElFTkSuQmCC",
@@ -56,7 +57,6 @@ open_state = set()
 CODE_TIME_ACTIONS = {'advanced-metrics', 'open-dashboard', 'toggle-status-metrics', 'learn-more', 'submit-feedback', 'google-signup', 'github-signup', 'email-signup'}
 
 LINK_IDS = set()
-
 
 # TODO: rare bug where tree isn't clickable (possibly slow wifi)
 class OpenTreeView(sublime_plugin.WindowCommand):
@@ -253,23 +253,46 @@ class OpenTreeView(sublime_plugin.WindowCommand):
     def on_click(self, url):
         comps = url.split('---')
 
+        command = comps[1]
+
+        global UI_INTERACTIONS
+        try:
+            if command.find("git@github.com:") is 0:
+                # clicking the contributors git link sends the command: "git@github.com:swdotcom/swdc-sublime.git"
+                # mapping this to a different command lookup key for tracking the UI interaction
+                command_lookup_key = 'contributors-repo-link'
+            else:
+                command_lookup_key = command
+
+            track_ui_interaction(
+                jwt=getJwt(), 
+                plugin_id=getPluginId(),
+                plugin_version=getVersion(),
+                plugin_name=getPluginName(),
+                **UI_INTERACTIONS[command_lookup_key]
+            )
+        except Exception as ex:
+            print("Cannot track ui interaction for command: %s" % ex)
+
         # Don't close or open this
-        if comps[1] in mainSections:
+        if command in mainSections:
             return
 
-        if comps[1] == REMOTE_URL:
+        if command == REMOTE_URL:
             sublime.active_window().run_command('generate_contributor_summary')
 
-        if comps[1] in CODE_TIME_ACTIONS:
-            self.performCodeTimeAction(comps[1])
+        if command in CODE_TIME_ACTIONS:
+            self.performCodeTimeAction(command)
             return 
 
-        if comps[1] in LINK_IDS:
-            webbrowser.open(comps[1])
+        if command in LINK_IDS:
+            webbrowser.open(command)
             return
 
         if comps[0] == 'expand':
-            self.expand(self.tree, comps[1])
+            self.expand(self.tree, command)
+
+        
 
     '''
     TODO: lots of styles changes to look more like Atom/VSCode, though 
