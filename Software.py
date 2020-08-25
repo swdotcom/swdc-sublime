@@ -266,10 +266,19 @@ class EventListener(sublime_plugin.EventListener):
             prevLines = PluginData.line_counts[full_file_path]
 
         document_change_counts_and_type = analyzeDocumentChanges(fileInfoData, view)
-        fileInfoData['document_change_info']['lines_added'] += document_change_counts_and_type['lines_added']
-        fileInfoData['document_change_info']['lines_deleted'] += document_change_counts_and_type['lines_deleted']
-        fileInfoData['document_change_info']['characters_added'] += document_change_counts_and_type['characters_added']
-        fileInfoData['document_change_info']['characters_deleted'] += document_change_counts_and_type['characters_deleted']
+        
+        if(fileInfoData.get('document_change_info', None) is None):
+            fileInfoData['document_change_info'] = {
+                'lines_added': document_change_counts_and_type['lines_added'],
+                'lines_deleted': document_change_counts_and_type['lines_deleted'],
+                'characters_added':  document_change_counts_and_type['characters_added'],
+                'characters_deleted': document_change_counts_and_type['characters_deleted']
+            }
+        else:
+            fileInfoData['document_change_info']['lines_added'] += document_change_counts_and_type['lines_added']
+            fileInfoData['document_change_info']['lines_deleted'] += document_change_counts_and_type['lines_deleted']
+            fileInfoData['document_change_info']['characters_added'] += document_change_counts_and_type['characters_added']
+            fileInfoData['document_change_info']['characters_deleted'] += document_change_counts_and_type['characters_deleted']
 
         change_type = document_change_counts_and_type['change_type']
         if (change_type == "single_delete"):
