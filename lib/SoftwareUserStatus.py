@@ -1,6 +1,7 @@
 import sublime
 import webbrowser
 import urllib
+import re
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
@@ -93,15 +94,22 @@ def getUrlEndpoint():
 def getLoginUrl(loginType):
     jwt = getItem('jwt')
     encodedJwt = urllib.parse.quote_plus(jwt)
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+    host = getValue("software_api_endpoint", "api.software.com")
     loginUrl = None
+
+    scheme = "https"
+    if bool(re.match("localhost", host)):
+        scheme = "http"
+
+    api_host = scheme + "://" + host
+
     setItem('authType', loginType)
     if (loginType == 'software'):
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
     elif (loginType == 'github'):
-        loginUrl = '{}/auth/github?token={}&plugin=codetime&redirect={}'.format(api_endpoint,encodedJwt,getUrlEndpoint())
+        loginUrl = '{}/auth/github?token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
     elif (loginType == 'google'):
-        loginUrl = '{}/auth/google?token={}&plugin=codetime&redirect={}'.format(api_endpoint,encodedJwt,getUrlEndpoint())
+        loginUrl = '{}/auth/google?token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
     else:
         print('Login type error: Type was {}, defaulting...'.format(loginType))
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)

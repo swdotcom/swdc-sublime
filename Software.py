@@ -272,7 +272,14 @@ class EventListener(sublime_plugin.EventListener):
                 'lines_added': document_change_counts_and_type['lines_added'],
                 'lines_deleted': document_change_counts_and_type['lines_deleted'],
                 'characters_added':  document_change_counts_and_type['characters_added'],
-                'characters_deleted': document_change_counts_and_type['characters_deleted']
+                'characters_deleted': document_change_counts_and_type['characters_deleted'],
+                'single_deletes': 0,
+                'is_net_change': False,
+                'multi_deletes': 0,
+                'single_adds': 0,
+                'multi_adds': 0,
+                'auto_indents': 0,
+                'replacements': 0,
             }
         else:
             fileInfoData['document_change_info']['lines_added'] += document_change_counts_and_type['lines_added']
