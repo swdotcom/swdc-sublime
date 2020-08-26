@@ -201,8 +201,8 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % full_file_path)
-
-        Thread(target=track_file_closed, args=(view,)).start()
+        
+        Thread(target=track_file_closed, args=(full_file_path, get_syntax(view), get_line_count(view), get_character_count(view))).start()
 
         # show last status message
         redisplayStatus()
@@ -532,20 +532,31 @@ def track_ui_event(command_lookup_key):
     except Exception as ex:
         print("Cannot track ui interaction for command: %s" % ex)
 
-def track_file_closed(view):
-    if view.window() is None:
-        return
-    else:
-        # passing in full_file_path here because view.window() can return null in the
-        # PluginData.get_active_data(view) method after the buffer has closed.
-        track_editor_action(**editor_action_params(view, 'file', 'close', full_file_path=view.file_name()))
-        return
+def track_file_closed(full_file_path, syntax, line_count, character_count):
+    track_editor_action(**editor_action_params(
+        None, 
+        'file', 
+        'close', 
+        full_file_path=full_file_path,
+        syntax=syntax,
+        line_count=line_count,
+        character_count=character_count
+    ))
 
 def editor_action_params(view, entity, action_type, **kwargs):
     project_directory = getProjectDirectory()
     project_name = os.path.basename(project_directory)
     resource_info = getResourceInfo(project_directory)
-    full_file_path = kwargs.get('full_file_path', view.file_name())
+    full_file_path = kwargs.get('full_file_path', "Untitled")
+    syntax = kwargs.get('syntax', "")
+    line_count = kwargs.get('line_count', 0)
+    character_count = kwargs.get('character_count', 0)
+
+    if(view):
+        full_file_path = view.file_name()
+        syntax = get_syntax(view)
+        line_count = get_line_count(view)
+        character_count = get_character_count(view)
 
     return {
         'jwt': getJwt(),
@@ -553,9 +564,9 @@ def editor_action_params(view, entity, action_type, **kwargs):
         'type': action_type,
         'file_name': format_file_name(full_file_path, project_directory),
         'file_path': format_file_path(full_file_path),
-        'syntax': get_syntax(view),
-        'line_count': get_line_count(view),
-        'character_count': get_character_count(view),
+        'syntax': syntax,
+        'line_count': line_count,
+        'character_count': character_count,
         'project_name': project_name,
         'project_directory': project_directory,
         'repo_identifier': resource_info.get('identifier', ''),
