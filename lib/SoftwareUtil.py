@@ -732,19 +732,10 @@ def format_file_name(path, project_path = None):
         return path
 
 def format_file_path(path):
-    try:
-        # path should be the full path
-        # /Users/bojacobson/code/software/swdc-sublime/lib/SoftwareUtil.py
-        if(path == "Untitled" or path is None):
-            return UNTITLED
-
-        delimiter = "/"
-        if(isWindows()):
-            delimiter = "\\"
-
-        # => '/Users/bojacobson/code/software/swdc-sublime/lib'
-        return path.split(path.split(delimiter)[-1])[0][:-1]
-    except Exception as ex:
+    # prevent null from being passed in as the file path
+    if(path == "Untitled" or path is None):
+        return UNTITLED
+    else:
         return path
 
 def get_syntax(view):
