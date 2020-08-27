@@ -191,7 +191,12 @@ def ui_element_payload(**kwargs):
 		}
 	)
 
-def hash_value(value, data_type, jwt):
+def hash_value(val, data_type, jwt):
+	if data_type == 'file_name':
+		value = val.replace("\\", "/")
+	else:
+		value = val
+
 	if value:
 		hashed_value = BLAKE2b(value.encode(), 64).hexdigest()
 
