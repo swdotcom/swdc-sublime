@@ -202,9 +202,14 @@ def hash_value(val, data_type, jwt):
 
 		global cached_hashed_values
 		if hashed_value not in cached_hashed_values.get(data_type, []):
-			encrypt_and_save(value, hashed_value, data_type, jwt)
-			global refresh_hashed_values
-			refresh_hashed_values = True
+			if encrypt_and_save(value, hashed_value, data_type, jwt):
+				if(cached_hashed_values.get(data_type, None)):
+					cached_hashed_values[data_type].append(hashed_value)
+				else:
+					cached_hashed_values[data_type] = [hashed_value]
+
+				global refresh_hashed_values
+				refresh_hashed_values = True
 
 		return hashed_value
 	else:
@@ -229,6 +234,7 @@ def encrypt_and_save(value, hashed_value, data_type, jwt):
 
 	response = requestIt('POST', '/user_encrypted_data', json.dumps(params), jwt)
 	if response and isResponseOk(response):
-		return
+		return True
 	else:
 		print("error POSTing to /user_encrypted_data for value: " + value)
+		return False
