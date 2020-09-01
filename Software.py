@@ -443,8 +443,8 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     setInterval(getUsersOfFirstProject, oneMin * 50)
 
     # only send commit data if setting is enabled
-    disableGitData = getItem("disableGitData")
-    if not disableGitData:
+    disable_git_data = getItem("disableGitData")
+    if not disable_git_data:
         setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
         getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
         getCommitsTimer.start()
