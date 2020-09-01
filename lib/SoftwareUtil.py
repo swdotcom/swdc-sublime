@@ -198,10 +198,6 @@ def getSessionThresholdSeconds():
     thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
     return thresholdSeconds
 
-def getSessionThresholdSeconds():
-    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
-    return thresholdSeconds
-
 def getCustomDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CustomDashboard.txt')

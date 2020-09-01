@@ -445,7 +445,6 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     # only send commit data if setting is enabled
     disableGitData = getItem("disableGitData")
     if not disableGitData:
-        print("Starting timer")
         setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
         getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
         getCommitsTimer.start()
