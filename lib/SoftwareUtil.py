@@ -556,20 +556,17 @@ def getUser():
     return None
 
 def initializeUserPreferences():
-    sessionThresholdInSec = getSessionThresholdSeconds()
-    disableGitData = False # enable git data by default
+    session_threshold_in_sec = getSessionThresholdSeconds()
+    disable_git_data = False # enable git data by default
 
     user = getUser()
-    if (user and user["preferences"]):
-        if user["preferences"]["sessionThresholdInSec"]:
-            sessionThresholdInSec = user["preferences"]["sessionThresholdInSec"]
-        if user["preferences"]["disableGitData"]:
-            disableGitData = user["preferences"]["disableGitData"]
+    if(user):
+        session_threshold_in_sec =  user.get("preferences", {}).get("sessionThresholdInSec", getSessionThresholdSeconds())
+        disable_git_data = user.get("preferences", {}).get("disableGitData", False)
 
     # update values config
-    setItem("sessionThresholdInSec", sessionThresholdInSec)
-    setItem("disableGitData", disableGitData)
-    return None
+    setItem("sessionThresholdInSec", session_threshold_in_sec)
+    setItem("disableGitData", disable_git_data)
 
 def validateEmail(email):
     match = re.findall('\S+@\S+', email)
