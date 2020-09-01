@@ -555,6 +555,19 @@ def getUser():
                 log("Code Time: Unable to retrieve user: %s" % ex)
     return None
 
+def initializeUserPreferences():
+    session_threshold_in_sec = getSessionThresholdSeconds()
+    disable_git_data = False # enable git data by default
+
+    user = getUser()
+    if(user):
+        session_threshold_in_sec =  user.get("preferences", {}).get("sessionThresholdInSec", getSessionThresholdSeconds())
+        disable_git_data = user.get("preferences", {}).get("disableGitData", False)
+
+    # update values config
+    setItem("sessionThresholdInSec", session_threshold_in_sec)
+    setItem("disableGitData", disable_git_data)
+
 def validateEmail(email):
     match = re.findall('\S+@\S+', email)
     if match:
