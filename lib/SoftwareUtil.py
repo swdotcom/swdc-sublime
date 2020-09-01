@@ -198,6 +198,10 @@ def getSessionThresholdSeconds():
     thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
     return thresholdSeconds
 
+def getSessionThresholdSeconds():
+    thresholdSeconds = getItem('sessionThresholdInSec') or DEFAULT_SESSION_THRESHOLD_SECONDS
+    return thresholdSeconds
+
 def getCustomDashboardFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'CustomDashboard.txt')
@@ -553,6 +557,22 @@ def getUser():
                 return user
             except Exception as ex:
                 log("Code Time: Unable to retrieve user: %s" % ex)
+    return None
+
+def initializeUserPreferences():
+    sessionThresholdInSec = getSessionThresholdSeconds()
+    disableGitData = False # enable git data by default
+
+    user = getUser()
+    if (user and user["preferences"]):
+        if user["preferences"]["sessionThresholdInSec"]:
+            sessionThresholdInSec = user["preferences"]["sessionThresholdInSec"]
+        if user["preferences"]["disableGitData"]:
+            disableGitData = user["preferences"]["disableGitData"]
+
+    # update values config
+    setItem("sessionThresholdInSec", sessionThresholdInSec)
+    setItem("disableGitData", disableGitData)
     return None
 
 def validateEmail(email):

@@ -427,6 +427,9 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     wallClockMgrInit()
     dashboardMgrInit()
 
+    # this check is required before the commits timer is started
+    initializeUserPreferences()
+
     # fire off timer tasks (seconds, task)
 
     setOnlineStatusTimer = Timer(5, setOnlineStatus)
@@ -437,16 +440,20 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     setInterval(sendOfflineData, oneMin * 15)
     setInterval(lambda: sendHeartbeat('HOURLY'), oneMin * 60)
     setInterval(sendOfflineEvents, oneMin * 40)
-    setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
     setInterval(getUsersOfFirstProject, oneMin * 50)
+
+    # only send commit data if setting is enabled
+    disableGitData = getItem("disableGitData")
+    if not disableGitData:
+        print("Starting timer")
+        setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
+        getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
+        getCommitsTimer.start()
 
     updateStatusBarWithSummaryData()
 
     offlineTimer = Timer(oneMin, sendOfflineData)
     offlineTimer.start()
-
-    getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
-    getCommitsTimer.start()
 
     getUsersTimer = Timer(oneMin * 3, getUsersOfFirstProject)
     getUsersTimer.start()
@@ -472,20 +479,6 @@ def initializeUserInfo(initializedAnonUser):
         refreshTreeView()
         PluginData.send_initial_payload()
         sendHeartbeat('INSTALLED')
-
-
-def userStatusHandler():
-    getUserStatus()
-
-    loggedOn = getValue("logged_on", True)
-    if (loggedOn is True):
-        # no need to fetch any longer
-        return
-
-    # re-fetch user info in another 10 minutes
-    checkUserAuthTimer = Timer(60 * 10, userStatusHandler)
-    checkUserAuthTimer.start()
-
 
 def plugin_unloaded():
     # clean up the background worker
