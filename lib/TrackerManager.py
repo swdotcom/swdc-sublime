@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from .SoftwareHttp import *
 from .blake2 import BLAKE2b
+from .SoftwareUtil import *
 # Add vendor directory to module search path
 # This needs to be here to load the snowplow_tracker library
 vendor_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'vendor'))
@@ -12,7 +13,6 @@ from snowplow_tracker import Subject, Tracker, Emitter, SelfDescribingJson
 
 cached_tracker = None
 cached_hashed_values = {}
-refresh_hashed_values = False
 # swdc_tracker will initialize on the first use of it (editor activated event)
 # and use a cached instance for every subsequent call
 def swdc_tracker(use_cache = True):
@@ -36,24 +36,18 @@ def track_codetime_event(**kwargs):
 		event_json = codetime_payload(**kwargs)
 		context = build_context(**kwargs)
 		swdc_tracker().track_self_describing_event(event_json, context)
-		if(refresh_hashed_values):
-			fetch_user_hashed_values()
 
 def track_editor_action(**kwargs):
 	if tracker_enabled():
 		event_json = editor_action_payload(**kwargs)
 		context = build_context(**kwargs)
 		response = swdc_tracker().track_self_describing_event(event_json, context)
-		if(refresh_hashed_values):
-			fetch_user_hashed_values()
 
 def track_ui_interaction(**kwargs):
 	if tracker_enabled():
 		event_json = ui_interaction_payload(**kwargs)
 		context = build_context(**kwargs)
 		swdc_tracker().track_self_describing_event(event_json, context)
-		if(refresh_hashed_values):
-			fetch_user_hashed_values()
 
 def build_context(**kwargs):
 	ctx = []
@@ -125,7 +119,7 @@ def auth_payload(**kwargs):
     )
 
 def file_payload(**kwargs):
-	hashed_name = hash_value(kwargs['file_name'], 'file_name', kwargs['jwt'])
+	hashed_name = hash_value(kwargs['file_name'].replace("\\", "/"), 'file_name', kwargs['jwt'])
 	hashed_path = hash_value(kwargs['file_path'], 'file_path', kwargs['jwt'])
 
 	return SelfDescribingJson(
@@ -191,36 +185,37 @@ def ui_element_payload(**kwargs):
 		}
 	)
 
-def hash_value(val, data_type, jwt):
-	if data_type == 'file_name':
-		value = val.replace("\\", "/")
-	else:
-		value = val
+latestJwt = None
+def hash_value(value, data_type, jwt):
+	global latestJwt
+	
+	if(jwt != latestJwt):
+		latestJwt = jwt
+		fetch_user_hashed_values()
 
 	if value:
 		hashed_value = BLAKE2b(value.encode(), 64).hexdigest()
 
 		global cached_hashed_values
 		if hashed_value not in cached_hashed_values.get(data_type, []):
-			if encrypt_and_save(value, hashed_value, data_type, jwt):
-				if(cached_hashed_values.get(data_type, None)):
-					cached_hashed_values[data_type].append(hashed_value)
-				else:
-					cached_hashed_values[data_type] = [hashed_value]
-
-				global refresh_hashed_values
-				refresh_hashed_values = True
+			if cached_hashed_values.get(data_type, False):
+				cached_hashed_values[data_type].append(hashed_value)
+			else:
+				cached_hashed_values[data_type] = [hashed_value]
+			storeHashedValues(cached_hashed_values)
+			
+			encrypt_and_save(value, hashed_value, data_type, jwt)
 
 		return hashed_value
-	else:
-		return ''
 
 def fetch_user_hashed_values():
 	try:
 		response = requestIt('GET', '/hashed_values', None, getJwt())
-		data = json.loads(response.read().decode('utf-8'))
+		user_hashed_values = json.loads(response.read().decode('utf-8'))
+
 		global cached_hashed_values
-		cached_hashed_values = data
+		cached_hashed_values = user_hashed_values
+		storeHashedValues(user_hashed_values)
 	except Exception as ex:
 		print("ERROR FETCHING HASHED VALUES")
 		print(ex)
@@ -236,5 +231,5 @@ def encrypt_and_save(value, hashed_value, data_type, jwt):
 	if response and isResponseOk(response):
 		return True
 	else:
-		print("error POSTing to /user_encrypted_data for value: " + value)
+		print("error POSTing to /user_encrypted_data for value: " + hashed_value)
 		return False

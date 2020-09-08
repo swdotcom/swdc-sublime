@@ -369,7 +369,6 @@ class EventListener(sublime_plugin.EventListener):
 # Iniates the plugin tasks once the it's loaded into Sublime.
 def plugin_loaded():
     initializeUser()
-    fetch_user_hashed_values()
     track_editor_action(
         jwt=getJwt(),
         entity='editor',

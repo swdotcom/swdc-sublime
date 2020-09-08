@@ -174,6 +174,22 @@ def getFileDataPayloadsAsJson(file):
             return []
     return payloads
 
+def storeHashedValues(user_hashed_values):
+    file = getSoftwareHashedValuesFile()
+    if user_hashed_values:
+        try:
+            with open(file, 'w') as f:
+                json.dump(user_hashed_values, f, indent=4)
+        except Exception as ex:
+            log('Code time: Error writing hashed_values: %s' % ex)
+
+def getHashedValues():
+    return getFileDataAsJson(getSoftwareHashedValuesFile()) or {}
+
+def getSoftwareHashedValuesFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'hashed_values.json')
+
 def getSoftwareDataStoreFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'data.json')
