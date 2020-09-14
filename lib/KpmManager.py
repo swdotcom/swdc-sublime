@@ -11,8 +11,6 @@ from .TrackerManager import *
 
 DEFAULT_DURATION = 60
 
-# this is a test
-
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
@@ -321,9 +319,9 @@ class PluginData():
             fileInfoData['project_directory'] = ''
             fileInfoData['file_name'] = ''
             fileInfoData['file_path'] = ''
-            fileInfoData['plugin_id'] = ''
-            fileInfoData['plugin_version'] = ''
-            fileInfoData['plugin_name'] = ''
+            fileInfoData['plugin_id'] = getPluginId()
+            fileInfoData['plugin_version'] = getVersion()
+            fileInfoData['plugin_name'] = getPluginName()
             fileInfoData['repo_identifier'] = ''
             fileInfoData['repo_name'] = ''
             fileInfoData['repo_owner_id'] = ''
