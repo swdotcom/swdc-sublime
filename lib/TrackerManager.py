@@ -5,6 +5,7 @@ from datetime import datetime
 from .SoftwareHttp import *
 from .blake2 import BLAKE2b
 from .SoftwareUtil import *
+from .CommonUtil import *
 # Add vendor directory to module search path
 # This needs to be here to load the snowplow_tracker library
 vendor_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'vendor'))
@@ -134,12 +135,16 @@ def file_payload(**kwargs):
     )
 
 def plugin_payload(**kwargs):
+	plugin_id = kwargs["plugin_id"] or getPluginId()
+	plugin_version = kwargs["plugin_version"] or getVersion()
+	plugin_name = kwargs["plugin_name"] or getPluginName()
+
 	return SelfDescribingJson(
 		'iglu:com.software/plugin/jsonschema/1-0-1',
 		{
-			'plugin_id': kwargs['plugin_id'],
-			'plugin_version': kwargs['plugin_version'],
-			'plugin_name': kwargs['plugin_name']
+			'plugin_id': plugin_id,
+			'plugin_version': plugin_version,
+			'plugin_name': plugin_name
 		}
 	)
 
