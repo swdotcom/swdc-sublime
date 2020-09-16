@@ -34,15 +34,17 @@ def tracker_enabled():
 
 def track_codetime_event(**kwargs):
 	if tracker_enabled():
-		event_json = codetime_payload(**kwargs)
-		context = build_context(**kwargs)
-		swdc_tracker().track_self_describing_event(event_json, context)
+		if(kwargs.get("jwt", False)):
+			event_json = codetime_payload(**kwargs)
+			context = build_context(**kwargs)
+			swdc_tracker().track_self_describing_event(event_json, context)
 
 def track_editor_action(**kwargs):
 	if tracker_enabled():
-		event_json = editor_action_payload(**kwargs)
-		context = build_context(**kwargs)
-		response = swdc_tracker().track_self_describing_event(event_json, context)
+		if(kwargs.get("jwt", False)):
+			event_json = editor_action_payload(**kwargs)
+			context = build_context(**kwargs)
+			response = swdc_tracker().track_self_describing_event(event_json, context)
 
 def track_ui_interaction(**kwargs):
 	if tracker_enabled():
@@ -53,7 +55,8 @@ def track_ui_interaction(**kwargs):
 def build_context(**kwargs):
 	ctx = []
 
-	if 'jwt' in kwargs:
+	# ensure jwt is not an empty string
+	if 'jwt' in kwargs and kwargs["jwt"]:
 		ctx.append(auth_payload(**kwargs))
 
 	if 'element_name' in kwargs and 'element_location' in kwargs:
