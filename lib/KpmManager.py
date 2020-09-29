@@ -162,7 +162,7 @@ class PluginData():
     def create_empty_payload(fileName, projectName):
         project = Project()
         project['directory'] = projectName
-        project['name'] = projectName
+        project['name'] = projectName or NO_PROJ_NAME
         return_data = PluginData(project)
         PluginData.active_datas[project['directory']] = return_data
         PluginData.get_file_info_and_initialize_if_none(return_data, fileName)
@@ -193,7 +193,7 @@ class PluginData():
         # if we have a valid project folder, set the project name from it
         if projectFolder != NO_PROJ_NAME:
             project['directory'] = projectFolder
-            if 'project_name' in sublime_variables:
+            if 'project_name' in sublime_variables and sublime_variables['project_name']:
                 project['name'] = sublime_variables['project_name']
             else:
                 # use last file name in the folder as the project name
@@ -315,7 +315,7 @@ class PluginData():
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
             fileInfoData['chars_pasted'] = 0
-            fileInfoData['project_name'] = ''
+            fileInfoData['project_name'] = NO_PROJ_NAME
             fileInfoData['project_directory'] = ''
             fileInfoData['file_name'] = ''
             fileInfoData['file_path'] = ''

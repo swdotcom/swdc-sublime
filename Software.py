@@ -224,7 +224,7 @@ class EventListener(sublime_plugin.EventListener):
 
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, full_file_path)
         # project data
-        fileInfoData['project_name'] = active_data.project['name']
+        fileInfoData['project_name'] = active_data.project['name'] or NO_PROJ_NAME
         fileInfoData['project_directory'] = active_data.project['directory']
 
         # file data
