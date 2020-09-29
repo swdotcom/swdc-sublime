@@ -475,7 +475,6 @@ def initializeUserInfo(initializedAnonUser):
         setItem('sublime_CtInit', True)
         updateSessionSummaryFromServer()
         refreshTreeView()
-        PluginData.send_initial_payload()
         sendHeartbeat('INSTALLED')
 
 def plugin_unloaded():
