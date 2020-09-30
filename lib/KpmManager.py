@@ -159,16 +159,6 @@ class PluginData():
                 keystrokeCountObj.timezone = getTimezone()
 
     @staticmethod
-    def create_empty_payload(fileName, projectName):
-        project = Project()
-        project['directory'] = projectName
-        project['name'] = projectName
-        return_data = PluginData(project)
-        PluginData.active_datas[project['directory']] = return_data
-        PluginData.get_file_info_and_initialize_if_none(return_data, fileName)
-        return return_data
-
-    @staticmethod
     def get_active_data(view):
         return_data = None
         if view is None or view.window() is None:
@@ -193,7 +183,7 @@ class PluginData():
         # if we have a valid project folder, set the project name from it
         if projectFolder != NO_PROJ_NAME:
             project['directory'] = projectFolder
-            if 'project_name' in sublime_variables:
+            if 'project_name' in sublime_variables and sublime_variables['project_name']:
                 project['name'] = sublime_variables['project_name']
             else:
                 # use last file name in the folder as the project name
@@ -315,7 +305,7 @@ class PluginData():
             fileInfoData['end'] = 0
             fileInfoData['local_end'] = 0
             fileInfoData['chars_pasted'] = 0
-            fileInfoData['project_name'] = ''
+            fileInfoData['project_name'] = NO_PROJ_NAME
             fileInfoData['project_directory'] = ''
             fileInfoData['file_name'] = ''
             fileInfoData['file_path'] = ''
@@ -353,50 +343,3 @@ class PluginData():
             fileInfoData = PluginData.get_existing_file_info(fileName)
 
         return fileInfoData
-
-    @staticmethod
-    def send_initial_payload():
-        fileName = UNTITLED
-        active_data = PluginData.create_empty_payload(fileName, NO_PROJ_NAME)
-        active_data.keystrokes = 1
-        nowTimes = getNowTimes()
-        start = nowTimes['nowInSec'] - 60
-        local_start = nowTimes['localNowInSec'] - 60
-        active_data.start = start
-        active_data.local_start = local_start
-        fileInfo = {
-            "add": 1,
-            "keystrokes": 1,
-            "start": start,
-            "local_start": local_start,
-            "paste": 0,
-            "open": 0,
-            "close": 0,
-            "length": 0,
-            "delete": 0,
-            "netkeys": 0,
-            "lines": -1,
-            "linesAdded": 0,
-            "linesRemoved": 0,
-            "syntax": "",
-            "end": 0,
-            "local_end": 0,
-            "chars_pasted": 0,
-            "file_path": "",
-            "file_name": "",
-            "project_name": "",
-            "project_directory": "",
-            "plugin_id": "",
-            "plugin_version": "",
-            "plugin_name": "",
-            "repo_identifier": "",
-            "repo_name": "",
-            "owner_id": "",
-            "git_branch": "",
-            "git_tag": ""
-        }
-        active_data.source[fileName] = fileInfo
-
-        dict_data = {key: getattr(active_data, key, None)
-                     for key in active_data.__slots__}
-        postBootstrapPayload(dict_data)
