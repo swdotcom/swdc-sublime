@@ -26,6 +26,8 @@ def swdc_tracker(use_cache = True):
 		config = json.loads(response.read().decode('utf-8'))
 		e = Emitter(config['tracker_api'])
 		tracker = Tracker(e, namespace='CodeTime', app_id='swdc-sublime')
+		timezone = getIanaTz()
+		tracker.subject.set_timezone(timezone)
 		cached_tracker = tracker
 		return tracker
 

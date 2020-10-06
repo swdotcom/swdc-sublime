@@ -1,9 +1,16 @@
+import sys
 import time as timeModule
 import platform
 import json
 import os
 from .Constants import *
 from datetime import *
+
+# Add vendor directory to module search path
+# This needs to be here to load the tzlocal library
+vendor_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'vendor'))
+sys.path.append(vendor_dir)
+from tzlocal import get_localzone
 
 def getUtcOffset():
     timestamp = timeModule.time()
@@ -43,6 +50,9 @@ def getTimezone():
     except Exception:
         pass
     return myTimezone
+
+def getIanaTz():
+    return str(get_localzone())
 
 def getPluginId():
 	return PLUGIN_ID
