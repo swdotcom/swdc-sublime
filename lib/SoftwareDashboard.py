@@ -60,7 +60,7 @@ def fetchCodeTimeMetricsDashboard():
 
     # TODO: find sublime setting for showGitMEtrics and replace true with it
     showGitMetrics = True 
-    api = '/dashboard?showGit=' + 'true' + '&linux=' + islinux + '&showToday=false'
+    api = '/dashboard?linux=' + islinux + '&showToday=true'
     response = requestIt("GET", api, None, getItem("jwt"))
 
     summaryContent = ""
@@ -81,36 +81,6 @@ def fetchCodeTimeMetricsDashboard():
     dashboardContent = ""
 
     d = datetime.now()
-
-    formattedDate = d.strftime("%a %b %d %I:%M %p")
-    dashboardContent += "CODE TIME          (Last updated on %s)\n\n" % formattedDate
-
-    formattedTodayDate = d.strftime("%a %b %d")
-    todayHeader = "Today (%s)" % formattedTodayDate
-    dashboardContent += getSectionHeader(todayHeader)
-
-    # summary = getSessionSummaryStatus()
-    summary = getSessionSummaryData()
-    codeTimeSummary = getCodeTimeSummary()
-    if (summary is not None and codeTimeSummary is not None):
-        currentDayMinutes = int(codeTimeSummary.get("activeCodeTimeMinutes", 0))
-        averageDailyMinutes = int(summary.get("averageDailyMinutes", 0))
-        currentDayEditorMinutes = int(codeTimeSummary.get("codeTimeMinutes", 0))
-
-        currentDayMinutesStr = humanizeMinutes(currentDayMinutes)
-        averageDailyMinutesStr = humanizeMinutes(currentDayMinutes)
-        currentDayEditorMinutesStr = humanizeMinutes(currentDayEditorMinutes)
-
-        liveshareTime = None 
-        if summary['liveshareMinutes']:
-            liveshareTime = humanizeMinutes(summary['liveshareMinutes'])
-
-        dashboardContent += getDashboardRow("Code time today", currentDayEditorMinutesStr)
-        dashboardContent += getDashboardRow("Active code time today", currentDayMinutesStr)
-        dashboardContent += getDashboardRow("Average active code time", averageDailyMinutesStr)
-        if liveshareTime:
-            dashboardContent += getDashboardRow('Live Share', liveshareTime)
-        dashboardContent += "\n"
 
     if (os.path.exists(summaryInfoFile)):
         try:
