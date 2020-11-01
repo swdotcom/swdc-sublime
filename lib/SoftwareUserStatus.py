@@ -7,7 +7,6 @@ from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareDashboard import *
 from .SoftwareSettings import *
-from .SoftwarePayload import *
 from .CommonUtil import *
 
 loggedInCacheState = False
@@ -76,7 +75,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
     currentUserStatus = getUserStatus()
     loggedInUser = currentUserStatus.get("loggedOn", None)
     if (loggedInUser is True or tryCountUntilFoundUser <= 0):
-        sendOfflineData()
         return
 
     # start the time

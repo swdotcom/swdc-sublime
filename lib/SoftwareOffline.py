@@ -131,7 +131,7 @@ def setSessionSummaryLiveshareMinutes(minutes):
     saveSessionSummaryToDisk(data)
 
 # store the payload offline...
-def storePayload(payload):
+def processAndAggregateData(payload):
     nowTimes = getNowTimes()
 
     fileChangeInfoMap = getFileChangeSummaryAsJson()
@@ -209,12 +209,6 @@ def storePayload(payload):
     dataStoreFile = getSoftwareDataStoreFile()
 
     log("Code Time: storing kpm metrics: %s" % payload)
-
-    try:
-        with open(dataStoreFile, "a") as dsFile:
-            dsFile.write(json.dumps(payload) + "\n")
-    except Exception as ex:
-        log('Error appending to the Software data store file: %s' % ex)
 
     setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
 

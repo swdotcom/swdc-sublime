@@ -436,28 +436,9 @@ def initializePlugin(initializedAnonUser, serverAvailable):
 
     oneMin = 60
 
-    setInterval(sendOfflineData, oneMin * 15)
     setInterval(lambda: sendHeartbeat('HOURLY'), oneMin * 60)
-    setInterval(sendOfflineEvents, oneMin * 40)
-    setInterval(getUsersOfFirstProject, oneMin * 50)
-
-    # only send commit data if setting is enabled
-    disable_git_data = getItem("disableGitData")
-    if not disable_git_data:
-        setInterval(getHistoricalCommitsOfFirstProject, oneMin * 45)
-        getCommitsTimer = Timer(oneMin * 2, getHistoricalCommitsOfFirstProject)
-        getCommitsTimer.start()
 
     updateStatusBarWithSummaryData()
-
-    offlineTimer = Timer(oneMin, sendOfflineData)
-    offlineTimer.start()
-
-    getUsersTimer = Timer(oneMin * 3, getUsersOfFirstProject)
-    getUsersTimer.start()
-
-    sendEventsTimer = Timer(oneMin * 4, sendOfflineEvents)
-    sendEventsTimer.start()
 
     updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
     updateOnlineStatusTimer.start()
@@ -501,13 +482,6 @@ def setOnlineStatus():
     timer = Timer(60 * 10, setOnlineStatus)
     timer.start()
 
-
-def getUsersOfFirstProject():
-    getRepoUsers(getProjectDirectory())
-
-
-def getHistoricalCommitsOfFirstProject():
-    getHistoricalCommits(getProjectDirectory())
 
 def track_ui_event(command_lookup_key):
     global UI_INTERACTIONS
