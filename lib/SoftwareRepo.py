@@ -19,7 +19,7 @@ def accumulateStatChanges(results):
 			if 'changed' in line and ('insertion' in line or 'deletion' in line):
 				parts = line.strip().split(' ')
 				fileCount = int(parts[0])
-				stats['fileCount'] += fileCount 
+				stats['fileCount'] += fileCount
 				stats['commitCount'] += 1
 
 				for x in range(1, len(parts)):
@@ -30,14 +30,14 @@ def accumulateStatChanges(results):
 					elif 'deletion' in part:
 						numDeletions = int(parts[x - 1])
 						stats['deletions'] += numDeletions
-	return stats 
+	return stats
 
 
 def getChangeStats(projectDir, cmd):
 	changeStats = CommitChangeStats()
 
 	if not projectDir:
-		return changeStats 
+		return changeStats
 
 	resultList = getCommandResultList(cmd, projectDir)
 
@@ -45,7 +45,7 @@ def getChangeStats(projectDir, cmd):
 	# print(resultList)
 
 	if not resultList:
-		return changeStats    
+		return changeStats
 
 	changeStats = accumulateStatChanges(resultList)
 
@@ -69,7 +69,7 @@ def getHistoricalCommits(rootDir):
 		key = buildRepoKey(identifier, branch, tag)
 
 		latestCommit = getLastCommit(rootDir)
-		
+
 		sinceOption = ""
 		cmdList = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"']
 
@@ -112,7 +112,7 @@ def getHistoricalCommits(rootDir):
 						commits.append(commit)
 
 					commitInfos = line.split(",")
-					
+
 					if (commitInfos is not None and len(commitInfos) > 3):
 						commitId = commitInfos[0].strip()
 
@@ -126,7 +126,7 @@ def getHistoricalCommits(rootDir):
 						except Exception:
 							# ValueError: invalid literal for int() with base 10:
 							timestamp = 0
-						
+
 						date = commitInfos[2].strip()
 						message = commitInfos[3].strip()
 
@@ -235,7 +235,6 @@ def buildRepoKey(identifier, branch, tag):
 	return "%s_%s_%s" % (identifier, branch, tag)
 
 def getLastCommit(rootDir):
-	
 	# get the repo info to get the last commit from the app
 	if (rootDir is None or isGitProject(rootDir) is False):
 		return None
@@ -253,7 +252,7 @@ def getLastCommit(rootDir):
 		key = buildRepoKey(identifier, branch, tag)
 
     	# fetch the latest commit from the app
-		encodedIdentifier = quote_plus(identifier) 
+		encodedIdentifier = quote_plus(identifier)
 		encodedTag = quote_plus(tag)
 		encodedBranch = quote_plus(branch)
 
@@ -276,12 +275,11 @@ def getLastCommit(rootDir):
 
 	return latestCommit
 
-
 def getRepoContributors(projectDir, filterOutNonEmails=False):
 	contributors = []
 	if not projectDir:
 		return contributors
-	
+
 	repoContributorInfo = getRepoUsers(projectDir, filterOutNonEmails)
 
 	if repoContributorInfo and repoContributorInfo['members']:
@@ -291,20 +289,8 @@ def getRepoContributors(projectDir, filterOutNonEmails=False):
 			contributor['email'] = member['email']
 			contributor['identifier'] = repoContributorInfo['identifier']
 			contributors.append(contributor)
-	
-	return contributors 
 
-def processRepoContributors(projectDir):
-	if not projectDir:
-		return 
-
-	repoContributorInfo = getRepoUsers(projectDir)
-
-	if repoContributorInfo:
-		response = requestIt("POST", '/repo/contributors', repoContributorInfo, getItem('jwt'))
-
-		if response and isResponseOk(response):
-			log('Code Time: repo contributor updated')
+	return contributors
 
 def getRepoUsers(rootDir, filterOutNonEmails=False):
 	if (rootDir is None or rootDir == ''):
@@ -344,8 +330,8 @@ def getRepoUsers(rootDir, filterOutNonEmails=False):
 							members.append({'name': name.strip(), 'email': email.strip()})
 						devListMap[email] = name
 			repoData['members'] = members
-			return repoData 
-	return None 
+			return repoData
+	return None
 
 def getTodaysCommits(projectDir, useAuthor=True):
 	today = getToday()
@@ -379,7 +365,7 @@ def getLastCommitId(projectDir, email):
 		if lastCommit[0] == '"':
 			lastCommit = lastCommit[1:]
 		if lastCommit[len(lastCommit) - 1] == '"':
-			lastCommit = lastCommit[:-1]		
+			lastCommit = lastCommit[:-1]
 		parts = lastCommit.split(',')
 		if parts and len(parts) == 2:
 			return {
@@ -398,21 +384,21 @@ def getRepoUrlLink(projectDir):
 
 	if link and link.endswith('.git'):
 		link = link[0:link.rindex('.git')]
-	return link 
+	return link
 
 def getToday():
 	day = datetime.fromtimestamp(round(timeModule.time()))
 	today = datetime(day.year, day.month, day.day)
 	start = today.timestamp()
 	end = start + ONE_DAY_SEC
-	return { "start": int(start), "end": int(end) } 
+	return { "start": int(start), "end": int(end) }
 
 def getYesterday():
 	day = datetime.fromtimestamp(round(timeModule.time()))
 	today = datetime(day.year, day.month, day.day) - timedelta(days=1)
 	start = today.timestamp()
 	end = start + ONE_DAY_SEC
-	return { "start": int(start), "end": int(end) } 
+	return { "start": int(start), "end": int(end) }
 
 def getThisWeek():
 	day = datetime.fromtimestamp(round(timeModule.time()))
