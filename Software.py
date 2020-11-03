@@ -10,7 +10,6 @@ import sublime
 from datetime import *
 from .lib.SoftwareHttp import *
 from .lib.SoftwareUtil import *
-from .lib.SoftwareMusic import *
 from .lib.SoftwareRepo import *
 from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
@@ -201,7 +200,7 @@ class EventListener(sublime_plugin.EventListener):
         # we have the fileInfo, update the metric
         fileInfoData['close'] += 1
         log('Code Time: closed file %s' % full_file_path)
-        
+
         Thread(target=track_file_closed, args=(full_file_path, get_syntax(view), get_line_count(view), get_character_count(view))).start()
 
         # show last status message
@@ -266,7 +265,7 @@ class EventListener(sublime_plugin.EventListener):
             prevLines = PluginData.line_counts[full_file_path]
 
         document_change_counts_and_type = analyzeDocumentChanges(fileInfoData, view)
-        
+
         if(fileInfoData.get('document_change_info', None) is None):
             fileInfoData['document_change_info'] = {
                 'lines_added': document_change_counts_and_type['lines_added'],
@@ -498,9 +497,9 @@ def track_ui_event(command_lookup_key):
 
 def track_file_closed(full_file_path, syntax, line_count, character_count):
     track_editor_action(**editor_action_params(
-        None, 
-        'file', 
-        'close', 
+        None,
+        'file',
+        'close',
         full_file_path=full_file_path,
         syntax=syntax,
         line_count=line_count,
