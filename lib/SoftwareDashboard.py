@@ -8,7 +8,6 @@ from .SoftwareOffline import *
 from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
-from .SoftwarePayload import *
 from .TimeSummaryData import *
 from .CommonUtil import *
 
@@ -25,9 +24,6 @@ def newDayChecker(isInit=False):
     isNewDay = getIsNewDay()
     if isNewDay:
         clearSessionSummaryData()
-        # Send offline data we have
-        sendOfflineData(True)
-        sendOfflineTimeData()
 
         # Clear all data
         clearWcTime()

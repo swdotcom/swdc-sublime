@@ -2,7 +2,6 @@ from threading import Thread, Timer, Event
 from queue import Queue
 import sublime_plugin, sublime
 from .SoftwareOffline import *
-from .SoftwarePayload import *
 from .SoftwareUtil import *
 from .TimeSummaryData import *
 from .Constants import *
@@ -14,7 +13,7 @@ DEFAULT_DURATION = 60
 # payload trigger to store it for later.
 def post_json(json_data):
     # save the data to the offline data file
-    storePayload(json.loads(json_data))
+    processAndAggregateData(json.loads(json_data))
 
     jwt = getJwt()
     for filepath, payload in json.loads(json_data)['source'].items():
