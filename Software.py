@@ -397,6 +397,7 @@ def initializeUser():
     if (fileExists is False or jwt is None):
         if (serverAvailable is False):
             if (retry_counter == 0):
+                retry_counter += 1
                 showOfflinePrompt()
             initializeUserTimer = Timer(
                 check_online_interval_sec, initializeUser)
@@ -405,6 +406,7 @@ def initializeUser():
             result = createAnonymousUser()
             if (result is None):
                 if (retry_counter == 0):
+                    retry_counter += 1
                     showOfflinePrompt()
                 initializeUserTimer = Timer(
                     check_online_interval_sec, initializeUser)
@@ -413,7 +415,6 @@ def initializeUser():
                 initializePlugin(True, serverAvailable)
     else:
         initializePlugin(False, serverAvailable)
-
 
 def initializePlugin(initializedAnonUser, serverAvailable):
     name = getPluginName()

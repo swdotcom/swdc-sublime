@@ -7,6 +7,7 @@ from .CommonUtil import *
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
 windowView = None
+version = None
 
 def httpLog(message):
     if (getValue("software_logging_on", True)):
@@ -115,3 +116,37 @@ def requestIt(method, api, payload, jwt):
         print("Code Time: Response Error for " + api + ": %s" % ex)
         return None
 
+def fetchReleaseTag():
+    # fetch the latest release tag
+    try:
+        connection = http.client.HTTPSConnection("api.github.com")
+
+        headers = {'Content-Type': 'application/json', 'User-Agent': USER_AGENT}
+        connection.request("GET", "/repos/swdotcom/swdc-sublime/releases/latest", {}, headers)
+
+        response = connection.getresponse()
+        return response
+    except Exception as ex:
+        print("Code Time: Response Error for " + api + ": %s" % ex)
+        return None
+
+def getVersion():
+    global version
+    if (version is not None and version != "current"):
+        return version
+
+    # fetch from github (None will be returned if there's an exception)
+    releaseInfo = fetchReleaseTag()
+
+    version = "current"
+    if (releaseInfo is not None):
+        releaseInfoStr = releaseInfo.read().decode('utf-8')
+        try:
+            releaseInfoObj = json.loads(releaseInfoStr)
+            version = releaseInfoObj.get("tag_name", "current")
+        except Exception as ex:
+            print("Code Time: Unable to fetch the release tag: %s" % ex)
+
+    print("Plugin version: %s" % version)
+
+    return version

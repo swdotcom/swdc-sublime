@@ -5,6 +5,7 @@ from .SoftwareOffline import getSessionSummaryData
 from .SoftwareDashboard import launchCodeTimeMetrics
 from .SoftwareUtil import *
 from .SoftwareModels import SessionSummary
+from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SoftwareRepo import *
