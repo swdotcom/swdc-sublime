@@ -3,6 +3,7 @@ from queue import Queue
 import sublime_plugin, sublime
 from .SoftwareOffline import *
 from .SoftwareUtil import *
+from .SoftwareHttp import *
 from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *

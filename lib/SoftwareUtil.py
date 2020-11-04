@@ -831,7 +831,7 @@ def extract_change_counts(change_info, file_info_data, view):
         change_info['characters_deleted'] = abs(character_diff) - change_info['lines_deleted']
 
 
-def  characterize_change(change_info, file_info_data, view):
+def characterize_change(change_info, file_info_data, view):
     if(change_info['characters_deleted'] > 0 or change_info['lines_deleted'] > 0):
         if (change_info['characters_added'] > 0 or change_info['lines_added'] > 0):
             change_info['change_type'] = "replacement"

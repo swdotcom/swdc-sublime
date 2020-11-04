@@ -47,18 +47,6 @@ def getTimezone():
 def getPluginId():
 	return PLUGIN_ID
 
-def getVersion():
-    packageJson = os.path.join(os.path.dirname(__file__), '..', 'package.json')
-    version = "2.2.1"
-    try:
-        with open(packageJson) as jsonData:
-            loadedJsonData = json.load(jsonData)
-            version = loadedJsonData.get("version", "2.2.1")
-    except Exception as ex:
-        print("Error reading package info: %s" % ex)
-
-    return version
-
 def getPluginName():
 	pluginName = __name__.split('.')[0]
 	return pluginName
