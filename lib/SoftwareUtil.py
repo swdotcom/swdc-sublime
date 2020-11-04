@@ -603,27 +603,6 @@ def normalizeGithubEmail(email, filterOutNonEmails=True):
 def getLoggedInCacheState():
     return loggedInCacheState
 
-def sendHeartbeat(reason):
-    jwt = getItem("jwt")
-    if (jwt is not None):
-
-        payload = {}
-        payload["pluginId"] = PLUGIN_ID
-        payload["os"] = getOs()
-        payload["start"] = round(timeModule.time())
-        payload["version"] = getVersion()
-        payload["hostname"] = getHostname()
-        payload["trigger_annotaion"] = reason
-
-        api = "/data/heartbeat"
-        try:
-            response = requestIt("POST", api, json.dumps(payload), jwt)
-
-            if (response is not None and isResponseOk(response) is False):
-                log("Code Time: Unable to send heartbeat ping")
-        except Exception as ex:
-            log("Code Time: Unable to send heartbeat: %s" % ex)
-
 def humanizeMinutes(minutes):
     minutes = int(minutes)
     humanizedStr = ""

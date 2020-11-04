@@ -434,10 +434,6 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     setOnlineStatusTimer = Timer(5, setOnlineStatus)
     setOnlineStatusTimer.start()
 
-    oneMin = 60
-
-    setInterval(lambda: sendHeartbeat('HOURLY'), oneMin * 60)
-
     updateStatusBarWithSummaryData()
 
     updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
@@ -456,7 +452,6 @@ def initializeUserInfo(initializedAnonUser):
         setItem('sublime_CtInit', True)
         updateSessionSummaryFromServer()
         refreshTreeView()
-        sendHeartbeat('INSTALLED')
 
 def plugin_unloaded():
     # clean up the background worker

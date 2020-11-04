@@ -65,7 +65,6 @@ def getUserStatus():
 
     if (loggedOn is True and loggedInCacheState != loggedOn):
         log("Code Time: Logged on")
-        sendHeartbeat("STATE_CHANGE:LOGGED_IN:true")
 
     loggedInCacheState = loggedOn
 
