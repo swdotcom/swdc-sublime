@@ -104,9 +104,9 @@ def getLoginUrl(loginType):
     if (loginType == 'software'):
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
     elif (loginType == 'github'):
-        loginUrl = '{}/auth/github?token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
+        loginUrl = '{}/auth/github?plugin_token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
     elif (loginType == 'google'):
-        loginUrl = '{}/auth/google?token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
+        loginUrl = '{}/auth/google?plugin_token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
     else:
         print('Login type error: Type was {}, defaulting...'.format(loginType))
         loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
