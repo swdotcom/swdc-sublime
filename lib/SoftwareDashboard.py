@@ -36,10 +36,6 @@ def newDayChecker(isInit=False):
         setItem('currentDay', currentDay)
         setItem('latestPayloadTimestampEndUtc', 0)
 
-        refreshTreeView()
-    elif isInit:
-        refreshTreeView()
-
 def launchCodeTimeMetrics():
     fetchCodeTimeMetricsDashboard()
     file = getDashboardFile()

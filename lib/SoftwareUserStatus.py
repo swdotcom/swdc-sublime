@@ -1,85 +1,99 @@
 import sublime
 import webbrowser
 import urllib
-import re
+import re, uuid
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareDashboard import *
 from .SoftwareSettings import *
 from .CommonUtil import *
+from .SoftwareSessionApp import *
+try:
+    #python2
+    from urllib import urlencode
+except ImportError:
+    #python3
+    from urllib.parse import urlencode
 
-loggedInCacheState = False
 LOGIN_LABEL = "Log in"
 
 def isLoggedOn():
-    print("calling isLoggedOn")
+
+    name = getItem("name")
+    switching_account = getItem("switching_account")
+
+    if (name is not None and (switching_account is None or switching_account is False)):
+        return True
+
+    auth_callback_state = getAuthCallbackState()
+    authType = getItem("authType")
     jwt = getItem("jwt")
-    if (jwt is not None):
 
-        user = getUser()
-        if (user is not None and validateEmail(user.get("email", None))):
+
+    token = auth_callback_state if (auth_callback_state is not None) else jwt
+
+    api = "/users/plugin/state"
+    resp = requestIt("GET", api, None, token)
+
+    user = getUserFromResponse(resp)
+
+    if (user is None and (authType == "software" or authType == "email")):
+        # check again using the jwt
+        resp = requestIt("GET", api, None, jwt)
+        user = getUserFromResponse(resp)
+
+    if (user is not None):
+        registered = user.get("registered", 0)
+        setItem("jwt", user.get("plugin_jwt"))
+        if (registered == 1):
             setItem("name", user.get("email"))
-            setItem("jwt", user.get("plugin_jwt"))
-            return True
+        else:
+            setItem("name", None)
 
-        api = "/users/plugin/state"
-        response = requestIt("GET", api, None, jwt)
+        if (authType is None):
+            setItem("authType", "software")
 
-        responseOk = isResponseOk(response)
-        if (responseOk is True):
-            try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                state = responseObj.get("state", None)
-                if (state is not None and state == "OK"):
-                    email = responseObj.get("email", None)
-                    setItem("name", email)
-                    pluginJwt = responseObj.get("jwt", None)
-                    if (pluginJwt is not None and pluginJwt != jwt):
-                        setItem("jwt", pluginJwt)
+        setItem("switching_account", False)
+        setAuthCallbackState(None)
+        return True
 
-                    # state is ok, return True
-                    return True
-                elif (state is not None and state == "NOT_FOUND"):
-                    setItem("jwt", None)
-
-            except Exception as ex:
-                log("Code Time: Unable to retrieve logged on response: %s" % ex)
-
-    setItem("name", None)
     return False
 
-def getUserStatus():
-    print("calling getUserStatus")
-    global loggedInCacheState
-
-    currentUserStatus = {}
-
-    # check if they're logged in or not
-    loggedOn = isLoggedOn()
-
-    setValue("logged_on", loggedOn)
-
-    currentUserStatus = {}
-    currentUserStatus["loggedOn"] = loggedOn
-
-    if (loggedOn is True and loggedInCacheState != loggedOn):
-        log("Code Time: Logged on")
-
-    loggedInCacheState = loggedOn
-
-    return currentUserStatus
+def getUserFromResponse(resp):
+    if (isResponseOk(resp)):
+        try:
+            obj = json.loads(resp.read().decode('utf-8'))
+            return obj.get("user", None)
+        except Exception as ex:
+            log("Code Time: Unable to retrieve user from plugin state: %s" % ex)
+    return None
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
-    currentUserStatus = getUserStatus()
-    loggedInUser = currentUserStatus.get("loggedOn", None)
-    if (loggedInUser is True or tryCountUntilFoundUser <= 0):
-        return
+    logged_on = isLoggedOn()
 
-    # start the time
-    tryCountUntilFoundUser -= 1
-    t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
-    t.start()
+    if (logged_on is False):
+        if (tryCountUntilFoundUser > 0):
+            tryCountUntilFoundUser -= 1
+            t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
+            t.start()
+        else:
+            # tried enough times
+            setItem("switching_account", False)
+            setAuthCallbackState(None)
+    else:
+        setItem("switching_account", False)
+        setAuthCallbackState(None)
+        # successful logon
+        infoMsg = "Successfully logged on to Code Time"
+        sublime.message_dialog(infoMsg)
+
+        # clear the session summary data and time summary data
+        clearSessionSummaryData()
+        clearTimeDataSummary()
+
+        updateSessionSummaryFromServer(True)
+
 
 def launchLoginUrl(loginType):
     webbrowser.open(getLoginUrl(loginType))
@@ -89,28 +103,43 @@ def getUrlEndpoint():
     return getValue("software_dashboard_url", "https://app.software.com")
 
 def getLoginUrl(loginType):
-    jwt = getItem('jwt')
-    encodedJwt = urllib.parse.quote_plus(jwt)
-    host = getValue("software_api_endpoint", "api.software.com")
-    loginUrl = None
+    loginType = loginType.lower()
+
+    auth_callback_state = str(uuid.uuid4())
+    setAuthCallbackState(auth_callback_state)
+
+    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+    app_url = getValue("software_dashboard_url", "app.software.com")
 
     scheme = "https"
-    if bool(re.match("localhost", host)):
+    if bool(re.match("localhost", api_endpoint)):
         scheme = "http"
 
-    api_host = scheme + "://" + host
+    loginUrl = scheme + "://"
 
-    setItem('authType', loginType)
-    if (loginType == 'software'):
-        loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
-    elif (loginType == 'github'):
-        loginUrl = '{}/auth/github?plugin_token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
-    elif (loginType == 'google'):
-        loginUrl = '{}/auth/google?plugin_token={}&plugin=codetime&redirect={}'.format(api_host, encodedJwt, getUrlEndpoint())
+    obj = {
+        "plugin": "codetime",
+        "plugin_uuid": getPluginUuid(),
+        "pluginVersion": getVersion(),
+        "plugin_id": getPluginId(),
+        "auth_callback_state": auth_callback_state
+    }
+
+    if (loginType == "github"):
+        obj["redirect"] = app_url
+        loginUrl += api_endpoint + "/auth/github"
+    elif (loginType == "google"):
+        obj["redirect"] = app_url
+        loginUrl += api_endpoint + "/auth/google"
     else:
-        print('Login type error: Type was {}, defaulting...'.format(loginType))
-        loginUrl = '{}/email-signup?token={}&plugin=codetime&auth=software'.format(getUrlEndpoint(), encodedJwt)
+        obj["token"] = getItem("jwt")
+        obj["auth"] = "software"
+        loginUrl += app_url + "/email-signup"
 
+    qryStr = urlencode(obj)
+
+    loginUrl += "?" + qryStr
+    
     return loginUrl
 
 def launchWebDashboardUrl():

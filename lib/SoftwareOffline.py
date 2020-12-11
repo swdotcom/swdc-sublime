@@ -201,10 +201,6 @@ def processAndAggregateData(payload):
     # push the stats to the file so other editor windows can have it
     saveFileChangeInfoToDisk(fileChangeInfoMap)
 
-    # refresh tree
-    refreshTreeTimer = Timer(1.0, refreshTreeView)
-    refreshTreeTimer.start()
-
     # get the datastore file to save the payload
     dataStoreFile = getSoftwareDataStoreFile()
 
