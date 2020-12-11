@@ -13,7 +13,6 @@ from .lib.SoftwareUtil import *
 from .lib.SoftwareRepo import *
 from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
-from .lib.SoftwareTree import *
 from .lib.SoftwareWallClock import *
 from .lib.SoftwareDashboard import *
 from .lib.SoftwareUserStatus import *
@@ -23,12 +22,13 @@ from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
 from .lib.Constants import *
 from .lib.TrackerManager import *
+from .lib.TreePanel import *
+from .lib.SoftwareStatusManager import *
 from .lib.ui_interactions import UI_INTERACTIONS
 
 DEFAULT_DURATION = 60
 
 SETTINGS = {}
-check_online_interval_sec = 60 * 10
 retry_counter = 0
 activated = False
 
@@ -38,7 +38,7 @@ class GoToSoftware(sublime_plugin.TextCommand):
         track_ui_event('view-web-dashboard')
 
     def is_enabled(self):
-        return (getValue("logged_on", True) is True)
+        return True
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
@@ -47,20 +47,12 @@ class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
         codetimemetricsthread.start()
         track_ui_event('view-dashboard')
 
-
-class ShowTreeView(sublime_plugin.WindowCommand):
-    def run(self):
-        setShouldOpen(True)
-        refreshTreeView()
-        track_ui_event('show-tree-view')
-
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
 
     def is_enabled(self):
-        return (getValue("online", True) is True)
-
+        return True
 
 class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -172,17 +164,13 @@ class EventListener(sublime_plugin.EventListener):
 
         track_editor_action(**editor_action_params(view, 'file', 'open'))
 
-        # show last status message
-        redisplayStatus()
+        updateStatusBarWithSummaryData()
 
-    # TODO: if tree view is closed, all groups should move left once space
     def on_close(self, view):
+        
         full_file_path = view.file_name()
         if (full_file_path is None):
             full_file_path = UNTITLED
-
-        if view.name() == CODETIME_TREEVIEW_NAME:
-            handleCloseTreeView()
 
         active_data = PluginData.get_active_data(view)
 
@@ -203,8 +191,7 @@ class EventListener(sublime_plugin.EventListener):
 
         Thread(target=track_file_closed, args=(full_file_path, get_syntax(view), get_line_count(view), get_character_count(view))).start()
 
-        # show last status message
-        redisplayStatus()
+        updateStatusBarWithSummaryData()
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -365,6 +352,7 @@ class EventListener(sublime_plugin.EventListener):
         # update the netkeys and the keystrokes
         # "netkeys" = add - delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
+
 # Iniates the plugin tasks once the it's loaded into Sublime.
 def plugin_loaded():
     initializeUser()
@@ -389,33 +377,25 @@ def plugin_unloaded():
 
 def initializeUser():
     # check if the session file is there
-    serverAvailable = serverIsAvailable()
-    fileExists = softwareSessionFileExists()
     jwt = getItem("jwt")
 
-    if (fileExists is False or jwt is None):
+    if (jwt is None):
+        serverAvailable = serverIsAvailable()
         if (serverAvailable is False):
             if (retry_counter == 0):
-                retry_counter += 1
                 showOfflinePrompt()
-            initializeUserTimer = Timer(
-                check_online_interval_sec, initializeUser)
-            initializeUserTimer.start()
+            elif (retry_counter < 6):
+                initializeUserTimer = Timer(30, initializeUser)
+                initializeUserTimer.start()
         else:
             result = createAnonymousUser()
-            if (result is None):
-                if (retry_counter == 0):
-                    retry_counter += 1
-                    showOfflinePrompt()
-                initializeUserTimer = Timer(
-                    check_online_interval_sec, initializeUser)
-                initializeUserTimer.start()
-            else:
-                initializePlugin(True, serverAvailable)
-    else:
-        initializePlugin(False, serverAvailable)
+            # init
+            initializePlugin(True)
 
-def initializePlugin(initializedAnonUser, serverAvailable):
+    # init
+    initializePlugin(False)
+
+def initializePlugin(initializedAnonUser):
     name = getPluginName()
     version = getVersion()
     log('Code Time: Loaded v%s of package name: %s' % (version, name))
@@ -429,29 +409,13 @@ def initializePlugin(initializedAnonUser, serverAvailable):
     # this check is required before the commits timer is started
     initializeUserPreferences()
 
-    # fire off timer tasks (seconds, task)
-
-    setOnlineStatusTimer = Timer(5, setOnlineStatus)
-    setOnlineStatusTimer.start()
-
-    updateStatusBarWithSummaryData()
-
-    updateOnlineStatusTimer = Timer(0.25, updateOnlineStatus)
-    updateOnlineStatusTimer.start()
-
-    initializeUserThread = Thread(
-        target=initializeUserInfo, args=[initializedAnonUser])
-    initializeUserThread.start()
-
-
-def initializeUserInfo(initializedAnonUser):
-    getUserStatus()
+    updateSessionSummaryFromServer()
 
     initialized = getItem('sublime_CtInit')
     if not initialized:
         setItem('sublime_CtInit', True)
-        updateSessionSummaryFromServer()
-        refreshTreeView()
+
+    setInterval(lambda: updateStatusBarWithSummaryData(), 9)
 
 def plugin_unloaded():
     # clean up the background worker
@@ -461,21 +425,6 @@ def plugin_unloaded():
 def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
     sublime.message_dialog(infoMsg)
-
-
-def setOnlineStatus():
-    online = serverIsAvailable()
-    # log("Code Time: Checking online status...")
-    if (online is True):
-        setValue("online", True)
-        # log("Code Time: Online")
-    else:
-        setValue("online", False)
-        # log("Code Time: Offline")
-
-    # run the check in another 1 minute
-    timer = Timer(60 * 10, setOnlineStatus)
-    timer.start()
 
 
 def track_ui_event(command_lookup_key):

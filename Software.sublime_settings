@@ -3,8 +3,6 @@
     "software_api_endpoint": "api.software.com",
     "date_range": "04/24/2019, 05/01/2019",
     "software_logging_on": false,
-    "logged_on": false,
-    "online": true,
     "software_telemetry_on": true,
     "software_dashboard_url": "https://app.software.com",
     "plugin": "code-time",

@@ -2,6 +2,7 @@ import time as timeModule
 import platform
 import json
 import os
+import re, uuid
 from .Constants import *
 from datetime import *
 
@@ -80,6 +81,34 @@ def setItem(key, value):
     with open(sessionFile, 'w') as f:
         f.write(content)
 
+def getPluginUuid():
+    jsonObj = getDeviceAsJson()
+    plugin_uuid = jsonObj.get("plugin_uuid", None)
+    if (plugin_uuid is None):
+        plugin_uuid = str(uuid.uuid4())
+        jsonObj["plugin_uuid"] = value
+        content = json.dumps(jsonObj)
+
+        deviceFile = getDeviceFile()
+        with open(deviceFile, 'w') as f:
+            f.write(content)
+
+    return plugin_uuid
+
+def getAuthCallbackState():
+    jsonObj = getDeviceAsJson()
+    return jsonObj.get("auth_callback_state", None)
+
+def setAuthCallbackState(value):
+    jsonObj = getDeviceAsJson()
+    jsonObj["auth_callback_state"] = value
+
+    content = json.dumps(jsonObj)
+
+    deviceFile = getDeviceFile()
+    with open(deviceFile, 'w') as f:
+        f.write(content)
+
 def getSoftwareSessionAsJson():
     try:
         with open(getSoftwareSessionFile()) as sessionFile:
@@ -91,6 +120,18 @@ def getSoftwareSessionAsJson():
 def getSoftwareSessionFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'session.json')
+
+def getDeviceAsJson():
+    try:
+        with open(getDeviceFile()) as deviceFile:
+            loadedDeviceFile = json.load(deviceFile)
+            return loadedDeviceFile
+    except Exception:
+        return {}
+
+def getDeviceFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'device.json')
 
 def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')

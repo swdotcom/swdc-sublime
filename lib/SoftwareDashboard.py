@@ -16,9 +16,8 @@ DAY_CHECK_TIMER_INTERVAL = 60
 def dashboardMgrInit():
     currentDay = getItem('currentDay')
     setInterval(lambda: newDayChecker(False), DAY_CHECK_TIMER_INTERVAL)
-
-    newDayTimer = Timer(1, newDayChecker, args=[True])
-    newDayTimer.start()
+    # run it once to start
+    newDayChecker(True)
 
 def newDayChecker(isInit=False):
     isNewDay = getIsNewDay()
@@ -35,10 +34,6 @@ def newDayChecker(isInit=False):
 
         setItem('currentDay', currentDay)
         setItem('latestPayloadTimestampEndUtc', 0)
-
-        refreshTreeView()
-    elif isInit:
-        refreshTreeView()
 
 def launchCodeTimeMetrics():
     fetchCodeTimeMetricsDashboard()

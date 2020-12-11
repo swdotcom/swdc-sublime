@@ -40,16 +40,6 @@ have easy TTL cache options available
 myCache = {}
 
 runningResourceCmd = False
-loggedInCacheState = False
-
-def updateOnlineStatus():
-    online = serverIsAvailable()
-    if (online is True):
-        setValue("online", True)
-        # print(getValue("online", True))
-    else:
-        setValue("online", False)
-        # print(getValue("online", True))
 
 # log the message
 def log(message):
@@ -77,12 +67,6 @@ def getActiveWindowId():
     except Exception as ex:
         print("Code Time: unable to retrieve active window: %s" % ex)
         return None
-
-def refreshTreeView():
-    buildTreeLock.acquire()
-    # print('thread {} refreshing'.format(current_thread().ident))
-    sublime.active_window().run_command('open_tree_view')
-    buildTreeLock.release()
 
 def getOpenProjects():
     folders = None
@@ -247,132 +231,6 @@ def getCommandResultList(cmd, projectDir):
     return result
 
 
-# execute the applescript command
-def runCommand(cmd, args = []):
-    p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate(cmd)
-    return stdout.decode('utf-8').strip()
-
-def getItunesTrackState():
-    script = '''
-        tell application "iTunes" to get player state
-        '''
-    try:
-        cmd = script.encode('latin-1')
-        result = runCommand(cmd, ['osascript', '-'])
-        return result
-    except Exception as e:
-        log("Code Time: error getting track state: %s " % e)
-        # no music found playing
-        return "stopped"
-
-def getSpotifyTrackState():
-    script = '''
-        tell application "Spotify" to get player state
-        '''
-    try:
-        cmd = script.encode('latin-1')
-        result = runCommand(cmd, ['osascript', '-'])
-        return result
-    except Exception as e:
-        log("Code Time: error getting track state: %s " % e)
-        # no music found playing
-        return "stopped"
-
-
-# get the current track playing (spotify or itunes)
-def getTrackInfo():
-    if sys.platform == "darwin":
-        return getMacTrackInfo()
-    elif sys.platform == "win32":
-        # not supported on other platforms yet
-        return getWinTrackInfo()
-    else:
-        # linux not supported yet
-        return {}
-
-# windows
-def getWinTrackInfo():
-    # not supported on other platforms yet
-    return {}
-
-# OS X
-def getMacTrackInfo():
-    script = '''
-        on buildItunesRecord(appState)
-            tell application "iTunes"
-                set track_artist to artist of current track
-                set track_name to name of current track
-                set track_genre to genre of current track
-                set track_id to database ID of current track
-                set track_duration to duration of current track
-                set json to "type='itunes';genre='" & track_genre & "';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
-            end tell
-            return json
-        end buildItunesRecord
-
-        on buildSpotifyRecord(appState)
-            tell application "Spotify"
-                set track_artist to artist of current track
-                set track_name to name of current track
-                set track_duration to duration of current track
-                set track_id to id of current track
-                set track_duration to duration of current track
-                set json to "type='spotify';genre='';artist='" & track_artist & "';id='" & track_id & "';name='" & track_name & "';state='playing';duration='" & track_duration & "'"
-            end tell
-            return json
-        end buildSpotifyRecord
-
-        try
-            if application "Spotify" is running and application "iTunes" is not running then
-                tell application "Spotify" to set spotifyState to (player state as text)
-                -- spotify is running and itunes is not
-                if (spotifyState is "paused" or spotifyState is "playing") then
-                    set jsonRecord to buildSpotifyRecord(spotifyState)
-                else
-                    set jsonRecord to {}
-                end if
-            else if application "Spotify" is running and application "iTunes" is running then
-                tell application "Spotify" to set spotifyState to (player state as text)
-                tell application "iTunes" to set itunesState to (player state as text)
-                -- both are running but use spotify as a higher priority
-                if spotifyState is "playing" then
-                    set jsonRecord to buildSpotifyRecord(spotifyState)
-                else if itunesState is "playing" then
-                    set jsonRecord to buildItunesRecord(itunesState)
-                else if spotifyState is "paused" then
-                    set jsonRecord to buildSpotifyRecord(spotifyState)
-                else
-                    set jsonRecord to {}
-                end if
-            else if application "iTunes" is running and application "Spotify" is not running then
-                tell application "iTunes" to set itunesState to (player state as text)
-                set jsonRecord to buildItunesRecord(itunesState)
-            else
-                set jsonRecord to {}
-            end if
-            return jsonRecord
-        on error
-            return {}
-        end try
-    '''
-    try:
-        cmd = script.encode('latin-1')
-        result = runCommand(cmd, ['osascript', '-'])
-        result = result.strip('\r\n')
-        result = result.replace('"', '')
-        result = result.replace('\'', '')
-
-        if (result):
-            trackInfo = dict(item.strip().split("=") for item in result.strip().split(";"))
-            return trackInfo
-        else:
-            return {}
-    except Exception as e:
-        log("Code Time: error getting track: %s " % e)
-        # no music found playing
-        return {}
-
 def runResourceCmd(cmdArgs, rootDir):
     if sys.platform == "darwin": # OS X
         runningResourceCmd = True
@@ -498,58 +356,40 @@ def fetchCustomDashboard(date_range):
 
 
 def launchCustomDashboard():
-    online = getValue("online", True)
     date_range = getValue("date_range", "04/24/2019, 05/01/2019")
-    if (online):
-        fetchCustomDashboard(date_range)
-    else:
-        log("Code Time: could not fetch custom dashboard")
+    fetchCustomDashboard(date_range)
     file = getCustomDashboardFile()
     sublime.active_window().open_file(file)
 
-def getAppJwt():
-    now = round(timeModule.time())
-    api = "/data/apptoken?token=" + str(now)
-    response = requestIt("GET", api, None, None)
-    if (response is not None):
-        responseObjStr = response.read().decode('utf-8')
-        try:
-            responseObj = json.loads(responseObjStr)
-            appJwt = responseObj.get("jwt", None)
-            if (appJwt is not None):
-                return appJwt
-        except Exception as ex:
-            log("Code Time: Unable to retrieve app token: %s" % ex)
-            return None
-
-# crate a uuid token to establish a connection
-def createToken():
-    # return os.urandom(16).encode('hex')
-    uid = uuid.uuid4()
-    return uid.hex
 
 def createAnonymousUser():
-    appJwt = getAppJwt()
-    if (appJwt):
+    jwt = getItem("jwt")
+    if (jwt is None):
+        plugin_uuid = getPluginUuid()
         username = getOsUsername()
         timezone = getTimezone()
         hostname = getHostname()
+        auth_callback_state = getAuthCallbackState()
 
         payload = {}
         payload["username"] = username
         payload["timezone"] = timezone
         payload["hostname"] = hostname
-        payload["creation_annotation"] = "NO_SESSION_FILE"
+        payload["plugin_uuid"] = plugin_uuid
+        payload["auth_callback_state"] = auth_callback_state
 
-        api = "/data/onboard"
+        api = "/plugins/onboard"
         try:
-            response = requestIt("POST", api, json.dumps(payload), appJwt)
+            response = requestIt("POST", api, json.dumps(payload))
             if (response is not None and isResponseOk(response)):
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
                     log("created anonymous user with jwt %s " % jwt)
                     setItem("jwt", jwt)
+                    setItem("name", None)
+                    setItem("switching_account", False)
+                    setAuthCallbackState(None)
                     return jwt
                 except Exception as ex:
                     log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
@@ -599,9 +439,6 @@ def normalizeGithubEmail(email, filterOutNonEmails=True):
             if found and 'users.noreply' in email:
                 return None
     return email
-
-def getLoggedInCacheState():
-    return loggedInCacheState
 
 def humanizeMinutes(minutes):
     minutes = int(minutes)
@@ -822,6 +659,6 @@ def characterize_change(change_info, file_info_data, view):
     elif (change_info['characters_added'] > 1 or change_info['lines_added'] > 1):
         change_info['change_type'] = "multi_add"
     elif (change_info['characters_added'] == 1 or change_info['lines_added'] == 1):
-        change_info['change_type'] = "single_add";
+        change_info['change_type'] = "single_add"
     else:
         change_info['change_type'] = "net_zero_change"

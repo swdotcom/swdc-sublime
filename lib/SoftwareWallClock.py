@@ -33,7 +33,6 @@ def updateWcTime():
 
 def dispatchStatusViewUpdate():
     updateStatusBarWithSummaryData()
-    refreshTreeView()
 
 def clearWcTime():
     setWcTime(0)
