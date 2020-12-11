@@ -64,7 +64,6 @@ class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
     def run(self, isNewDay):
         updateSessionSummaryFromServer(isNewDay)
 
-
 class GenerateContributorSummary(sublime_plugin.WindowCommand):
     def run(self):
         projectDir = getProjectDirectory()
@@ -403,6 +402,8 @@ def initializePlugin(initializedAnonUser):
 
     setItem("sublime_lastUpdateTime", None)
 
+    displayReadmeIfNotExists(False)
+
     wallClockMgrInit()
     dashboardMgrInit()
 
@@ -421,11 +422,9 @@ def plugin_unloaded():
     # clean up the background worker
     PluginData.background_worker.queue.join()
 
-
 def showOfflinePrompt():
     infoMsg = "Our service is temporarily unavailable. We will try to reconnect again in 10 minutes. Your status bar will not update at this time."
     sublime.message_dialog(infoMsg)
-
 
 def track_ui_event(command_lookup_key):
     global UI_INTERACTIONS

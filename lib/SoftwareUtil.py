@@ -300,16 +300,15 @@ def launchSubmitFeedback():
     webbrowser.open('mailto:cody@software.com')
 
 def getLocalREADMEFile():
-    return os.path.join(os.path.dirname(__file__), '..', 'README.md')
+    return os.path.join(os.path.dirname(__file__), '..', 'README.txt')
 
 # TODO: figure out how to do markdown preview
-def displayReadmeIfNotExists():
-    readmeFile = getLocalREADMEFile()
-    sublime.active_window().open_file(readmeFile)
-    # fileUri = 'markdown-preview://{}'.format(readmeFile)
-    # displayed = getItem('sublime_CtReadme')
-    # if not displayed:
-        # setItem('sublime_CtReadme', True)
+def displayReadmeIfNotExists(overrideInitCheck):
+    displayed = getItem('sublime_CtReadme');
+    if (displayed is None or overrideInitCheck is True):
+        readmeFile = getLocalREADMEFile()
+        sublime.active_window().open_file(readmeFile)
+        setItem('sublime_CtReadme', True)
 
 def launchSpotifyLoginUrl():
     api_endpoint = getValue("software_api_endpoint", "api.software.com")
@@ -327,40 +326,6 @@ def isWindows():
     if sys.platform == "win32":
         return True
     return False
-
-def fetchCustomDashboard(date_range):
-    try:
-        date_range_arr = [x.strip() for x in date_range.split(',')]
-        startDate = date_range_arr[0]
-        endDate = date_range_arr[1]
-        start = int(timeModule.mktime(datetime.strptime(startDate, "%m/%d/%Y").timetuple()))
-        end = int(timeModule.mktime(datetime.strptime(endDate, "%m/%d/%Y").timetuple()))
-    except Exception:
-        sublime.error_message(
-            'Invalid date range'
-            '\n\n'
-            'Please enter a start and end date in the format, MM/DD/YYYY.'
-            '\n\n'
-            'Example: 04/24/2019, 05/01/2019')
-        log("Code Time: invalid date range")
-
-    try:
-        api = '/dashboard?start=' + str(start) + '&end=' + str(end)
-        response = requestIt("GET", api, None, getItem("jwt"))
-        content = response.read().decode('utf-8')
-        file = getCustomDashboardFile()
-        with open(file, 'w', encoding='utf-8') as f:
-            f.write(content)
-    except Exception:
-        log("Code Time: Unable to write custom dashboard")
-
-
-def launchCustomDashboard():
-    date_range = getValue("date_range", "04/24/2019, 05/01/2019")
-    fetchCustomDashboard(date_range)
-    file = getCustomDashboardFile()
-    sublime.active_window().open_file(file)
-
 
 def createAnonymousUser():
     jwt = getItem("jwt")
@@ -413,32 +378,13 @@ def getUser():
 
 def initializeUserPreferences():
     session_threshold_in_sec = getSessionThresholdSeconds()
-    disable_git_data = False # enable git data by default
 
     user = getUser()
     if(user):
         session_threshold_in_sec =  user.get("preferences", {}).get("sessionThresholdInSec", getSessionThresholdSeconds())
-        disable_git_data = user.get("preferences", {}).get("disableGitData", False)
 
     # update values config
     setItem("sessionThresholdInSec", session_threshold_in_sec)
-    setItem("disableGitData", disable_git_data)
-
-def validateEmail(email):
-    match = re.findall('\S+@\S+', email)
-    if match:
-        return True
-    return False
-
-def normalizeGithubEmail(email, filterOutNonEmails=True):
-    if email:
-        if filterOutNonEmails and ('users.noreply' in email or email.endswith('github.com')):
-            return None
-        else:
-            found = re.match(NUMBER_IN_EMAIL_REGEX, email)
-            if found and 'users.noreply' in email:
-                return None
-    return email
 
 def humanizeMinutes(minutes):
     minutes = int(minutes)
@@ -538,16 +484,6 @@ def setInterval(func, sec):
     t = Timer(sec, func_wrapper)
     t.start()
     return t
-
-# Returns a unixTimestamp as a unixTimestamp but at the end of the day (to the millisecond)
-def endOfDayUnix(unixTimestamp):
-    day = datetime.fromtimestamp(unixTimestamp)
-    endOfDay = datetime(day.year, day.month, day.day) + timedelta(1) - timedelta(0, 0, 0, 1)
-    return math.floor(endOfDay.timestamp())
-
-def startOfDayUnix(unixTimestamp):
-    day = datetime.fromtimestamp(unixTimestamp)
-    return datetime(day.year, day.month, day.day).timestamp()
 
 def isGitProject(projectDir):
     if (projectDir is None):

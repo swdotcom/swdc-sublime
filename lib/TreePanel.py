@@ -208,7 +208,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
             elif (key == HIDE_STATUS_LABEL or key == SHOW_STATUS_LABEL):
                 toggleStatus()
             elif key == LEARN_MORE_LABEL:
-                displayReadmeIfNotExists()
+                displayReadmeIfNotExists(True)
             elif key == SEE_ADVANCED_METRICS:
                 launchWebDashboardUrl()
             elif key == SUBMIT_FEEDBACK_LABEL:
