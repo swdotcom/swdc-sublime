@@ -23,7 +23,7 @@ def toggleStatus():
         showStatus(lastMsg)
     else:
         # show clock icon unicode
-        showStatus("⏱")
+        showStatus("🕒")
     sublime.active_window().run_command('open_tree_view')
 
 # update the status bar message
@@ -38,7 +38,7 @@ def showStatus(msg):
         showStatusVal = getValue("show_code_time_status", True)
 
         if (showStatusVal is False):
-            msg = "⏱"
+            msg = "🕒"
         elif (msg is None):
             msg = "Code Time"
 

@@ -10,12 +10,12 @@ def updateStatusBarWithSummaryData():
     currentDayMinutes = int(codeTimeSummary.get("activeCodeTimeMinutes", 0))
     averageDailyMinutes = int(sessionSummaryData.get("averageDailyMinutes", 0))
 
-    inFlowIcon = "🕑"
+    inFlowIcon = "🕒"
     if (currentDayMinutes > averageDailyMinutes):
         inFlowIcon = "🚀"
     
     currentDayMinStr = humanizeMinutes(currentDayMinutes)
-    statusMsg = inFlowIcon + "" + currentDayMinStr
+    statusMsg = inFlowIcon + " " + currentDayMinStr
 
     showStatus(statusMsg)
     
