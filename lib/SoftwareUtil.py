@@ -68,12 +68,6 @@ def getActiveWindowId():
         print("Code Time: unable to retrieve active window: %s" % ex)
         return None
 
-# def refreshTreeView():
-#     buildTreeLock.acquire()
-#     print('thread {} refreshing'.format(current_thread().ident))
-#     sublime.active_window().run_command('open_tree_view')
-#     buildTreeLock.release()
-
 def getOpenProjects():
     folders = None
     if sublime.active_window().project_data():

@@ -23,6 +23,7 @@ from .lib.KpmManager import *
 from .lib.Constants import *
 from .lib.TrackerManager import *
 from .lib.TreePanel import *
+from .lib.SoftwareStatusManager import *
 from .lib.ui_interactions import UI_INTERACTIONS
 
 DEFAULT_DURATION = 60
@@ -37,7 +38,7 @@ class GoToSoftware(sublime_plugin.TextCommand):
         track_ui_event('view-web-dashboard')
 
     def is_enabled(self):
-        return (getValue("logged_on", True) is True)
+        return True
 
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
@@ -163,10 +164,10 @@ class EventListener(sublime_plugin.EventListener):
 
         track_editor_action(**editor_action_params(view, 'file', 'open'))
 
-        # show last status message
-        redisplayStatus()
+        updateStatusBarWithSummaryData()
 
     def on_close(self, view):
+        
         full_file_path = view.file_name()
         if (full_file_path is None):
             full_file_path = UNTITLED
@@ -190,8 +191,7 @@ class EventListener(sublime_plugin.EventListener):
 
         Thread(target=track_file_closed, args=(full_file_path, get_syntax(view), get_line_count(view), get_character_count(view))).start()
 
-        # show last status message
-        redisplayStatus()
+        updateStatusBarWithSummaryData()
 
     def on_modified_async(self, view):
         global PROJECT_DIR
@@ -352,6 +352,7 @@ class EventListener(sublime_plugin.EventListener):
         # update the netkeys and the keystrokes
         # "netkeys" = add - delete
         fileInfoData['netkeys'] = fileInfoData['add'] - fileInfoData['delete']
+
 # Iniates the plugin tasks once the it's loaded into Sublime.
 def plugin_loaded():
     initializeUser()
@@ -384,7 +385,7 @@ def initializeUser():
             if (retry_counter == 0):
                 showOfflinePrompt()
             elif (retry_counter < 6):
-                initializeUserTimer = Timer(check_online_interval_sec, initializeUser)
+                initializeUserTimer = Timer(30, initializeUser)
                 initializeUserTimer.start()
         else:
             result = createAnonymousUser()
@@ -408,12 +409,13 @@ def initializePlugin(initializedAnonUser):
     # this check is required before the commits timer is started
     initializeUserPreferences()
 
-    updateStatusBarWithSummaryData()
+    updateSessionSummaryFromServer()
 
     initialized = getItem('sublime_CtInit')
     if not initialized:
         setItem('sublime_CtInit', True)
-        updateSessionSummaryFromServer()
+
+    setInterval(lambda: updateStatusBarWithSummaryData(), 9)
 
 def plugin_unloaded():
     # clean up the background worker

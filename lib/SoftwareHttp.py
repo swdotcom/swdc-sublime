@@ -13,10 +13,6 @@ def httpLog(message):
     if (getValue("software_logging_on", True)):
         print(message)
 
-def redisplayStatus():
-    global lastMsg
-    showStatus(lastMsg)
-
 def toggleStatus():
     global lastMsg
     showStatusVal = getValue("show_code_time_status", True)
@@ -34,22 +30,19 @@ def toggleStatus():
 def showStatus(msg):
     global lastMsg
     try:
-        active_window = sublime.active_window()
+        lastMsg = msg
+
+        if (sublime.active_window() is None or sublime.active_window().active_view() is None):
+            return
 
         showStatusVal = getValue("show_code_time_status", True)
 
         if (showStatusVal is False):
             msg = "⏱"
-        else:
-            lastMsg = msg
-
-        if (msg is None):
+        elif (msg is None):
             msg = "Code Time"
 
-        if (active_window is not None):
-            for view in active_window.views():
-                if (view is not None):
-                    view.set_status('software.com', msg)
+        sublime.active_window().active_view().set_status('software.com', msg)
     except RuntimeError:
         httpLog(msg)
 

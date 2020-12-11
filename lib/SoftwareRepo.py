@@ -41,9 +41,6 @@ def getChangeStats(projectDir, cmd):
 
 	resultList = getCommandResultList(cmd, projectDir)
 
-	# if cmd == ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since=1586070000.0', '--until=1586674800.0']:
-	# print(resultList)
-
 	if not resultList:
 		return changeStats
 
