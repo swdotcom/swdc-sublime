@@ -86,7 +86,7 @@ def getPluginUuid():
     plugin_uuid = jsonObj.get("plugin_uuid", None)
     if (plugin_uuid is None):
         plugin_uuid = str(uuid.uuid4())
-        jsonObj["plugin_uuid"] = value
+        jsonObj["plugin_uuid"] = plugin_uuid
         content = json.dumps(jsonObj)
 
         deviceFile = getDeviceFile()
