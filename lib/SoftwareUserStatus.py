@@ -45,11 +45,13 @@ def isLoggedOn():
 
     if (user is not None):
         registered = user.get("registered", 0)
-        setItem("jwt", user.get("plugin_jwt"))
+        user_jwt = user.get("plugin_jwt", None)
+        
+        if (user_jwt is not None):
+            setItem("jwt", user.get("plugin_jwt"))
+
         if (registered == 1):
             setItem("name", user.get("email"))
-        else:
-            setItem("name", None)
 
         if (authType is None):
             setItem("authType", "software")

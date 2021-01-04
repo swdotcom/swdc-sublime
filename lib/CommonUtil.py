@@ -97,7 +97,17 @@ def getPluginUuid():
 
 def getAuthCallbackState():
     jsonObj = getDeviceAsJson()
-    return jsonObj.get("auth_callback_state", None)
+    auth_callback_state = jsonObj.get("auth_callback_state", None)
+    if (auth_callback_state is None):
+        auth_callback_state = str(uuid.uuid4())
+        jsonObj["auth_callback_state"] = auth_callback_state
+        content = json.dumps(jsonObj)
+
+        deviceFile = getDeviceFile()
+        with open(deviceFile, 'w') as f:
+            f.write(content)
+
+    return auth_callback_state
 
 def setAuthCallbackState(value):
     jsonObj = getDeviceAsJson()
