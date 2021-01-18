@@ -4,6 +4,7 @@ import json
 import os
 import re, uuid
 from .Constants import *
+from .SoftwareSettings import *
 from datetime import *
 
 def getUtcOffset():
@@ -44,6 +45,9 @@ def getTimezone():
     except Exception:
         pass
     return myTimezone
+
+def getPluginType():
+    return "codetime"
 
 def getPluginId():
 	return PLUGIN_ID
@@ -95,10 +99,10 @@ def getPluginUuid():
 
     return plugin_uuid
 
-def getAuthCallbackState():
+def getAuthCallbackState(auto_create=True):
     jsonObj = getDeviceAsJson()
     auth_callback_state = jsonObj.get("auth_callback_state", None)
-    if (auth_callback_state is None):
+    if (auth_callback_state is None and auto_create is True):
         auth_callback_state = str(uuid.uuid4())
         jsonObj["auth_callback_state"] = auth_callback_state
         content = json.dumps(jsonObj)
@@ -153,4 +157,52 @@ def getSoftwareDir(autoCreate):
 def sublime_variables(view):
     view.window().extract_variables()
 
+def getIntegrationsFile():
+    file = getSoftwareDir(True)
+    return os.path.join(file, 'integrations.json')
 
+def getIntegrations():
+    try:
+        with open(getIntegrationsFile()) as integrationsFile:
+            loadedIntegrationsFile = json.load(integrationsFile)
+            return loadedIntegrationsFile
+    except Exception:
+        return []
+
+def syncIntegrations(integrations_data):
+    content = json.dumps(integrations_data)
+
+    integrationsFile = getIntegrationsFile()
+    with open(integrationsFile, 'w') as f:
+        f.write(content)
+
+def getWebUrl():
+    app_url = getValue("software_dashboard_url", "app.software.com")
+
+    scheme = "https"
+    if bool(re.match("localhost", app_url)):
+        scheme = "http"
+
+    app_url = scheme + "://" + app_url
+    return app_url
+
+def getApi():
+    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+
+    scheme = "https"
+    if bool(re.match("localhost", api_endpoint)):
+        scheme = "http"
+
+    api_endpoint = scheme + "://" + api_endpoint
+    return api_endpoint
+
+def getPercentOfReferenceAvg(curr, ref, refDisplay):
+    if (curr is None):
+        curr = 0
+    quotient = 1
+    if (ref is not None):
+        quotient = curr / ref
+        if (curr > 0 and quotient < 0.01):
+            quotient = 0.01
+
+    return round((quotient * 100), 2) + " of " + refDisplay

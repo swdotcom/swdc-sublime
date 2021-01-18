@@ -25,12 +25,16 @@ from .lib.TrackerManager import *
 from .lib.TreePanel import *
 from .lib.SoftwareStatusManager import *
 from .lib.ui_interactions import UI_INTERACTIONS
+from .lib.SlackManager import *
+from .lib.OsaScriptUtil import *
 
 DEFAULT_DURATION = 60
 
 SETTINGS = {}
 retry_counter = 0
 activated = False
+editor_focused = False
+last_focus_event_sent = None
 
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
@@ -91,9 +95,79 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is False)
 
+class DisconnectSlackCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        disconnectSlackWorkspace()
 
-editor_focused = False
-last_focus_event_sent = None
+    def is_enabled(self):
+        return True
+
+class ConnectSlackCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        connectSlackWorkspace()
+
+    def is_enabled(self):
+        return True
+
+class PauseSlackNotificationsCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        pauseSlackNotifications()
+
+    def is_enabled(self):
+        return True
+
+class EnableSlackNotificationsCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        enableSlackNotifications()
+
+    def is_enabled(self):
+        return True
+
+class ToggleDarkModeCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        toggleDarkMode()
+
+    def is_enabled(self):
+        return True
+
+class ToggleDockCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        toggleDock()
+
+    def is_enabled(self):
+        return True
+
+class UpdateSlackStatusMsgCommand(sublime_plugin.TextCommand):
+    def run(self, view):
+        is_registered = checkRegistration(True)
+        if (is_registered is False):
+            return
+
+        is_connected = checkSlackConnection(True)
+        if (is_connected is False):
+            return
+
+        # show the selection to clear or update
+        options = ['Clear status', 'Update status']
+        self.view.window().show_quick_panel(options, self.on_select_receiver)
+
+    def on_select_receiver(self, index):
+        if index == -1:
+            return
+        if index == 0:
+            # clear
+            clearSlackStatusText()
+        else:
+            # update
+            self.on_update_request()
+
+    def on_update_request(self):
+        self.view.window().show_input_panel("Slack status message", "", self.on_done, None, None)
+
+    def on_done(self, message):
+        if not message:
+            return
+        updateSlackStatusText(message)
 
 def check_and_send_unfocus_event(view):
     global editor_focused

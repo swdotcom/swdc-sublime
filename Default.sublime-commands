@@ -22,5 +22,33 @@
     {
         "command": "enable_kpm_updates",
         "caption": "Code Time: Enable"
+    },
+    {
+        "command": "disconnect_slack",
+        "caption": "Code Time: Disconnect Slack"
+    },
+    {
+        "command": "connect_slack",
+        "caption": "Code Time: Connect Slack"
+    },
+    {
+        "command": "pause_slack_notifications",
+        "caption": "Code Time: Pause Slack notifications"
+    },
+    {
+        "command": "enable_slack_notifications",
+        "caption": "Code Time: Enable Slack notifications"
+    },
+    {
+        "command": "toggle_dark_mode",
+        "caption": "Code Time: Toggle dark mode"
+    },
+    {
+        "command": "toggle_dock",
+        "caption": "Code Time: Toggle dock"
+    },
+    {
+        "command": "update_slack_status_msg",
+        "caption": "Code Time: Update Slack status msg"
     }
 ]

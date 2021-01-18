@@ -18,18 +18,14 @@ except ImportError:
 
 LOGIN_LABEL = "Log in"
 
-def isLoggedOn():
+def getUserRegistrationState(is_integration=False):
+    userState = {}
+    userState["logged_on"] = False
+    userState["user"] = None
 
-    name = getItem("name")
-    switching_account = getItem("switching_account")
-
-    if (name is not None and (switching_account is None or switching_account is False)):
-        return True
-
-    auth_callback_state = getAuthCallbackState()
+    auth_callback_state = getAuthCallbackState(False)
     authType = getItem("authType")
     jwt = getItem("jwt")
-
 
     token = auth_callback_state if (auth_callback_state is not None) else jwt
 
@@ -47,7 +43,7 @@ def isLoggedOn():
         registered = user.get("registered", 0)
         user_jwt = user.get("plugin_jwt", None)
         
-        if (user_jwt is not None):
+        if (is_integration is False and user_jwt is not None):
             setItem("jwt", user.get("plugin_jwt"))
 
         if (registered == 1):
@@ -58,9 +54,10 @@ def isLoggedOn():
 
         setItem("switching_account", False)
         setAuthCallbackState(None)
-        return True
+        userState["logged_on"] = True
+        userState["user"] = user
 
-    return False
+    return userState
 
 def getUserFromResponse(resp):
     if (isResponseOk(resp)):
@@ -72,9 +69,9 @@ def getUserFromResponse(resp):
     return None
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
-    logged_on = isLoggedOn()
+    userState = getUserRegistrationState()
 
-    if (logged_on is False):
+    if (userState["logged_on"] is False):
         if (tryCountUntilFoundUser > 0):
             tryCountUntilFoundUser -= 1
             t = Timer(10, refetchUserStatusLazily, [tryCountUntilFoundUser])
@@ -110,14 +107,7 @@ def getLoginUrl(loginType):
     auth_callback_state = str(uuid.uuid4())
     setAuthCallbackState(auth_callback_state)
 
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
-    app_url = getValue("software_dashboard_url", "app.software.com")
-
-    scheme = "https"
-    if bool(re.match("localhost", api_endpoint)):
-        scheme = "http"
-
-    loginUrl = scheme + "://"
+    loginUrl = ""
 
     obj = {
         "plugin": "codetime",
@@ -129,14 +119,14 @@ def getLoginUrl(loginType):
 
     if (loginType == "github"):
         obj["redirect"] = app_url
-        loginUrl += api_endpoint + "/auth/github"
+        loginUrl = getApi() + "/auth/github"
     elif (loginType == "google"):
         obj["redirect"] = app_url
-        loginUrl += api_endpoint + "/auth/google"
+        loginUrl = getApi() + "/auth/google"
     else:
         obj["token"] = getItem("jwt")
         obj["auth"] = "software"
-        loginUrl += app_url + "/email-signup"
+        loginUrl = getWebUrl + "/email-signup"
 
     qryStr = urlencode(obj)
 

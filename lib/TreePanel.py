@@ -23,6 +23,8 @@ from .KpmManager import *
 from .Constants import *
 from .TrackerManager import *
 from .SoftwareFileChangeInfoSummaryData import *
+from .SlackManager import *
+from .OsaScriptUtil import *
 
 GOOGLE_SIGNUP_LABEL = 'Sign up with Google'
 GITHBUB_SIGNUP_LABEL = 'Sign up with GitHub'
@@ -32,12 +34,24 @@ SHOW_STATUS_LABEL = 'Show status bar metrics'
 SWITCH_ACCOUNT_LABEL = 'Switch account'
 SUBMIT_FEEDBACK_LABEL = 'Submit feedback'
 LEARN_MORE_LABEL = 'Learn more'
-SEE_ADVANCED_METRICS = 'See advanced metrics'
-VIEW_SUMMARY_LABEL = 'View summary'
+SEE_ADVANCED_METRICS = 'More data at Software.com'
+DASHBOARD_LABEL = 'Dashboard'
+TURN_ON_NOTIFICATIONS_LABEL = 'Turn on notifications'
+PAUSE_NOTIFICATIONS_LABEL = 'Pause notifications'
+TODAY_VS_AVG_LABEL = 'Today vs.'
+SET_PRESENCE_TO_AWAY_LABEL = 'Set presence to away'
+SET_PRESENCE_TO_ACTIVE_LABEL = 'Set presence to active'
+UPDATE_PROFILE_STATUS_LABEL = 'Update profile status'
+TURN_OFF_DARK_MODE_LABEL = 'Turn off dark mode'
+TURN_ON_DARK_MODE_LABEL = 'Turn on dark mode'
+TOGGLE_DOCK_LABEL = 'Toggle dock'
 
 
 class ShowTreeView(sublime_plugin.TextCommand):
   def run(self, edit):
+    self.showTree()
+
+  def showTree(self):
     self.currentKeystrokeStats = SessionSummary()
     self.keys = []
     self.create_tree()
@@ -47,102 +61,115 @@ class ShowTreeView(sublime_plugin.TextCommand):
     zeroDepth = ' '
     firstChildDepth = ' ' * 8
     secondChildDepth = ' ' * 16
+
+    self.keys.append('%s%s' % (zeroDepth, "ACCOUNT"))
+
     if not getItem('name'):
-        self.keys.append('%s%s' % (zeroDepth, GOOGLE_SIGNUP_LABEL))
-        self.keys.append('%s%s' % (zeroDepth, GITHBUB_SIGNUP_LABEL))
-        self.keys.append('%s%s' % (zeroDepth, EMAIL_SIGNUP_LABEL))
+        self.keys.append('%s%s' % (firstChildDepth, GOOGLE_SIGNUP_LABEL))
+        self.keys.append('%s%s' % (firstChildDepth, GITHBUB_SIGNUP_LABEL))
+        self.keys.append('%s%s' % (firstChildDepth, EMAIL_SIGNUP_LABEL))
     else:
-        self.keys.append('%s%s(%s)' % (zeroDepth, "Logged in as ", getItem('name')))
+        self.keys.append('%s%s(%s)' % (firstChildDepth, "Logged in as ", getItem('name')))
         self.keys.append('%s%s' % (firstChildDepth, SWITCH_ACCOUNT_LABEL))
 
     statusBarMessage = HIDE_STATUS_LABEL if getValue("show_code_time_status", True) else SHOW_STATUS_LABEL
-    self.keys.append('%s%s' % (zeroDepth, statusBarMessage))
-    self.keys.append('%s%s' % (zeroDepth, SUBMIT_FEEDBACK_LABEL))
-    self.keys.append('%s%s' % (zeroDepth, LEARN_MORE_LABEL))
+    self.keys.append('%s%s' % (firstChildDepth, statusBarMessage))
+    self.keys.append('%s%s' % (firstChildDepth, SUBMIT_FEEDBACK_LABEL))
+    self.keys.append('%s%s' % (firstChildDepth, LEARN_MORE_LABEL))
 
     self.keys.append('-----------------------------------')
-    
-    self.keys.append('%s%s' % (zeroDepth, SEE_ADVANCED_METRICS))
-    self.keys.append('%s%s' % (zeroDepth, VIEW_SUMMARY_LABEL))
+
+    self.keys.append('%s%s' % (zeroDepth, "FLOW"))
+
+    # data = {profile: {avatar_hash, display_name, display_name_normalized, email, first_name, ...,status_text, status_emoji, skype, status_expireation, status_text_canonical, title } }
+    slackStatus = getSlackStatus()
+    statusLabel = UPDATE_PROFILE_STATUS_LABEL
+    if (slackStatus is not None and slackStatus["profile"] is not None
+        and slackStatus["profile"]["status_text"] is not None
+        and slackStatus["profile"]["status_text"] != ''):
+        statusLabel += " (" + slackStatus["profile"]["status_text"] + ")"
+
+    self.keys.append('%s%s' % (firstChildDepth, statusLabel))
+
+    # data = {'next_dnd_end_ts': 1610892000, 'ok': True, 'next_dnd_start_ts': 1610861400, 'dnd_enabled': True, 'snooze_enabled': False}
+    slackDndInfo = getSlackDnDInfo()
+    if (slackDndInfo is None or slackDndInfo["snooze_enabled"] is False):
+        self.keys.append('%s%s' % (firstChildDepth, PAUSE_NOTIFICATIONS_LABEL))
+    else:
+        self.keys.append('%s%s' % (firstChildDepth, TURN_ON_NOTIFICATIONS_LABEL))
+
+    # data = {'auto_away': False, 'ok': True, 'manual_away': False, 'connection_count': 1, 'presence': 'active', 'last_activity': 1610866316, 'online': True}
+    slackPresence = getSlackPresence()
+    if (slackPresence is None or slackPresence["presence"] == "active"):
+        self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_AWAY_LABEL))
+    else:
+        self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_ACTIVE_LABEL))
+
+    if (isMac()):
+        darkMode = isDarkMode()
+        if (darkMode is True):
+            self.keys.append('%s%s' % (firstChildDepth, TURN_OFF_DARK_MODE_LABEL))
+        else:
+            self.keys.append('%s%s' % (firstChildDepth, TURN_ON_DARK_MODE_LABEL))
+
+        self.keys.append('%s%s' % (firstChildDepth, TOGGLE_DOCK_LABEL))
+
+    self.keys.append('-----------------------------------')
+
+    self.keys.append('%s%s' % (zeroDepth, "STATS"))
 
     data = getSessionSummaryData()
     codeTimeSummary = getCodeTimeSummary()
     data.update(codeTimeSummary)
 
-    self.keys.append('-----------------------------------')
+    refClass = getItem("reference-class")
+    if (refClass is None):
+        refClass = "user"
+
+    if (refClass == "user"):
+        self.keys.append('%s%s' % (firstChildDepth, TODAY_VS_AVG_LABEL + " your daily average"))
+    else:
+        self.keys.append('%s%s' % (firstChildDepth, TODAY_VS_AVG_LABEL + " the global daily average"))
 
     todayString = datetime.today().strftime('%a')
     
     # code time
-    self.keys.append('%s%s' % (zeroDepth, "- Code Time"))
-    editorMinutes = humanizeMinutes(data['codeTimeMinutes']).strip()
-    self.keys.append('%s%s' % (firstChildDepth, 'Today: {}'.format(editorMinutes)))
+    codeTimeStr = humanizeMinutes(data["codeTimeMinutes"]).strip()
+    codeTimeAvg = data["averageDailyCodeTimeMinutes"] if refClass == "user" else data["globalAverageDailyCodeTimeMinutes"]
+    codeTimeAvgStr = humanizeMinutes(codeTimeAvg).strip()
+    self.keys.append('%s%s' % (firstChildDepth, "Code time: " + codeTimeStr + " (" + codeTimeAvgStr + ")"))
 
     # active code time
-    self.keys.append('%s%s' % (zeroDepth, "- Active Code Time"))
-    activeCodeTimeMinutes = humanizeMinutes(data['activeCodeTimeMinutes']).strip()
-    avgDailyMinutes = humanizeMinutes(data['averageDailyMinutes']).strip()
-    globalAvgMinutes = humanizeMinutes(data['globalAverageSeconds'] / 60).strip()
-    self.keys.append('%s%s' % (firstChildDepth, 'Today: {}'.format(activeCodeTimeMinutes)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Your average ({}): {}'.format(todayString, avgDailyMinutes)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Global average ({}): {}'.format(todayString, globalAvgMinutes)))
+    activeCodeTimeStr = humanizeMinutes(data["activeCodeTimeMinutes"]).strip()
+    activeCodeTimeAvg = data["averageDailyMinutes"] if refClass == "user" else data['globalAverageDailyMinutes']
+    activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
+    self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr + " (" + activeCodeTimeAvgStr + ")"))
 
     # lines added
-    self.keys.append('%s%s' % (zeroDepth, "- Lines added"))
     currLinesAdded = self.currentKeystrokeStats['currentDayLinesAdded'] + data['currentDayLinesAdded']
-    linesAdded = formatNumWithK(currLinesAdded)
-    avgLinesAdded = formatNumWithK(data['averageLinesAdded'])
-    globalLinesAdded = formatNumWithK(data['globalAverageLinesAdded'])
-    self.keys.append('%s%s' % (firstChildDepth, 'Today: {}'.format(linesAdded)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Your average ({}): {}'.format(todayString, avgLinesAdded)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Global average ({}): {}'.format(todayString, globalLinesAdded)))
+    linesAddedStr = formatNumWithK(currLinesAdded)
+    linesAddedAvg = data["averageLinesAdded"] if refClass == "user" else data['globalAverageLinesAdded']
+    linesAddedAvgStr = formatNumWithK(linesAddedAvg)
+    self.keys.append('%s%s' % (firstChildDepth, "Lines added: " + linesAddedStr + " (" + linesAddedAvgStr + ")"))
 
     # lines removed
-    self.keys.append('%s%s' % (zeroDepth, "- Lines removed"))
     currLinesRemoved = self.currentKeystrokeStats['currentDayLinesRemoved'] + data['currentDayLinesRemoved']
-    linesRemoved = formatNumWithK(currLinesRemoved)
-    avgLinesRemoved = formatNumWithK(data['averageLinesRemoved'])
-    globalLinesRemoved = formatNumWithK(data['globalAverageLinesRemoved'])
-    self.keys.append('%s%s' % (firstChildDepth, 'Today: {}'.format(linesRemoved)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Your average ({}): {}'.format(todayString, avgLinesRemoved)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Global average ({}): {}'.format(todayString, globalLinesRemoved)))
+    linesRemovedStr = formatNumWithK(currLinesRemoved)
+    linesRemovedAvg = data["averageLinesRemoved"] if refClass == "user" else data['globalAverageLinesRemoved']
+    linesRemovedAvgStr = formatNumWithK(linesRemovedAvg)
+    self.keys.append('%s%s' % (firstChildDepth, "Lines removed: " + linesRemovedStr + " (" + linesRemovedAvgStr + ")"))
+
 
     # keystrokes
-    self.keys.append('%s%s' % (zeroDepth, "- Keystrokes"))
     currKeystrokes = self.currentKeystrokeStats['currentDayKeystrokes'] + data['currentDayKeystrokes']
-    keystrokes = formatNumWithK(currKeystrokes)
-    avgKeystrokes = formatNumWithK(data['averageDailyKeystrokes'])
-    globalKeystrokes = formatNumWithK(data['globalAverageDailyKeystrokes'])
-    self.keys.append('%s%s' % (firstChildDepth, 'Today: {}'.format(keystrokes)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Your average ({}): {}'.format(todayString, avgKeystrokes)))
-    self.keys.append('%s%s' % (firstChildDepth, 'Global average ({}): {}'.format(todayString, globalKeystrokes)))
+    keystrokesStr = formatNumWithK(currKeystrokes)
+    keystrokesAvg = data["averageDailyKeystrokes"] if refClass == "user" else data['globalAverageDailyKeystrokes']
+    keystrokesAvgStr = formatNumWithK(keystrokesAvg)
+    self.keys.append('%s%s' % (firstChildDepth, "Keystrokes: " + keystrokesStr + " (" + keystrokesAvgStr + ")"))
+
+    self.keys.append('%s%s' % (firstChildDepth, DASHBOARD_LABEL))
+    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
     
-    # file changed metrics
-    fileChangeInfoMap = getFileChangeSummaryAsJson()
-    if (fileChangeInfoMap is not None):
-        self.keys.append('%s%s' % (zeroDepth, "- File changed"))
-        filesChangedNode = self.buildTopFilesNode(fileChangeInfoMap)
-        self.keys.append('%s%s' % (firstChildDepth, filesChangedNode))
-
-        fileChangeInfos = fileChangeInfoMap.values()
-
-        topKpmFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'kpm', 'top-kpm-files')
-        self.keys.append('%s%s' % (zeroDepth, "- Top files by KPM"))
-        if topKpmFileNodes is not None:
-            for node in topKpmFileNodes:
-                self.keys.append('%s%s' % (firstChildDepth, node))
-
-        topKeystrokeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'keystrokes', 'top-keystrokes-files')
-        self.keys.append('%s%s' % (zeroDepth, "- Top files by keystrokes"))
-        if topKeystrokeFileNodes is not None:
-            for node in topKeystrokeFileNodes:
-                self.keys.append('%s%s' % (firstChildDepth, node))
-
-        topCodetimeFileNodes = self.topFilesMetricsNode(fileChangeInfos, 'duration_seconds', 'top-codetime-files')
-        self.keys.append('%s%s' % (zeroDepth, "- Top files by code time"))
-        if topCodetimeFileNodes is not None:
-            for node in topCodetimeFileNodes:
-                self.keys.append('%s%s' % (firstChildDepth, node))
 
   def buildTopFilesNode(self, fileChangeInfoMap):
     
@@ -200,25 +227,51 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
         if (key is not None):
             key = key.strip()
-            if (key == VIEW_SUMMARY_LABEL):
+            if (key == DASHBOARD_LABEL):
                 codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
                 codetimemetricsthread.start()
             elif key == SWITCH_ACCOUNT_LABEL:
                 self.switchAccount()
             elif (key == HIDE_STATUS_LABEL or key == SHOW_STATUS_LABEL):
                 toggleStatus()
-            elif key == LEARN_MORE_LABEL:
+            elif (key == LEARN_MORE_LABEL):
                 displayReadmeIfNotExists(True)
-            elif key == SEE_ADVANCED_METRICS:
+            elif (key == SEE_ADVANCED_METRICS):
                 launchWebDashboardUrl()
-            elif key == SUBMIT_FEEDBACK_LABEL:
+            elif (key == SUBMIT_FEEDBACK_LABEL):
                 launchSubmitFeedback()
-            elif key == GOOGLE_SIGNUP_LABEL:
+            elif (key == GOOGLE_SIGNUP_LABEL):
                 launchLoginUrl('google')
-            elif key == GITHBUB_SIGNUP_LABEL:
+            elif (key == GITHBUB_SIGNUP_LABEL):
                 launchLoginUrl('github')
-            elif key == EMAIL_SIGNUP_LABEL:
+            elif (key == EMAIL_SIGNUP_LABEL):
                 launchLoginUrl('software')
+            elif (key == TURN_ON_NOTIFICATIONS_LABEL):
+                enableSlackNotifications()
+            elif (key == PAUSE_NOTIFICATIONS_LABEL):
+                pauseSlackNotifications()
+            elif (key.find(TODAY_VS_AVG_LABEL) != -1):
+                # today vs average label click, swap the avg comparison
+                refClass = getItem("reference-class")
+                if (refClass is None or refClass == "user"):
+                    refClass = "global"
+                else:
+                    refClass = "user"
+                setItem("reference-class", refClass)
+                # show the tree view again to show the changes
+                self.showTree()
+            elif (key.find(UPDATE_PROFILE_STATUS_LABEL) != -1):
+                # update the profile status
+                sublime.active_window().run_command('update_slack_status_msg')
+            elif (key == SET_PRESENCE_TO_AWAY_LABEL):
+                toggleSlackPresence("away")
+            elif (key == SET_PRESENCE_TO_ACTIVE_LABEL):
+                toggleSlackPresence("auto")
+            elif (key == TURN_ON_DARK_MODE_LABEL or key == TURN_OFF_DARK_MODE_LABEL):
+                toggleDarkMode()
+            elif (key == TOGGLE_DOCK_LABEL):
+                toggleDock()
+
 
   def switchAccount(self):
     self.keys = ['Google', 'GitHub', 'Email']
@@ -226,7 +279,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
   def switchAccountHandler(self, idx):
     if (idx is not None and idx >= 0):
-        setItem("switching_account", True);
+        setItem("switching_account", True)
         if (idx == 0):
             launchLoginUrl('google')
         elif (idx == 1):
