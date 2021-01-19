@@ -19,17 +19,14 @@ except ImportError:
 pendingCallback = None
 
 
-# done
 def getSlackWorkspaces():
 	integrations = getIntegrations()
 	workspaces = [x for x in integrations if (x['name'].lower() == 'slack' and x['status'].lower() == 'active')]
 	return workspaces if workspaces is not None and len(workspaces) > 0 else []
 
-# done
 def hasSlackWorkspaces():
 	return True if len(getSlackWorkspaces()) > 0 else False
 
-# done
 def disconnectSlackWorkspace():
 	result = checkSlackConnection(False)
 	if (result is False):
@@ -41,7 +38,6 @@ def disconnectSlackWorkspace():
 	pendingCallback = disconnectSlackWorkspaceCallback
 	showSlackWorkspaceSelection()
 
-# done
 def disconnectSlackWorkspaceCallback(workspace):
 	if (workspace is not None):
 		removeSlackIntegration(workspace['authId'])
@@ -300,7 +296,6 @@ def getSlackAuth():
 
 				first = next(filter(lambda x: x.authId == integration["authId"], existingIntegrations), None)
 
-				print("lambda filter result: %s" % first)
 				if (first is None):
 					resp = api_call('users.identity', {'token': integration["access_token"]})
 					if (resp['ok'] is True):
