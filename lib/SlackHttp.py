@@ -27,10 +27,12 @@ def api_call(method, call_args={}, filename=None, icon=None):
 
             response = urlopen(
                 url=URL,
-                data=data.encode('utf8')
+                data=data.encode('utf8'),
+                timeout=2
             ).read().decode('utf8')
         else:
-            response = urlopen(url=URL).read().decode('utf8')
+            # 2 second timeout
+            response = urlopen(url=URL, timeout=2).read().decode('utf8')
     except:
         # fallback for sublime bug with urlopen (on linux only)
         if filename:  # upload filename
