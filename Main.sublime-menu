@@ -44,6 +44,34 @@
                     {
                         "command": "show_tree_view",
                         "caption": "Show Tree View"
+                    },
+                    {
+                        "command": "disconnect_slack",
+                        "caption": "Disconnect Slack"
+                    },
+                    {
+                        "command": "connect_slack",
+                        "caption": "Connect Slack"
+                    },
+                    {
+                        "command": "pause_slack_notifications",
+                        "caption": "Pause Slack notifications"
+                    },
+                    {
+                        "command": "enable_slack_notifications",
+                        "caption": "Enable Slack notifications"
+                    },
+                    {
+                        "command": "toggle_dark_mode",
+                        "caption": "Toggle dark mode"
+                    },
+                    {
+                        "command": "toggle_dock",
+                        "caption": "Toggle dock"
+                    },
+                    {
+                        "command": "update_slack_status_msg",
+                        "caption": "Update Slack status msg"
                     }
                 ]
             }

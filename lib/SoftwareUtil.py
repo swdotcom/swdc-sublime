@@ -304,7 +304,7 @@ def getLocalREADMEFile():
 
 # TODO: figure out how to do markdown preview
 def displayReadmeIfNotExists(overrideInitCheck):
-    displayed = getItem('sublime_CtReadme');
+    displayed = getItem('sublime_CtReadme')
     if (displayed is None or overrideInitCheck is True):
         readmeFile = getLocalREADMEFile()
         sublime.active_window().open_file(readmeFile)
