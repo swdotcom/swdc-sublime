@@ -166,12 +166,12 @@ def updateSlackIntegrationsFromUser(user):
         existingIntegrations = getIntegrations()
         for i in range(len(integrations)):
             integration = integrations[i]
+
             if (integration["name"].lower() == 'slack'
                 and integration["status"].lower() == 'active'
-                and integration["access_token"] is not None
-                and integration["authId"] is not None):
+                and integration["access_token"] is not None):
 
-                first = next(filter(lambda x: x.authId == integration["authId"], existingIntegrations), None)
+                first = next(filter(lambda x: x["authId"] == integration["authId"], existingIntegrations), None)
 
                 if (first is None):
                     resp = api_call('users.identity', {'token': integration["access_token"]})
