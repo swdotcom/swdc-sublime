@@ -18,6 +18,10 @@
                         "caption": "Open a Custom Dashboard"
                     },
                     {
+                        "command": "switch_account",
+                        "caption": "Switch Account"
+                    },
+                    {
                         "command": "go_to_software",
                         "caption": "Web Dashboard"
                     },

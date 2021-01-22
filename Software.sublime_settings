@@ -6,5 +6,6 @@
     "software_telemetry_on": true,
     "software_dashboard_url": "https://app.software.com",
     "plugin": "code-time",
-    "open_tree_on_startup": true
+    "open_tree_on_startup": true,
+    "plugin_version": "2.4.0"
 }

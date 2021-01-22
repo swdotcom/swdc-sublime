@@ -9,6 +9,7 @@ from .SoftwareDashboard import *
 from .SoftwareSettings import *
 from .CommonUtil import *
 from .SoftwareSessionApp import *
+from .SlackHttp import *
 try:
     #python2
     from urllib import urlencode
@@ -42,15 +43,13 @@ def getUserRegistrationState(is_integration=False):
     if (user is not None):
         registered = user.get("registered", 0)
         user_jwt = user.get("plugin_jwt", None)
-        
-        if (is_integration is False and user_jwt is not None):
-            setItem("jwt", user.get("plugin_jwt"))
 
-        if (registered == 1):
-            setItem("name", user.get("email"))
+        if (is_integration is False):
+            if (user_jwt is not None):
+                setItem("jwt", user.get("plugin_jwt"))
 
-        if (authType is None):
-            setItem("authType", "software")
+            if (registered == 1):
+                setItem("name", user.get("email"))
 
         setItem("switching_account", False)
         setAuthCallbackState(None)
@@ -69,7 +68,7 @@ def getUserFromResponse(resp):
     return None
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
-    userState = getUserRegistrationState()
+    userState = getUserRegistrationState(False)
 
     if (userState["logged_on"] is False):
         if (tryCountUntilFoundUser > 0):
@@ -91,15 +90,18 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         clearSessionSummaryData()
         clearTimeDataSummary()
 
+        # clear the integrations
+        syncIntegrations([])
+
+        # fetch user's integrations
+        updateSlackIntegrationsFromUser(userState["user"])
+
         updateSessionSummaryFromServer(True)
 
 
 def launchLoginUrl(loginType):
     webbrowser.open(getLoginUrl(loginType))
     refetchUserStatusLazily(40)
-
-def getUrlEndpoint():
-    return getValue("software_dashboard_url", "https://app.software.com")
 
 def getLoginUrl(loginType):
     loginType = loginType.lower()
@@ -117,16 +119,18 @@ def getLoginUrl(loginType):
         "auth_callback_state": auth_callback_state
     }
 
+    apiEndpointUrl = "https://" + getApiEndpoint()
+
     if (loginType == "github"):
-        obj["redirect"] = app_url
-        loginUrl = getApi() + "/auth/github"
+        obj["redirect"] = getWebUrl()
+        loginUrl = apiEndpointUrl + "/auth/github"
     elif (loginType == "google"):
-        obj["redirect"] = app_url
-        loginUrl = getApi() + "/auth/google"
+        obj["redirect"] = getWebUrl()
+        loginUrl = apiEndpointUrl + "/auth/google"
     else:
         obj["token"] = getItem("jwt")
         obj["auth"] = "software"
-        loginUrl = getWebUrl + "/email-signup"
+        loginUrl = getWebUrl() + "/email-signup"
 
     qryStr = urlencode(obj)
 
@@ -136,5 +140,47 @@ def getLoginUrl(loginType):
 
 def launchWebDashboardUrl():
     jwt = getItem('jwt')
-    webUrl = getUrlEndpoint() + '?token=' + jwt
+    webUrl = getWebUrl() + '?token=' + jwt
     webbrowser.open(webUrl)
+
+def switchAccount():
+    keys = ['Google', 'GitHub', 'Email']
+    sublime.active_window().show_quick_panel(keys, switchAccountHandler)
+
+def switchAccountHandler(idx):
+    if (idx is not None and idx >= 0):
+        setItem("switching_account", True)
+        if (idx == 0):
+            launchLoginUrl('google')
+        elif (idx == 1):
+            launchLoginUrl('github')
+        else:
+            launchLoginUrl('software')
+
+def updateSlackIntegrationsFromUser(user):
+    foundNewIntegration = False
+
+    if (user is not None and user["integrations"] is not None):
+        integrations = user["integrations"]
+
+        existingIntegrations = getIntegrations()
+        for i in range(len(integrations)):
+            integration = integrations[i]
+            if (integration["name"].lower() == 'slack'
+                and integration["status"].lower() == 'active'
+                and integration["access_token"] is not None
+                and integration["authId"] is not None):
+
+                first = next(filter(lambda x: x.authId == integration["authId"], existingIntegrations), None)
+
+                if (first is None):
+                    resp = api_call('users.identity', {'token': integration["access_token"]})
+                    if (resp['ok'] is True):
+                        integration["team_domain"] = resp["team"]["domain"]
+                        integration["team_name"] = resp["team"]["name"]
+                        integration["integration_id"] = resp["user"]["id"]
+                        foundNewIntegration = True
+                        existingIntegrations.append(integration)
+                        syncIntegrations(existingIntegrations)
+                    break
+    return foundNewIntegration

@@ -45,6 +45,8 @@ UPDATE_PROFILE_STATUS_LABEL = 'Update profile status'
 TURN_OFF_DARK_MODE_LABEL = 'Turn off dark mode'
 TURN_ON_DARK_MODE_LABEL = 'Turn on dark mode'
 TOGGLE_DOCK_LABEL = 'Toggle dock'
+SLACK_WORKSPACES_LABEL = 'Slack workspaces'
+ADD_SLACK_WORKSPACE_LABEL = 'Add workspace'
 
 
 class ShowTreeView(sublime_plugin.TextCommand):
@@ -76,6 +78,18 @@ class ShowTreeView(sublime_plugin.TextCommand):
     self.keys.append('%s%s' % (firstChildDepth, statusBarMessage))
     self.keys.append('%s%s' % (firstChildDepth, SUBMIT_FEEDBACK_LABEL))
     self.keys.append('%s%s' % (firstChildDepth, LEARN_MORE_LABEL))
+
+    self.keys.append('%s%s' % (firstChildDepth, SLACK_WORKSPACES_LABEL))
+    # get the workspaces and list them
+    workspaces = getSlackWorkspaces()
+    if (len(workspaces) > 0):
+        for i in range(len(workspaces)):
+            workspace = workspaces[i]
+            self.keys.append('%s%s' % (secondChildDepth, workspace['team_domain'] + " (" + workspace['team_name'] + ")"))
+    else:
+        self.keys.append('%s%s' % (secondChildDepth, '<No workspaces found>'))
+
+    self.keys.append('%s%s' % (secondChildDepth, ADD_SLACK_WORKSPACE_LABEL))
 
     self.keys.append('-----------------------------------')
 
@@ -231,7 +245,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
                 codetimemetricsthread.start()
             elif key == SWITCH_ACCOUNT_LABEL:
-                self.switchAccount()
+                switchAccount()
             elif (key == HIDE_STATUS_LABEL or key == SHOW_STATUS_LABEL):
                 toggleStatus()
             elif (key == LEARN_MORE_LABEL):
@@ -271,20 +285,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 toggleDarkMode()
             elif (key == TOGGLE_DOCK_LABEL):
                 toggleDock()
-
-
-  def switchAccount(self):
-    self.keys = ['Google', 'GitHub', 'Email']
-    sublime.active_window().show_quick_panel(self.keys, self.switchAccountHandler)
-
-  def switchAccountHandler(self, idx):
-    if (idx is not None and idx >= 0):
-        setItem("switching_account", True)
-        if (idx == 0):
-            launchLoginUrl('google')
-        elif (idx == 1):
-            launchLoginUrl('github')
-        else:
-            launchLoginUrl('software')
+            elif (key == ADD_SLACK_WORKSPACE_LABEL):
+                connectSlackWorkspace()
 
 #EOL

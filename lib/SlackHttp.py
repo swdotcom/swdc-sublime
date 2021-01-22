@@ -15,7 +15,6 @@ def api_call(method, call_args={}, filename=None, icon=None):
 
     if icon:
         call_args['icon_url'] = icon
-        print('icon', icon)
     URL = BASE_URL + method + "?" + urlencode(call_args)
 
     try:

@@ -53,8 +53,8 @@ def getPluginId():
 	return PLUGIN_ID
 
 def getPluginName():
-	pluginName = __name__.split('.')[0]
-	return pluginName
+    pluginName = __name__.split('.')[0]
+    return pluginName
 
 def getJwt(with_prefix = False):
     jwt = getItem("jwt")
@@ -177,24 +177,10 @@ def syncIntegrations(integrations_data):
         f.write(content)
 
 def getWebUrl():
-    app_url = getValue("software_dashboard_url", "app.software.com")
+    return getValue("software_dashboard_url", "https://app.software.com")
 
-    scheme = "https"
-    if bool(re.match("localhost", app_url)):
-        scheme = "http"
-
-    app_url = scheme + "://" + app_url
-    return app_url
-
-def getApi():
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
-
-    scheme = "https"
-    if bool(re.match("localhost", api_endpoint)):
-        scheme = "http"
-
-    api_endpoint = scheme + "://" + api_endpoint
-    return api_endpoint
+def getApiEndpoint():
+    return getValue("software_api_endpoint", "api.software.com")
 
 def getPercentOfReferenceAvg(curr, ref, refDisplay):
     if (curr is None):

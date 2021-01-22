@@ -18,7 +18,6 @@ except ImportError:
 
 pendingCallback = None
 
-
 def getSlackWorkspaces():
 	integrations = getIntegrations()
 	workspaces = [x for x in integrations if (x['name'].lower() == 'slack' and x['status'].lower() == 'active')]
@@ -55,8 +54,9 @@ def connectSlackWorkspace():
 	params["pluginVersion"] = getVersion()
 	params["plugin_id"] = getPluginId()
 	params["auth_callback_state"] = getAuthCallbackState()
+	params["integrate"] = "slack"
 
-	url = getApi() + "/auth/slack?" + urlencode(params)
+	url = "https://" + getApiEndpoint() + "/auth/slack?" + urlencode(params)
 	webbrowser.open(url)
 
 	t = Timer(10, refetchSlackConnectStatusLazily, [40])
@@ -286,25 +286,9 @@ def getSlackAuth():
 	foundNewIntegration = False
 	userState = getUserRegistrationState(True)
 
-	if (userState["user"] is not None and userState["user"]["integrations"] is not None):
-		integrations = userState["user"]["integrations"]
-
-		existingIntegrations = getIntegrations()
-		for i in range(len(integrations)):
-			integration = integrations[i]
-			if (integration["name"].lower() == 'slack' and integration["status"].lower() == 'active'):
-
-				first = next(filter(lambda x: x.authId == integration["authId"], existingIntegrations), None)
-
-				if (first is None):
-					resp = api_call('users.identity', {'token': integration["access_token"]})
-					if (resp['ok'] is True):
-						integration["team_domain"] = resp["team"]["domain"]
-						integration["team_name"] = resp["team"]["name"]
-						foundNewIntegration = True
-						existingIntegrations.append(integration)
-						syncIntegrations(existingIntegrations)
-				break
+	if (userState["user"] is not None):
+		foundNewIntegration = updateSlackIntegrationsFromUser(userState["user"])
 
 	return foundNewIntegration
+
 

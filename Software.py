@@ -44,6 +44,13 @@ class GoToSoftware(sublime_plugin.TextCommand):
     def is_enabled(self):
         return True
 
+class SwitchAccount(sublime_plugin.TextCommand):
+    def run(self, edit):
+        switchAccount()
+
+    def is_enabled(self):
+        return True
+
 # Command to launch the code time metrics "launch_code_time_metrics"
 class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
     def run(self, edit):

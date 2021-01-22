@@ -59,7 +59,7 @@ def isUnauthenticated(response):
 # send the request.
 def requestIt(method, api, payload, jwt):
 
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
+    api_endpoint = getApiEndpoint()
     telemetry = getValue("software_telemetry_on", True)
 
     if (telemetry is False):
@@ -118,7 +118,7 @@ def fetchReleaseTag():
         return response
     except Exception as ex:
         print("Code Time: Response Error for " + api + ": %s" % ex)
-        return None
+        return getValue("plugin_version", "2.4.1")
 
 def getVersion():
     global version

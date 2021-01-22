@@ -311,10 +311,8 @@ def displayReadmeIfNotExists(overrideInitCheck):
         setItem('sublime_CtReadme', True)
 
 def launchSpotifyLoginUrl():
-    api_endpoint = getValue("software_api_endpoint", "api.software.com")
     jwt = getItem("jwt")
     spotify_url="https://api.software.com/auth/spotify?token="+jwt
-    # spotify_url = "https://"+ api_endpoint + "/auth/spotify?token=" + jwt
     webbrowser.open(spotify_url)
 
 def isMac():

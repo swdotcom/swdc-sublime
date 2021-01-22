@@ -4,6 +4,10 @@
         "caption": "Code Time: Show Tree View"
     },
     {
+        "command": "switch_account",
+        "caption": "Code Time: Switch account"
+    },
+    {
         "command": "launch_code_time_metrics",
         "caption": "Code Time: View Dashboard"
     },

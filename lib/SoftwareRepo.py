@@ -74,7 +74,7 @@ def getCommitsInRange(projectDir, start, end, useAuthor=True):
 	cmd = ['git', 'log', '--stat', '--pretty="COMMIT:%H,%ct,%cI,%s"', '--since={}'.format(start), '--until={}'.format(end)]
 	if authorOption:
 		cmd.append(authorOption)
-	# print(' '.join(cmd))
+
 	return getChangeStats(projectDir, cmd)
 
 def getLastCommitId(projectDir, email):
