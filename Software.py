@@ -180,11 +180,14 @@ def check_and_send_unfocus_event(view):
     global editor_focused
     global last_focus_event_sent
 
-    if(editor_focused is False and last_focus_event_sent is not 'unfocus'):
-        # this will send off codetime events
-        PluginData.send_all_datas()
-        track_editor_action(**editor_action_params(view, 'editor', 'unfocus'))
-        last_focus_event_sent = 'unfocus'
+    if (editor_focused is False):
+        # set the 'isFocused' value within the SoftwareWallClock to False
+        blurWindow()
+        if (last_focus_event_sent is not 'unfocus'):
+            # this will send off codetime events
+            PluginData.send_all_datas()
+            track_editor_action(**editor_action_params(view, 'editor', 'unfocus'))
+            last_focus_event_sent = 'unfocus'
 
 # Runs once instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
@@ -213,6 +216,8 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData['length'] = get_character_count(view)
         fileInfoData['lines'] = get_line_count(view)
 
+    # this is called when the plugin initializes and
+    # when it's deactivated (put into the background)
     def on_deactivated_async(self, view):
         blurWindow()
         global editor_focused

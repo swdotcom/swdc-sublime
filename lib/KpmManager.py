@@ -129,13 +129,13 @@ class PluginData():
                 return True
         return False
 
+    # Return True if a keystroke payload has keystrokes
     @staticmethod
     def hasKeystrokeData():
         for dir in PluginData.active_datas:
             keystrokeCountObj = PluginData.active_datas[dir]
-            if keystrokeCountObj is not None and keystrokeCountObj.source is not None:
-                # check if the source object is empty
-                if bool(keystrokeCountObj.source):
+            if keystrokeCountObj is not None and keystrokeCountObj.keystrokes is not None:
+                if keystrokeCountObj.keystrokes > 0:
                     return True
         return False
 
