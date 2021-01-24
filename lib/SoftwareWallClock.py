@@ -49,13 +49,6 @@ def setWcTime(seconds):
     setItem('wctime', seconds)
     updateWcTime()
 
-def updateBasedOnSessionSeconds(session_seconds):
-    editor_seconds = getWcTimeInSeconds()
-
-    if editor_seconds < session_seconds:
-        editor_seconds = session_seconds + 1
-        setWcTime(editor_seconds)
-
 def focusWindow():
     global isFocused
     isFocused = True
