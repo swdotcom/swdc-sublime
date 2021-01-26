@@ -263,11 +263,11 @@ def signupPromptHandler(result_idx):
 
 def authSelectionHandler(result_idx):
 	if (result_idx == 0):
-		launchLoginUrl('google')
+		launchLoginUrl('google', False)
 	elif (result_idx == 1):
-		launchLoginUrl('github')
+		launchLoginUrl('github', False)
 	elif (result_idx == 2):
-		launchLoginUrl('software')
+		launchLoginUrl('software', False)
 
 def refetchSlackConnectStatusLazily(try_count=40):
 	foundSlackAuth = getSlackAuth()

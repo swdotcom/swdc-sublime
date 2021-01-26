@@ -255,11 +255,11 @@ class ShowTreeView(sublime_plugin.TextCommand):
             elif (key == SUBMIT_FEEDBACK_LABEL):
                 launchSubmitFeedback()
             elif (key == GOOGLE_SIGNUP_LABEL):
-                launchLoginUrl('google')
+                launchLoginUrl('google', False)
             elif (key == GITHBUB_SIGNUP_LABEL):
-                launchLoginUrl('github')
+                launchLoginUrl('github', False)
             elif (key == EMAIL_SIGNUP_LABEL):
-                launchLoginUrl('software')
+                launchLoginUrl('software', False)
             elif (key == TURN_ON_NOTIFICATIONS_LABEL):
                 enableSlackNotifications()
             elif (key == PAUSE_NOTIFICATIONS_LABEL):
