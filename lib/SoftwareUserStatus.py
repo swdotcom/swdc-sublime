@@ -35,11 +35,6 @@ def getUserRegistrationState(is_integration=False):
 
     user = getUserFromResponse(resp)
 
-    if (user is None and (authType == "software" or authType == "email")):
-        # check again using the jwt
-        resp = requestIt("GET", api, None, jwt)
-        user = getUserFromResponse(resp)
-
     if (user is not None):
         registered = user.get("registered", 0)
         user_jwt = user.get("plugin_jwt", None)
@@ -55,6 +50,9 @@ def getUserRegistrationState(is_integration=False):
         setAuthCallbackState(None)
         userState["logged_on"] = True
         userState["user"] = user
+    else:
+        userState["logged_on"] = False
+        userState["user"] = None
 
     return userState
 
@@ -99,11 +97,11 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         updateSessionSummaryFromServer(True)
 
 
-def launchLoginUrl(loginType):
-    webbrowser.open(getLoginUrl(loginType))
+def launchLoginUrl(loginType = "software", switching_account = True):
+    webbrowser.open(getLoginUrl(loginType, switching_account))
     refetchUserStatusLazily(40)
 
-def getLoginUrl(loginType):
+def getLoginUrl(loginType = "software", switching_account=True):
     loginType = loginType.lower()
 
     auth_callback_state = str(uuid.uuid4())
@@ -130,11 +128,16 @@ def getLoginUrl(loginType):
     else:
         obj["token"] = getItem("jwt")
         obj["auth"] = "software"
-        loginUrl = getWebUrl() + "/email-signup"
+        if (switching_account is False):
+            loginUrl = getWebUrl() + "/email-signup"
+        else:
+            loginUrl = getWebUrl() + "/onboarding"
 
     qryStr = urlencode(obj)
 
     loginUrl += "?" + qryStr
+    if (switching_account is True):
+        loginUrl += "&login=true"
     
     return loginUrl
 
