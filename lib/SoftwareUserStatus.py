@@ -117,7 +117,11 @@ def getLoginUrl(loginType = "software", switching_account=True):
         "auth_callback_state": auth_callback_state
     }
 
-    apiEndpointUrl = "https://" + getApiEndpoint()
+    api_endpoint = getApiEndpoint()
+    scheme = "https"
+    if('localhost' in api_endpoint):
+        scheme = "http"
+    apiEndpointUrl = scheme + "://" + api_endpoint
 
     if (loginType == "github"):
         obj["redirect"] = getWebUrl()
