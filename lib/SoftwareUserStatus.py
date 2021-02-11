@@ -32,8 +32,12 @@ def getUserRegistrationState(is_integration=False):
 
     api = "/users/plugin/state"
     resp = requestIt("GET", api, None, token)
-
     user = getUserFromResponse(resp)
+
+    if (user is None and is_integration is True and auth_callback_state is not None):
+        # try using the jwt
+        resp = requestIt("GET", api, None, jwt)
+        user = getUserFromResponse(resp)
 
     if (user is not None):
         registered = user.get("registered", 0)

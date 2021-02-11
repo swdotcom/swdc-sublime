@@ -55,6 +55,7 @@ def connectSlackWorkspace():
 	params["plugin_id"] = getPluginId()
 	params["auth_callback_state"] = getAuthCallbackState()
 	params["integrate"] = "slack"
+	params["plugin_token"] = getItem("jwt")
 
 	url = "https://" + getApiEndpoint() + "/auth/slack?" + urlencode(params)
 	webbrowser.open(url)
