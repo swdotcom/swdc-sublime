@@ -108,6 +108,9 @@ def launchLoginUrl(loginType = "software", switching_account = True):
 def getLoginUrl(loginType = "software", switching_account=True):
     loginType = loginType.lower()
 
+    jwt = getItem("jwt")
+    name = getItem("name")
+
     auth_callback_state = str(uuid.uuid4())
     setAuthCallbackState(auth_callback_state)
 
@@ -115,11 +118,15 @@ def getLoginUrl(loginType = "software", switching_account=True):
 
     obj = {
         "plugin": "codetime",
-        "plugin_uuid": getPluginUuid(),
         "pluginVersion": getVersion(),
         "plugin_id": getPluginId(),
         "auth_callback_state": auth_callback_state
     }
+
+    # send the plugin uuid and token to register
+    if (name is None):
+        obj["plugin_uuid"] = getPluginUuid()
+        obj["plugin_token"] = jwt
 
     api_endpoint = getApiEndpoint()
     scheme = "https"
