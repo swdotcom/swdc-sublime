@@ -10,6 +10,7 @@ from .SoftwareWallClock import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .TimeSummaryData import *
 from .CommonUtil import *
+from .Logger import *
 
 DAY_CHECK_TIMER_INTERVAL = 60
 
@@ -59,13 +60,13 @@ def fetchCodeTimeMetricsDashboard():
         summaryContent = response.read().decode('utf-8')
     except Exception as ex:
         summaryContent = SERVICE_NOT_AVAIL
-        log("Code Time: Unable to read response data: %s" % ex)
+        logIt("Code Time: Unable to read response data: %s" % ex)
 
     try:
         with open(summaryInfoFile, 'w', encoding='utf-8') as f:
             f.write(summaryContent)
     except Exception as ex:
-        log("Code Time: Unable to write dashboard summary content: %s" % ex)
+        logIt("Code Time: Unable to write dashboard summary content: %s" % ex)
 
     # concat summary info with the dashboard file
     dashboardFile = getDashboardFile()
@@ -78,10 +79,10 @@ def fetchCodeTimeMetricsDashboard():
             with open(summaryInfoFile, 'r', encoding="utf-8") as summaryInfoFileContent:
                 dashboardContent += summaryInfoFileContent.read()
         except Exception as ex:
-            log("Code Time: Unable to read summary info file content: %s" % ex)
+            logIt("Code Time: Unable to read summary info file content: %s" % ex)
 
     try:
         with open(dashboardFile, 'w', encoding='utf-8') as f:
             f.write(dashboardContent)
     except Exception as ex:
-        log("Code Time: Unable to write local dashboard content: %s" % ex)
+        logIt("Code Time: Unable to write local dashboard content: %s" % ex)

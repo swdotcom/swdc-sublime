@@ -3,15 +3,12 @@ import json
 import sublime_plugin, sublime
 from .SoftwareSettings import *
 from .CommonUtil import *
+from .Logger import *
 
 USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
 windowView = None
 version = None
-
-def httpLog(message):
-    if (getValue("software_logging_on", True)):
-        print(message)
 
 def toggleStatus():
     global lastMsg
@@ -44,7 +41,7 @@ def showStatus(msg):
 
         sublime.active_window().active_view().set_status('software.com', msg)
     except RuntimeError:
-        httpLog(msg)
+        print(msg)
 
 def isResponseOk(response):
     if (response is not None and int(response.status) < 300):
@@ -63,7 +60,7 @@ def requestIt(method, api, payload, jwt):
     telemetry = getValue("software_telemetry_on", True)
 
     if (telemetry is False):
-        # httpLog("Code Time: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
+        # logIt("Code Time: telemetry is currently paused. To see your coding data in Software.com, enable software telemetry.")
         return None
 
     # try to update kpm data.
@@ -74,7 +71,7 @@ def requestIt(method, api, payload, jwt):
         if ('localhost' in api_endpoint):
             connection = http.client.HTTPConnection(api_endpoint)
         else:
-            # httpLog("Creating HTTPS Connection")
+            # logIt("Creating HTTPS Connection")
             connection = http.client.HTTPSConnection(api_endpoint)
 
         if (jwt is not None):
@@ -82,11 +79,7 @@ def requestIt(method, api, payload, jwt):
 
         # make the request
         if (payload is None):
-            payload = {}
-            # httpLog("Code Time: Requesting [" + method + ": " + api_endpoint + "" + api + "]")
-        else:
-            pass
-            # httpLog("Code Time: Sending [" + method + ": " + api_endpoint + "" + api + ", headers: " + json.dumps(headers) + "] payload: %s" % payload)
+            payload = json.dumps({})
 
         headers['X-SWDC-Plugin-Id'] = getPluginId()
         headers['X-SWDC-Plugin-Name'] = getPluginName()
@@ -95,10 +88,10 @@ def requestIt(method, api, payload, jwt):
         headers['X-SWDC-Plugin-TZ'] = getTimezone()
         headers['X-SWDC-Plugin-Offset'] = int(float(getUtcOffset() / 60))
 
-        # httpLog("HEADERS: %s" % headers)
+        # print("HEADERS: %s" % headers)
 
         # send the request
-        connection.request(method, api, payload, headers)
+        connection.request(method, api, payload.encode('utf-8'), headers)
 
         response = connection.getresponse()
         return response
@@ -140,3 +133,53 @@ def getVersion():
     print("Plugin version: %s" % version)
 
     return version
+
+def createAnonymousUser():
+    jwt = getItem("jwt")
+    if (jwt is None):
+        plugin_uuid = getPluginUuid()
+        username = getOsUsername()
+        timezone = getTimezone()
+        hostname = getHostname()
+        auth_callback_state = getAuthCallbackState()
+
+        payload = {}
+        payload["username"] = username
+        payload["timezone"] = timezone
+        payload["hostname"] = hostname
+        payload["plugin_uuid"] = plugin_uuid
+        payload["auth_callback_state"] = auth_callback_state
+
+        api = "/plugins/onboard"
+        try:
+            response = requestIt('POST', api, json.dumps(payload), None)
+            if (response is not None and isResponseOk(response)):
+                try:
+                    responseObj = json.loads(response.read().decode('utf-8'))
+                    jwt = responseObj.get("jwt", None)
+                    logIt("created anonymous user with jwt %s " % jwt)
+                    setItem("jwt", jwt)
+                    setItem("name", None)
+                    setItem("switching_account", False)
+                    setAuthCallbackState(None)
+                    return jwt
+                except Exception as ex:
+                    logIt("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
+        except Exception as ex:
+            logIt("Code Time: Unable to complete anonymous user creation: %s" % ex)
+    return None
+
+def getUser():
+    jwt = getItem("jwt")
+    if (jwt):
+        api = "/users/me"
+        response = requestIt("GET", api, None, jwt)
+        if (isResponseOk(response)):
+            try:
+                responseObj = json.loads(response.read().decode('utf-8'))
+                user = responseObj.get("data", None)
+                return user
+            except Exception as ex:
+                logIt("Code Time: Unable to retrieve user: %s" % ex)
+    return None
+

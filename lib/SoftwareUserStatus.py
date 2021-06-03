@@ -10,6 +10,7 @@ from .SoftwareSettings import *
 from .CommonUtil import *
 from .SoftwareSessionApp import *
 from .SlackHttp import *
+from .Logger import *
 try:
     #python2
     from urllib import urlencode
@@ -66,7 +67,7 @@ def getUserFromResponse(resp):
             obj = json.loads(resp.read().decode('utf-8'))
             return obj.get("user", None)
         except Exception as ex:
-            log("Code Time: Unable to retrieve user from plugin state: %s" % ex)
+            logIt("Code Time: Unable to retrieve user from plugin state: %s" % ex)
     return None
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
@@ -100,6 +101,33 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
 
         updateSessionSummaryFromServer(True)
 
+def authCompletionHandler(user):
+    setItem("switching_account", False)
+    setAuthCallbackState(None)
+    # successful logon
+    infoMsg = "Successfully logged on to Code Time"
+    sublime.message_dialog(infoMsg)
+
+    # clear the session summary data and time summary data
+    clearSessionSummaryData()
+    clearTimeDataSummary()
+
+    # clear the integrations
+    syncIntegrations([])
+
+    registered = user.get("registered", 0)
+    user_jwt = user.get("plugin_jwt", None)
+
+    if (user_jwt is not None):
+        setItem("jwt", user.get("plugin_jwt"))
+
+    if (registered == 1):
+        setItem("name", user.get("email"))
+
+    # fetch user's integrations
+    updateSlackIntegrationsFromUser(user)
+
+    updateSessionSummaryFromServer(True)
 
 def launchLoginUrl(loginType = "software", switching_account = True):
     webbrowser.open(getLoginUrl(loginType, switching_account))

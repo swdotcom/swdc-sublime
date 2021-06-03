@@ -1,15 +1,19 @@
 import sublime
-import os 
+import os
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
 from .SoftwareWallClock import *
 from .SoftwareOffline import *
 from .CommonUtil import *
+from .Logger import *
 
 def updateSessionSummaryFromServer(isNewDay=False):
     jwt = getItem('jwt')
-    response = requestIt("GET", '/sessions/summary?refresh=true', None, jwt)
+    if jwt is None:
+        return
+    
+    response = requestIt("GET", '/sessions/summary', None, jwt)
     if response is not None and isResponseOk(response):
         respData = json.loads(response.read().decode('utf-8'))
         summary = getSessionSummaryData()
@@ -24,13 +28,13 @@ def updateSessionSummaryFromServer(isNewDay=False):
                         currDayMin = int(val)
                         summary['currentDayMinutes'] = min(summary['currentDayMinutes'], currDayMin)
                     except Exception:
-                        pass 
+                        pass
                 else:
-                    summary[key] = val 
-        
+                    summary[key] = val
+
         updateSessionFromSummaryApi(summary['currentDayMinutes'])
 
-        # log('summary data: {}'.format(summary))
+        # logIt('summary data: {}'.format(summary))
         saveSessionSummaryToDisk(summary)
 
     updateStatusBarWithSummaryData()

@@ -25,6 +25,7 @@ from .TrackerManager import *
 from .SoftwareFileChangeInfoSummaryData import *
 from .SlackManager import *
 from .OsaScriptUtil import *
+from .Logger import *
 
 GOOGLE_SIGNUP_LABEL = 'Sign up with Google'
 GITHBUB_SIGNUP_LABEL = 'Sign up with GitHub'
@@ -213,7 +214,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
     if sortBy == 'duration_seconds' or sortBy == 'kpm' or sortBy == 'keystrokes':
         sortedArr = list(sorted(fileChangeInfos, key=lambda info: info[sortBy], reverse=True))
     else:
-        log('Sorting by invalid sortBy value: "{}"'.format(sortBy))
+        logIt('Sorting by invalid sortBy value: "{}"'.format(sortBy))
 
     childrenNodes = []
     length = min(3, len(sortedArr))
