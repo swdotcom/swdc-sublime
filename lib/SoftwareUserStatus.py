@@ -101,34 +101,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
 
         updateSessionSummaryFromServer(True)
 
-def authCompletionHandler(user):
-    setItem("switching_account", False)
-    setAuthCallbackState(None)
-    # successful logon
-    infoMsg = "Successfully logged on to Code Time"
-    sublime.message_dialog(infoMsg)
-
-    # clear the session summary data and time summary data
-    clearSessionSummaryData()
-    clearTimeDataSummary()
-
-    # clear the integrations
-    syncIntegrations([])
-
-    registered = user.get("registered", 0)
-    user_jwt = user.get("plugin_jwt", None)
-
-    if (user_jwt is not None):
-        setItem("jwt", user.get("plugin_jwt"))
-
-    if (registered == 1):
-        setItem("name", user.get("email"))
-
-    # fetch user's integrations
-    updateSlackIntegrationsFromUser(user)
-
-    updateSessionSummaryFromServer(True)
-
 def launchLoginUrl(loginType = "software", switching_account = True):
     webbrowser.open(getLoginUrl(loginType, switching_account))
     refetchUserStatusLazily(40)
