@@ -10,6 +10,7 @@ from .SoftwareSettings import *
 from .CommonUtil import *
 from .SoftwareSessionApp import *
 from .SlackHttp import *
+from .Logger import *
 try:
     #python2
     from urllib import urlencode
@@ -66,7 +67,7 @@ def getUserFromResponse(resp):
             obj = json.loads(resp.read().decode('utf-8'))
             return obj.get("user", None)
         except Exception as ex:
-            log("Code Time: Unable to retrieve user from plugin state: %s" % ex)
+            logIt("Code Time: Unable to retrieve user from plugin state: %s" % ex)
     return None
 
 def refetchUserStatusLazily(tryCountUntilFoundUser):
@@ -99,7 +100,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         updateSlackIntegrationsFromUser(userState["user"])
 
         updateSessionSummaryFromServer(True)
-
 
 def launchLoginUrl(loginType = "software", switching_account = True):
     webbrowser.open(getLoginUrl(loginType, switching_account))

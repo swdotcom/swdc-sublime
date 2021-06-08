@@ -4,6 +4,7 @@ from .SoftwareUtil import *
 from .SoftwareModels import CodeTimeSummary, TimeData
 from .Constants import *
 from .CommonUtil import *
+from .Logger import *
 
 def saveTimeDataSummaryToDisk(data):
     if not data:
@@ -30,9 +31,9 @@ def saveTimeDataSummaryToDisk(data):
     try:
         with open(file, 'w') as f:
             json.dump(payloads, f, indent=4)
-        log('Code time: updated time summary data to disk')
+        logIt('Code time: updated time summary data to disk')
     except Exception as ex:
-        log('Code time: Error writing time summary data:%s' % ex)
+        logIt('Code time: Error writing time summary data:%s' % ex)
 
 def getCodeTimeSummary():
     summary = CodeTimeSummary()

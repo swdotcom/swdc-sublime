@@ -2,7 +2,8 @@ from threading import Lock
 from .SoftwareUtil import *
 from .SoftwareModels import SessionSummary
 import os 
-import json 
+import json
+from .Logger import *
 
 sessionSummaryLock = Lock()
 
@@ -27,7 +28,7 @@ def getSessionSummaryFileAsJson():
             sessionSummaryData = json.load(sessionSummaryFile)
     except Exception as ex:
         sessionSummaryData = SessionSummary()
-        log("Code Time: Session summary file fetch error: %s" % ex)
+        logIt("Code Time: Session summary file fetch error: %s" % ex)
     sessionSummaryLock.release()
     return sessionSummaryData
 

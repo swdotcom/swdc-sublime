@@ -1,6 +1,6 @@
 import json 
 from .SoftwareUtil import *
-
+from .Logger import *
 
 def clearFileChangeInfoSummaryData():
     saveFileChangeInfoToDisk({})
@@ -19,4 +19,4 @@ def saveFileChangeInfoToDisk(fileChangeInfoData):
             with open(file, 'w') as f:
                 json.dump(fileChangeInfoData, f, indent=4)
         except Exception as ex:
-            log('Code time: Error writing file change data: %s' % ex)
+            logIt('Code time: Error writing file change data: %s' % ex)

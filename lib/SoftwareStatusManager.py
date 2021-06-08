@@ -13,9 +13,8 @@ def updateStatusBarWithSummaryData():
     inFlowIcon = "🕒"
     if (currentDayMinutes > averageDailyMinutes):
         inFlowIcon = "🚀"
-    
+
     currentDayMinStr = humanizeMinutes(currentDayMinutes)
     statusMsg = inFlowIcon + " " + currentDayMinStr
 
     showStatus(statusMsg)
-    

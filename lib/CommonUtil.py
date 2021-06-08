@@ -34,6 +34,21 @@ def getIsNewDay():
     else: 
         return False
 
+def getOsUsername():
+    homedir = os.path.expanduser('~')
+    username = os.path.basename(homedir)
+
+    if (username is None or username == ""):
+        username = os.environ.get("USER")
+
+    return username
+
+def getHostname():
+    try:
+        return socket.gethostname()
+    except Exception:
+        return os.uname().nodename
+
 def getOs():
     system = platform.system()
     return system

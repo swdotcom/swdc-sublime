@@ -9,14 +9,12 @@ from .CommonUtil import *
 SECONDS_INCREMENT = 30
 
 _wctime = 0
-isFocused = True 
+isFocused = True
 
 def wallClockMgrInit():
     global _wctime
     _wctime = getItem('wctime') or 0
     setInterval(updateTimeWrapper, SECONDS_INCREMENT)
-    log('------- Intializing Wallclock ----------')
-    updateStatusBarWithSummaryData()
 
 def updateTimeWrapper():
     hasData = PluginData.hasKeystrokeData()
@@ -55,8 +53,8 @@ def focusWindow():
 
 def blurWindow():
     global isFocused
-    isFocused = False 
+    isFocused = False
 
 def isFocused():
     global isFocused
-    return isFocused 
+    return isFocused

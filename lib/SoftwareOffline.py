@@ -12,11 +12,12 @@ from .SoftwareFileChangeInfoSummaryData import *
 from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
+from .Logger import *
 
 # This file is called SessionSummaryDataManager.js in Atom
 
 # Constants
-SERVICE_NOT_AVAIL = "Our service is temporarily unavailable.\n\nPlease try again later.\n"
+SERVICE_NOT_AVAIL = "Unable to connect to Code Time. Please check your network settings.\n\n"
 ONE_MINUTE_IN_SEC = 60
 SECONDS_PER_HOUR = 60 * 60
 DEFAULT_SESSION_THRESHOLD_SECONDS = 60 * 15
@@ -106,7 +107,7 @@ def getCurrentDayTime(sessionSummaryData):
         currentDayMinutes = int(sessionSummaryData.get("currentDayMinutes", 0))
     except Exception as ex:
         currentDayMinutes = 0
-        log("Code Time: Current Day exception: %s" % ex)
+        logIt("Code Time: Current Day exception: %s" % ex)
     
     return {"data": currentDayMinutes, "formatted": humanizeMinutes(currentDayMinutes)}
 
@@ -116,7 +117,7 @@ def getAverageDailyTime(sessionSummaryData):
         averageDailyMinutes = int(sessionSummaryData.get("averageDailyMinutes", 0))
     except Exception as ex:
         averageDailyMinutes = 0
-        log("Code Time: Average Daily Minutes exception: %s" % ex)
+        logIt("Code Time: Average Daily Minutes exception: %s" % ex)
     
     return {"data": averageDailyMinutes, "formatted": humanizeMinutes(averageDailyMinutes)}
 
@@ -204,7 +205,7 @@ def processAndAggregateData(payload):
     # get the datastore file to save the payload
     dataStoreFile = getSoftwareDataStoreFile()
 
-    log("Code Time: storing kpm metrics: %s" % payload)
+    logIt("Code Time: storing kpm metrics: %s" % payload)
 
     setItem('latestPayloadTimestampEndUtc', nowTimes['nowInSec'])
 
@@ -225,7 +226,7 @@ def updateLastSavedKeystrokeStats():
                 sortedPayloads = list(sorted(currentPayloads, key=lambda payload: payload['start'], reverse=True))
                 lastSavedKeystrokeStats = sortedPayloads[0]
     except Exception as ex:
-        log('Error sorting current payloads: %s' % ex)
+        logIt('Error sorting current payloads: %s' % ex)
 
 def validateAndUpdateCumulativeData(payload, sessionMinutes):
     td = incrementSessionAndFileSeconds(payload['project'], sessionMinutes)
@@ -260,12 +261,12 @@ def validateAndUpdateCumulativeData(payload, sessionMinutes):
         if (lastPayload['cumulative_editor_seconds'] is not None):
             cumulative_editor_seconds = lastPayload['cumulative_editor_seconds'] + 60
         else:
-            log('Error: No editor seconds in last payload.')
+            logIt('Error: No editor seconds in last payload.')
 
         if (lastPayload['cumulative_session_seconds'] is not None):
             cumulative_session_seconds = lastPayload['cumulative_session_seconds'] + 60
         else:
-            log('Error: No session seconds in last payload.')
+            logIt('Error: No session seconds in last payload.')
     
     # update the cumulative editor seconds
     payload['cumulative_editor_seconds'] = cumulative_editor_seconds

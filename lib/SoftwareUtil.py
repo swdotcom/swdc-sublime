@@ -19,6 +19,7 @@ from .SoftwareSettings import *
 from .SoftwareModels import Project
 from .Constants import *
 from .CommonUtil import *
+from .Logger import *
 
 DASHBOARD_LABEL_WIDTH = 25
 DASHBOARD_VALUE_WIDTH = 25
@@ -40,26 +41,6 @@ have easy TTL cache options available
 myCache = {}
 
 runningResourceCmd = False
-
-# log the message
-def log(message):
-    if (getValue("software_logging_on", True)):
-        print(message)
-
-def getOsUsername():
-    homedir = os.path.expanduser('~')
-    username = os.path.basename(homedir)
-
-    if (username is None or username == ""):
-        username = os.environ.get("USER")
-
-    return username
-
-def getHostname():
-    try:
-        return socket.gethostname()
-    except Exception:
-        return os.uname().nodename
 
 def getActiveWindowId():
     try:
@@ -121,7 +102,7 @@ def getFileDataAsJson(file):
             try:
                 data = json.load(f)
             except Exception as ex:
-                # log('Unable to read session info: %s' % ex)
+                # logIt('Unable to read session info: %s' % ex)
                 # os.remove(file)
                 print('unable to read: %s' % ex)
     return data
@@ -137,7 +118,7 @@ def getFileDataArray(file):
                 else:
                     payloads.append(contents)
             except Exception as ex:
-                log('Error reading file array data: %s' % ex)
+                logIt('Error reading file array data: %s' % ex)
                 os.remove(file)
     return payloads
 
@@ -154,7 +135,7 @@ def getFileDataPayloadsAsJson(file):
                         # convert to json to send
                         payloads.append(json_obj)
         except Exception as ex:
-            log('Unable to read file data payload: %s' % ex)
+            logIt('Unable to read file data payload: %s' % ex)
             return []
     return payloads
 
@@ -165,7 +146,7 @@ def storeHashedValues(user_hashed_values):
             with open(file, 'w') as f:
                 json.dump(user_hashed_values, f, indent=4)
         except Exception as ex:
-            log('Code time: Error writing hashed_values: %s' % ex)
+            logIt('Code time: Error writing hashed_values: %s' % ex)
 
 def getHashedValues():
     return getFileDataAsJson(getSoftwareHashedValuesFile()) or {}
@@ -222,7 +203,7 @@ def getCommandResultList(cmd, projectDir):
     except CalledProcessError as ex:
         # print('reusltlisterrorerror: {}'.format(ex.output))
         if ex.output != b'': # Suppress trivial error
-            log('Error running {}: {}'.format(cmd, ex.output))
+            logIt('Error running {}: {}'.format(cmd, ex.output))
         return []
 
     result = result.decode('UTF-8').strip().replace('\r\n', '\r').replace('\n', '\r')
@@ -288,14 +269,6 @@ def getResourceInfo(rootDir):
     except Exception as e:
         return {}
 
-def serverIsAvailable():
-    # non-authenticated ping, no need to set the Authorization header
-    response = requestIt("GET", "/ping", None, None)
-    if (isResponseOk(response)):
-        return True
-    else:
-        return False
-
 def launchSubmitFeedback():
     webbrowser.open('mailto:cody@software.com')
 
@@ -324,55 +297,6 @@ def isWindows():
     if sys.platform == "win32":
         return True
     return False
-
-def createAnonymousUser():
-    jwt = getItem("jwt")
-    if (jwt is None):
-        plugin_uuid = getPluginUuid()
-        username = getOsUsername()
-        timezone = getTimezone()
-        hostname = getHostname()
-        auth_callback_state = getAuthCallbackState()
-
-        payload = {}
-        payload["username"] = username
-        payload["timezone"] = timezone
-        payload["hostname"] = hostname
-        payload["plugin_uuid"] = plugin_uuid
-        payload["auth_callback_state"] = auth_callback_state
-
-        api = "/plugins/onboard"
-        try:
-            response = requestIt("POST", api, json.dumps(payload))
-            if (response is not None and isResponseOk(response)):
-                try:
-                    responseObj = json.loads(response.read().decode('utf-8'))
-                    jwt = responseObj.get("jwt", None)
-                    log("created anonymous user with jwt %s " % jwt)
-                    setItem("jwt", jwt)
-                    setItem("name", None)
-                    setItem("switching_account", False)
-                    setAuthCallbackState(None)
-                    return jwt
-                except Exception as ex:
-                    log("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
-        except Exception as ex:
-            log("Code Time: Unable to complete anonymous user creation: %s" % ex)
-    return None
-
-def getUser():
-    jwt = getItem("jwt")
-    if (jwt):
-        api = "/users/me"
-        response = requestIt("GET", api, None, jwt)
-        if (isResponseOk(response)):
-            try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                user = responseObj.get("data", None)
-                return user
-            except Exception as ex:
-                log("Code Time: Unable to retrieve user: %s" % ex)
-    return None
 
 def initializeUserPreferences():
     session_threshold_in_sec = getSessionThresholdSeconds()

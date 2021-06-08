@@ -16,18 +16,19 @@ cached_tracker = None
 cached_hashed_values = {}
 # swdc_tracker will initialize on the first use of it (editor activated event)
 # and use a cached instance for every subsequent call
-def swdc_tracker(use_cache = True):
+def swdc_tracker(event_json, context):
 	global cached_tracker
 
-	if(cached_tracker and use_cache):
-		return cached_tracker
-	else:
+	if cached_tracker is None:
 		response = requestIt('GET', '/plugins/config', None, None)
-		config = json.loads(response.read().decode('utf-8'))
-		e = Emitter(config['tracker_api'])
-		tracker = Tracker(e, namespace='CodeTime', app_id='swdc-sublime')
-		cached_tracker = tracker
-		return tracker
+		if response is not None and isResponseOk(response):
+			config = json.loads(response.read().decode('utf-8'))
+			e = Emitter(config['tracker_api'])
+			tracker = Tracker(e, namespace='CodeTime', app_id='swdc-sublime')
+			cached_tracker = tracker
+
+	if cached_tracker is not None:
+		cached_tracker.track_self_describing_event(event_json, context)
 
 def tracker_enabled():
 	return getValue("software_telemetry_on", True)
@@ -36,19 +37,19 @@ def track_codetime_event(**kwargs):
 	if tracker_enabled():
 		event_json = codetime_payload(**kwargs)
 		context = build_context(**kwargs)
-		swdc_tracker().track_self_describing_event(event_json, context)
+		swdc_tracker(event_json, context)
 
 def track_editor_action(**kwargs):
 	if tracker_enabled():
 		event_json = editor_action_payload(**kwargs)
 		context = build_context(**kwargs)
-		response = swdc_tracker().track_self_describing_event(event_json, context)
+		response = swdc_tracker(event_json, context)
 
 def track_ui_interaction(**kwargs):
 	if tracker_enabled():
 		event_json = ui_interaction_payload(**kwargs)
 		context = build_context(**kwargs)
-		swdc_tracker().track_self_describing_event(event_json, context)
+		swdc_tracker(event_json, context)
 
 def build_context(**kwargs):
 	ctx = []
@@ -193,7 +194,7 @@ def ui_element_payload(**kwargs):
 latestJwt = None
 def hash_value(value, data_type, jwt):
 	global latestJwt
-	
+
 	if(jwt != latestJwt):
 		latestJwt = jwt
 		fetch_user_hashed_values()
@@ -208,7 +209,7 @@ def hash_value(value, data_type, jwt):
 			else:
 				cached_hashed_values[data_type] = [hashed_value]
 			storeHashedValues(cached_hashed_values)
-			
+
 			encrypt_and_save(value, hashed_value, data_type, jwt)
 
 		return hashed_value
