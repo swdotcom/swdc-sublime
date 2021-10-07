@@ -14,16 +14,20 @@
                         "caption": "Connect Slack"
                     },
                     {
-                        "command": "launch_code_time_metrics",
-                        "caption": "Dashboard"
-                    },
-                    {
                         "command": "disconnect_slack",
                         "caption": "Disconnect Slack"
                     },
                     {
                         "command": "enable_slack_notifications",
                         "caption": "Enable Slack notifications"
+                    },
+                    {
+                        "command": "enter_flow_mode_action",
+                        "caption": "Enter Flow Mode"
+                    },
+                    {
+                        "command": "exit_flow_mode_action",
+                        "caption": "Exit Flow Mode"
                     },
                     {
                         "command": "go_to_software",

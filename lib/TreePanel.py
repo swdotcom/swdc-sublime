@@ -14,7 +14,6 @@ from .SoftwareRepo import *
 from .SoftwareOffline import *
 from .SoftwareSettings import *
 from .SoftwareWallClock import *
-from .SoftwareDashboard import *
 from .SoftwareUserStatus import *
 from .SoftwareModels import *
 from .SoftwareSessionApp import *
@@ -36,7 +35,6 @@ SWITCH_ACCOUNT_LABEL = 'Switch account'
 SUBMIT_FEEDBACK_LABEL = 'Submit feedback'
 LEARN_MORE_LABEL = 'Learn more'
 SEE_ADVANCED_METRICS = 'More data at Software.com'
-DASHBOARD_LABEL = 'Dashboard'
 TURN_ON_NOTIFICATIONS_LABEL = 'Turn on notifications'
 PAUSE_NOTIFICATIONS_LABEL = 'Pause notifications'
 TODAY_VS_AVG_LABEL = 'Today vs.'
@@ -48,6 +46,8 @@ TURN_ON_DARK_MODE_LABEL = 'Turn on dark mode'
 TOGGLE_DOCK_LABEL = 'Toggle dock'
 SLACK_WORKSPACES_LABEL = 'Slack workspaces'
 ADD_SLACK_WORKSPACE_LABEL = 'Add workspace'
+ENABLE_FLOW_MODE = 'Enter Flow Mode'
+EXIT_FLOW_MODE = 'Exit Flow Mode'
 
 
 class ShowTreeView(sublime_plugin.TextCommand):
@@ -148,42 +148,16 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
     todayString = datetime.today().strftime('%a')
     
-    # code time
-    codeTimeStr = humanizeMinutes(data["codeTimeMinutes"]).strip()
-    codeTimeAvg = data["averageDailyCodeTimeMinutes"] if refClass == "user" else data["globalAverageDailyCodeTimeMinutes"]
-    codeTimeAvgStr = humanizeMinutes(codeTimeAvg).strip()
-    self.keys.append('%s%s' % (firstChildDepth, "Code time: " + codeTimeStr + " (" + codeTimeAvgStr + ")"))
 
     # active code time
-    activeCodeTimeStr = humanizeMinutes(data["activeCodeTimeMinutes"]).strip()
-    activeCodeTimeAvg = data["averageDailyMinutes"] if refClass == "user" else data['globalAverageDailyMinutes']
+    activeCodeTimeStr = humanizeMinutes(data["currentDayMinutes"]).strip()
+    activeCodeTimeAvg = data["averageDailyMinutes"]
     activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
     self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr + " (" + activeCodeTimeAvgStr + ")"))
 
-    # lines added
-    currLinesAdded = self.currentKeystrokeStats['currentDayLinesAdded'] + data['currentDayLinesAdded']
-    linesAddedStr = formatNumWithK(currLinesAdded)
-    linesAddedAvg = data["averageLinesAdded"] if refClass == "user" else data['globalAverageLinesAdded']
-    linesAddedAvgStr = formatNumWithK(linesAddedAvg)
-    self.keys.append('%s%s' % (firstChildDepth, "Lines added: " + linesAddedStr + " (" + linesAddedAvgStr + ")"))
-
-    # lines removed
-    currLinesRemoved = self.currentKeystrokeStats['currentDayLinesRemoved'] + data['currentDayLinesRemoved']
-    linesRemovedStr = formatNumWithK(currLinesRemoved)
-    linesRemovedAvg = data["averageLinesRemoved"] if refClass == "user" else data['globalAverageLinesRemoved']
-    linesRemovedAvgStr = formatNumWithK(linesRemovedAvg)
-    self.keys.append('%s%s' % (firstChildDepth, "Lines removed: " + linesRemovedStr + " (" + linesRemovedAvgStr + ")"))
-
-
-    # keystrokes
-    currKeystrokes = self.currentKeystrokeStats['currentDayKeystrokes'] + data['currentDayKeystrokes']
-    keystrokesStr = formatNumWithK(currKeystrokes)
-    keystrokesAvg = data["averageDailyKeystrokes"] if refClass == "user" else data['globalAverageDailyKeystrokes']
-    keystrokesAvgStr = formatNumWithK(keystrokesAvg)
-    self.keys.append('%s%s' % (firstChildDepth, "Keystrokes: " + keystrokesStr + " (" + keystrokesAvgStr + ")"))
-
-    self.keys.append('%s%s' % (firstChildDepth, DASHBOARD_LABEL))
     self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
+    self.keys.append('%s%s' % (firstChildDepth, ENABLE_FLOW_MODE))
+    self.keys.append('%s%s' % (firstChildDepth, EXIT_FLOW_MODE))
     
 
   def buildTopFilesNode(self, fileChangeInfoMap):
@@ -194,17 +168,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
         return 'Today: {}'.format(filesChanged)
     else:
         return None
-
-  def setCurrentKeystrokeStats(self, keystrokeStats):
-    if not keystrokeStats:
-        self.currentKeystrokeStats = SessionSummary()
-    else:
-        for key in keystrokeStats.source:
-            # fileInfo is of type FileChangeInfo
-            fileInfo = keystrokeStats.source[key] 
-            self.currentKeystrokeStats.currentDayKeystrokes = fileInfo.keystrokes
-            self.currentKeystrokeStats.currentDayLinesAdded = fileInfo.linesAdded
-            self.currentKeystrokeStats.currentDayLinesRemoved = fileInfo.linesRemoved
 
   def topFilesMetricsNode(self, fileChangeInfos, sortBy, id):
     if not fileChangeInfos or len(fileChangeInfos) == 0:
@@ -242,10 +205,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
         if (key is not None):
             key = key.strip()
-            if (key == DASHBOARD_LABEL):
-                codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
-                codetimemetricsthread.start()
-            elif key == SWITCH_ACCOUNT_LABEL:
+            if key == SWITCH_ACCOUNT_LABEL:
                 switchAccount()
             elif (key == HIDE_STATUS_LABEL or key == SHOW_STATUS_LABEL):
                 toggleStatus()
@@ -253,6 +213,10 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 displayReadmeIfNotExists(True)
             elif (key == SEE_ADVANCED_METRICS):
                 launchWebDashboardUrl()
+            elif (key == ENABLE_FLOW_MODE):
+                enableFlowMode()
+            elif (key == EXIT_FLOW_MODE):
+                exitFlowMode()
             elif (key == SUBMIT_FEEDBACK_LABEL):
                 launchSubmitFeedback()
             elif (key == GOOGLE_SIGNUP_LABEL):

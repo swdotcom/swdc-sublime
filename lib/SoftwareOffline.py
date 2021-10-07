@@ -37,9 +37,6 @@ def incrementSessionSummaryData(aggregates):
     sessionMinutes = timeBetweenLastPayload['sessionMinutes']
 
     data['currentDayMinutes'] += sessionMinutes
-    data['currentDayKeystrokes'] += aggregates['keystrokes']
-    data['currentDayLinesAdded'] += aggregates['linesAdded']
-    data['currentDayLinesRemoved'] += aggregates['linesRemoved']
 
     saveSessionSummaryToDisk(data)
 
@@ -65,41 +62,6 @@ def getTimeBetweenLastPayload():
         sessionMinutes = max(1, sessionMinutes)
 
     return { 'sessionMinutes': sessionMinutes, 'elapsedSeconds': elapsedSeconds }
-
-def updateSessionFromSummaryApi(currentDayMinutes):
-    day = getNowTimes()['day']
-
-    codeTimeSummary = getCodeTimeSummary()
-
-    diffActiveCodeMinutesToAdd = 0
-    if codeTimeSummary['activeCodeTimeMinutes'] < currentDayMinutes:
-        diffActiveCodeMinutesToAdd = currentDayMinutes - codeTimeSummary['activeCodeTimeMinutes']
-    
-    project = getActiveProject()
-    timeData = None 
-    if project:
-        timeData = getTodayTimeDataSummary(project)
-    else:
-        summaryFile = getTimeDataSummaryFile()
-        payloads = getFileDataArray(summaryFile)
-        filteredPayloads = [x for x in payloads if x['day'] == day]
-        if filteredPayloads and len(filteredPayloads) > 0:
-            timeData = filteredPayloads[0]
-    
-    if not timeData:
-        project = Project()
-        project['directory'] = NO_PROJ_NAME
-        project['name'] = UNTITLED
-
-        timeData = TimeData()
-        timeData['day'] = day
-        timeData['project'] = project
-    
-    secondsToAdd = diffActiveCodeMinutesToAdd * 60
-    timeData['session_seconds'] += secondsToAdd
-    timeData['editor_seconds'] += secondsToAdd
-
-    saveTimeDataSummaryToDisk(timeData)
 
 def getCurrentDayTime(sessionSummaryData):
     currentDayMinutes = 0
@@ -187,7 +149,6 @@ def processAndAggregateData(payload):
     # add the elapsed and cumulative times to the payload
     timeBetweenLastPayload = getTimeBetweenLastPayload()
     payload['elapsed_seconds'] = timeBetweenLastPayload['elapsedSeconds']
-    validateAndUpdateCumulativeData(payload, timeBetweenLastPayload['sessionMinutes'])
 
     # set the end time
     payload['end'] = nowTimes['nowInSec']
@@ -228,46 +189,4 @@ def updateLastSavedKeystrokeStats():
     except Exception as ex:
         logIt('Error sorting current payloads: %s' % ex)
 
-def validateAndUpdateCumulativeData(payload, sessionMinutes):
-    td = incrementSessionAndFileSeconds(payload['project'], sessionMinutes)
 
-    lastPayload = getLastSavedKeystrokeStats()
-
-    # if it's a new day, clear the last payload and time data
-    isNewDay = getIsNewDay()
-    if isNewDay:
-        lastPayload = None
-        if td:
-            td = None
-    
-    # set new_day in the payload based on last timestamp in session.json
-    lastPayloadEnd = getItem("latestPayloadTimestampEndUtc")
-    if lastPayloadEnd == 0:
-        newDay = 1
-    else:
-        newDay = 0
-
-    payload['new_day'] = newDay
-
-    # get editor seconds
-    cumulative_editor_seconds = 60
-    cumulative_session_seconds = 60
-    if (td is not None):
-        # use data from the timedata object
-        cumulative_editor_seconds = td['editor_seconds']
-        cumulative_session_seconds = td['session_seconds']
-    elif lastPayload:
-        # no time data; used the last recorded kpm data
-        if (lastPayload['cumulative_editor_seconds'] is not None):
-            cumulative_editor_seconds = lastPayload['cumulative_editor_seconds'] + 60
-        else:
-            logIt('Error: No editor seconds in last payload.')
-
-        if (lastPayload['cumulative_session_seconds'] is not None):
-            cumulative_session_seconds = lastPayload['cumulative_session_seconds'] + 60
-        else:
-            logIt('Error: No session seconds in last payload.')
-    
-    # update the cumulative editor seconds
-    payload['cumulative_editor_seconds'] = cumulative_editor_seconds
-    payload['cumulative_session_seconds'] = cumulative_session_seconds

@@ -1,7 +1,7 @@
 import sublime, sublime_plugin
 from .SoftwareUtil import *
 from .SoftwareOffline import *
-from .SoftwareStatusManager import *
+from .SoftwareSessionApp import *
 from .KpmManager import *
 from .TimeSummaryData import *
 from .CommonUtil import *
