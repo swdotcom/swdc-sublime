@@ -4,7 +4,6 @@ import sublime_plugin, sublime
 from .SoftwareOffline import *
 from .SoftwareUtil import *
 from .SoftwareHttp import *
-from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
 from .TrackerManager import *
@@ -77,7 +76,7 @@ class BackgroundWorker():
 # kpm payload data structure
 #
 class PluginData():
-    __slots__ = ('source', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone', 'cumulative_editor_seconds', 'cumulative_session_seconds', 'elapsed_seconds')
+    __slots__ = ('source', 'keystrokes', 'start', 'local_start', 'project', 'pluginId', 'version', 'os', 'timezone', 'elapsed_seconds')
     background_worker = BackgroundWorker(1, post_json)
     active_datas = {} # active projects, where each entry is a project directory
     line_counts = {}
@@ -94,8 +93,6 @@ class PluginData():
         self.version = getVersion()
         self.timezone = getTimezone()
         self.os = getOs()
-        self.cumulative_editor_seconds = 0
-        self.cumulative_session_seconds = 0
         self.elapsed_seconds = 0
 
     def json(self):
@@ -250,9 +247,6 @@ class PluginData():
                 for fileName in keystrokeCountObj.source:
                     fileInfo = keystrokeCountObj.source[fileName]
                     if (fileInfo.get("end", 0) == 0):
-                        td = getTodayTimeDataSummary(keystrokeCountObj.project)
-                        editorSeconds = max(td['editor_seconds'], td['session_seconds']) if td else 60
-
                         nowTimes = getNowTimes()
                         fileInfo["end"] = nowTimes['nowInSec']
                         fileInfo["local_end"] = nowTimes['localNowInSec']

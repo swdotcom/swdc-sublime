@@ -5,7 +5,6 @@ import re, uuid
 from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareHttp import *
-from .SoftwareDashboard import *
 from .SoftwareSettings import *
 from .CommonUtil import *
 from .SoftwareSessionApp import *
@@ -91,7 +90,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
 
         # clear the session summary data and time summary data
         clearSessionSummaryData()
-        clearTimeDataSummary()
 
         # clear the integrations
         syncIntegrations([])
@@ -99,7 +97,7 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         # fetch user's integrations
         updateSlackIntegrationsFromUser(userState["user"])
 
-        updateSessionSummaryFromServer(True)
+        updateSessionSummaryFromServer()
 
 def launchLoginUrl(loginType = "software", switching_account = True):
     webbrowser.open(getLoginUrl(loginType, switching_account))
@@ -157,8 +155,7 @@ def getLoginUrl(loginType = "software", switching_account=True):
     return loginUrl
 
 def launchWebDashboardUrl():
-    jwt = getItem('jwt')
-    webUrl = getWebUrl() + '?token=' + jwt
+    webUrl = getWebUrl()
     webbrowser.open(webUrl)
 
 def switchAccount():

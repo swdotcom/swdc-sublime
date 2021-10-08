@@ -4,16 +4,20 @@
         "caption": "Code Time: Connect Slack"
     },
     {
-        "command": "launch_code_time_metrics",
-        "caption": "Code Time: Dashboard"
-    },
-    {
         "command": "disconnect_slack",
         "caption": "Code Time: Disconnect Slack"
     },
     {
         "command": "enable_slack_notifications",
         "caption": "Code Time: Enable Slack notifications"
+    },
+    {
+        "command": "enter_flow_mode_action",
+        "caption": "Code Time: Enter Flow Mode"
+    },
+    {
+        "command": "exit_flow_mode_action",
+        "caption": "Code Time: Exit Flow Mode"
     },
     {
         "command": "go_to_software",

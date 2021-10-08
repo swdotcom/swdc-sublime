@@ -13,7 +13,6 @@ from .lib.SoftwareRepo import *
 from .lib.SoftwareOffline import *
 from .lib.SoftwareSettings import *
 from .lib.SoftwareWallClock import *
-from .lib.SoftwareDashboard import *
 from .lib.SoftwareUserStatus import *
 from .lib.SoftwareModels import *
 from .lib.SoftwareSessionApp import *
@@ -22,7 +21,6 @@ from .lib.KpmManager import *
 from .lib.Constants import *
 from .lib.TrackerManager import *
 from .lib.TreePanel import *
-from .lib.SoftwareStatusManager import *
 from .lib.ui_interactions import UI_INTERACTIONS
 from .lib.SlackManager import *
 from .lib.OsaScriptUtil import *
@@ -51,13 +49,6 @@ class SwitchAccount(sublime_plugin.TextCommand):
     def is_enabled(self):
         return True
 
-# Command to launch the code time metrics "launch_code_time_metrics"
-class LaunchCodeTimeMetrics(sublime_plugin.TextCommand):
-    def run(self, edit):
-        codetimemetricsthread = Thread(target=launchCodeTimeMetrics)
-        codetimemetricsthread.start()
-        track_ui_event('view-dashboard')
-
 class SoftwareTopForty(sublime_plugin.TextCommand):
     def run(self, edit):
         webbrowser.open("https://api.software.com/music/top40")
@@ -70,10 +61,6 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
         logIt("toggling status bar metrics")
         toggleStatus()
         track_ui_event('toggle-status-bar-metrics')
-
-class ForceUpdateSessionSummary(sublime_plugin.WindowCommand):
-    def run(self, isNewDay):
-        updateSessionSummaryFromServer(isNewDay)
 
 class GenerateContributorSummary(sublime_plugin.WindowCommand):
     def run(self):
@@ -126,6 +113,20 @@ class PauseSlackNotificationsCommand(sublime_plugin.TextCommand):
 class EnableSlackNotificationsCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         enableSlackNotifications()
+
+    def is_enabled(self):
+        return True
+
+class EnterFlowModeActionCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        enableFlowMode()
+ 
+    def is_enabled(self):
+        return True
+
+class ExitFlowModeActionCommand(sublime_plugin.TextCommand):
+    def run(self, edit):
+        exitFlowMode()
 
     def is_enabled(self):
         return True
@@ -488,7 +489,6 @@ def initializePlugin(initializedAnonUser):
     displayReadmeIfNotExists(False)
 
     wallClockMgrInit()
-    dashboardMgrInit()
 
     # this check is required before the commits timer is started
     initializeUserPreferences()

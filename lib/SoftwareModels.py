@@ -13,21 +13,7 @@ def TimeData():
 def SessionSummary():
     template = {
         "currentDayMinutes": 0,
-        "currentDayKeystrokes": 0,
-        "currentDayKpm": 0,
-        "currentDayLinesAdded": 0,
-        "currentDayLinesRemoved": 0,
         "averageDailyMinutes": 0,
-        "averageDailyKeystrokes": 0,
-        "averageDailyKpm": 0,
-        "averageLinesAdded": 0,
-        "averageLinesRemoved": 0,
-        "liveshareMinutes": 0,
-        "globalAverageSeconds": 0,
-        "globalAverageDailyMinutes": 0,
-        "globalAverageDailyKeystrokes": 0,
-        "globalAverageLinesAdded": 0,
-        "globalAverageLinesRemoved": 0,
     }
     return template
 
