@@ -134,8 +134,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
     self.keys.append('%s%s' % (zeroDepth, "STATS"))
 
     data = getSessionSummaryData()
-    codeTimeSummary = getCodeTimeSummary()
-    data.update(codeTimeSummary)
 
     refClass = getItem("reference-class")
     if (refClass is None):

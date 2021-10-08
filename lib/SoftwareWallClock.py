@@ -3,7 +3,6 @@ from .SoftwareUtil import *
 from .SoftwareOffline import *
 from .SoftwareSessionApp import *
 from .KpmManager import *
-from .TimeSummaryData import *
 from .CommonUtil import *
 
 SECONDS_INCREMENT = 30
@@ -27,7 +26,6 @@ def updateWcTime():
     _wctime = getItem('wctime') or 0
     _wctime += SECONDS_INCREMENT
     setItem('wctime', _wctime)
-    incrementEditorSeconds(SECONDS_INCREMENT)
 
 def dispatchStatusViewUpdate():
     updateStatusBarWithSummaryData()

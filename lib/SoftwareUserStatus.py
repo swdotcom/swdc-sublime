@@ -90,7 +90,6 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
 
         # clear the session summary data and time summary data
         clearSessionSummaryData()
-        clearTimeDataSummary()
 
         # clear the integrations
         syncIntegrations([])

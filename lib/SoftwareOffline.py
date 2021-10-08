@@ -9,7 +9,6 @@ from .SoftwareUtil import *
 from .SoftwareFileDataManager import *
 from .SoftwareModels import SessionSummary, KeystrokeAggregate, TimeData, Project, CodeTimeSummary
 from .SoftwareFileChangeInfoSummaryData import *
-from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
 from .Logger import *

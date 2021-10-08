@@ -4,7 +4,6 @@ import sublime_plugin, sublime
 from .SoftwareOffline import *
 from .SoftwareUtil import *
 from .SoftwareHttp import *
-from .TimeSummaryData import *
 from .Constants import *
 from .CommonUtil import *
 from .TrackerManager import *
@@ -248,9 +247,6 @@ class PluginData():
                 for fileName in keystrokeCountObj.source:
                     fileInfo = keystrokeCountObj.source[fileName]
                     if (fileInfo.get("end", 0) == 0):
-                        td = getTodayTimeDataSummary(keystrokeCountObj.project)
-                        editorSeconds = max(td['editor_seconds'], td['session_seconds']) if td else 60
-
                         nowTimes = getNowTimes()
                         fileInfo["end"] = nowTimes['nowInSec']
                         fileInfo["local_end"] = nowTimes['localNowInSec']

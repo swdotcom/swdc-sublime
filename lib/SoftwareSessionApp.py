@@ -7,7 +7,6 @@ from .SoftwareWallClock import *
 from .SoftwareOffline import *
 from .CommonUtil import *
 from .Logger import *
-from .TimeSummaryData import *
 
 DAY_CHECK_TIMER_INTERVAL = 60 * 5
 
