@@ -298,9 +298,6 @@ def isWindows():
         return True
     return False
 
-def initializeUserPreferencesAsync():
-    setInterval(lambda: initializeUserPreferences(), 1)
-
 def initializeUserPreferences():
     session_threshold_in_sec = getSessionThresholdSeconds()
 

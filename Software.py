@@ -190,7 +190,7 @@ def check_and_send_unfocus_event(view):
             track_editor_action(**editor_action_params(view, 'editor', 'unfocus'))
             last_focus_event_sent = 'unfocus'
 
-# Runs once instance per view (i.e. tab, or single file window)
+# Runs one instance per view (i.e. tab, or single file window)
 class EventListener(sublime_plugin.EventListener):
     def on_activated_async(self, view):
         focusWindow()
@@ -491,13 +491,13 @@ def initializePlugin(initializedAnonUser):
     wallClockMgrInit()
 
     # this check is required before the commits timer is started
-    initializeUserPreferencesAsync()
+    initializeUserPreferences()
 
     initialized = getItem('sublime_CtInit')
     if not initialized:
         setItem('sublime_CtInit', True)
 
-    updateSessionSummaryFromServerAsync()
+    updateSessionSummaryFromServer()
 
 def plugin_unloaded():
     # clean up the background worker

@@ -40,9 +40,6 @@ def exitFlowMode():
     in_flow = False
     updateStatusBarWithSummaryData()
 
-def updateSessionSummaryFromServerAsync():
-    setInterval(lambda: updateSessionSummaryFromServer(), 1)
-
 def updateSessionSummaryFromServer():
     global in_flow
     jwt = getItem('jwt')
