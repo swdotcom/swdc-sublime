@@ -50,10 +50,6 @@
                         "caption": "Toggle dark mode"
                     },
                     {
-                        "command": "toggle_dock",
-                        "caption": "Toggle dock"
-                    },
-                    {
                         "command": "toggle_status_bar_metrics",
                         "caption": "Toggle Status Bar Metrics"
                     },

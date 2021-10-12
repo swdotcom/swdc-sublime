@@ -48,10 +48,6 @@
         "caption": "Code Time: Toggle dark mode"
     },
     {
-        "command": "toggle_dock",
-        "caption": "Code Time: Toggle dock"
-    },
-    {
         "command": "toggle_status_bar_metrics",
         "caption": "Code Time: Toggle Status Bar Metrics"
     },

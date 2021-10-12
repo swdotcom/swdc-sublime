@@ -29,6 +29,7 @@ from .Logger import *
 GOOGLE_SIGNUP_LABEL = 'Sign up with Google'
 GITHBUB_SIGNUP_LABEL = 'Sign up with GitHub'
 EMAIL_SIGNUP_LABEL = 'Sign up with Email'
+REGISTER_OR_LOGIN_LABEL = 'Register or login'
 HIDE_STATUS_LABEL = 'Hide status bar metrics'
 SHOW_STATUS_LABEL = 'Show status bar metrics'
 SWITCH_ACCOUNT_LABEL = 'Switch account'
@@ -43,7 +44,6 @@ SET_PRESENCE_TO_ACTIVE_LABEL = 'Set presence to active'
 UPDATE_PROFILE_STATUS_LABEL = 'Update profile status'
 TURN_OFF_DARK_MODE_LABEL = 'Turn off dark mode'
 TURN_ON_DARK_MODE_LABEL = 'Turn on dark mode'
-TOGGLE_DOCK_LABEL = 'Toggle dock'
 SLACK_WORKSPACES_LABEL = 'Slack workspaces'
 ADD_SLACK_WORKSPACE_LABEL = 'Add workspace'
 ENABLE_FLOW_MODE = 'Enter Flow Mode'
@@ -75,6 +75,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
         self.keys.append('%s%s(%s)' % (firstChildDepth, "Logged in as ", getItem('name')))
         self.keys.append('%s%s' % (firstChildDepth, SWITCH_ACCOUNT_LABEL))
 
+    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
     statusBarMessage = HIDE_STATUS_LABEL if getValue("show_code_time_status", True) else SHOW_STATUS_LABEL
     self.keys.append('%s%s' % (firstChildDepth, statusBarMessage))
     self.keys.append('%s%s' % (firstChildDepth, SUBMIT_FEEDBACK_LABEL))
@@ -95,30 +96,39 @@ class ShowTreeView(sublime_plugin.TextCommand):
     self.keys.append('-----------------------------------')
 
     self.keys.append('%s%s' % (zeroDepth, "FLOW"))
+    if getItem('name') is not None:
+        self.keys.append('%s%s' % (firstChildDepth, ENABLE_FLOW_MODE))
+        self.keys.append('%s%s' % (firstChildDepth, EXIT_FLOW_MODE))
 
-    # data = {profile: {avatar_hash, display_name, display_name_normalized, email, first_name, ...,status_text, status_emoji, skype, status_expireation, status_text_canonical, title } }
-    slackStatus = getSlackStatus()
-    statusLabel = UPDATE_PROFILE_STATUS_LABEL
-    if (slackStatus is not None and slackStatus["profile"] is not None
-        and slackStatus["profile"]["status_text"] is not None
-        and slackStatus["profile"]["status_text"] != ''):
-        statusLabel += " (" + slackStatus["profile"]["status_text"] + ")"
+        # data = {profile: {avatar_hash, display_name, display_name_normalized, email, first_name, ...,status_text, status_emoji, skype, status_expireation, status_text_canonical, title } }
+        slackStatus = getSlackStatus()
+        statusLabel = UPDATE_PROFILE_STATUS_LABEL
+        if (slackStatus is not None and slackStatus["profile"] is not None
+            and slackStatus["profile"]["status_text"] is not None
+            and slackStatus["profile"]["status_text"] != ''):
+            statusLabel += " (" + slackStatus["profile"]["status_text"] + ")"
 
-    self.keys.append('%s%s' % (firstChildDepth, statusLabel))
+        self.keys.append('%s%s' % (firstChildDepth, statusLabel))
 
-    # data = {'next_dnd_end_ts': 1610892000, 'ok': True, 'next_dnd_start_ts': 1610861400, 'dnd_enabled': True, 'snooze_enabled': False}
-    slackDndInfo = getSlackDnDInfo()
-    if (slackDndInfo is None or slackDndInfo["snooze_enabled"] is False):
-        self.keys.append('%s%s' % (firstChildDepth, PAUSE_NOTIFICATIONS_LABEL))
+        # data = {'next_dnd_end_ts': 1610892000, 'ok': True, 'next_dnd_start_ts': 1610861400, 'dnd_enabled': True, 'snooze_enabled': False}
+        slackDndInfo = getSlackDnDInfo()
+        if (slackDndInfo is None or slackDndInfo["snooze_enabled"] is False):
+            self.keys.append('%s%s' % (firstChildDepth, PAUSE_NOTIFICATIONS_LABEL))
+        else:
+            self.keys.append('%s%s' % (firstChildDepth, TURN_ON_NOTIFICATIONS_LABEL))
+
+        # data = {'auto_away': False, 'ok': True, 'manual_away': False, 'connection_count': 1, 'presence': 'active', 'last_activity': 1610866316, 'online': True}
+        slackPresence = getSlackPresence()
+        if (slackPresence is None or slackPresence["presence"] == "active"):
+            self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_AWAY_LABEL))
+        else:
+            self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_ACTIVE_LABEL))
     else:
-        self.keys.append('%s%s' % (firstChildDepth, TURN_ON_NOTIFICATIONS_LABEL))
+        self.keys.append('%s%s' % (firstChildDepth, REGISTER_OR_LOGIN_LABEL))
 
-    # data = {'auto_away': False, 'ok': True, 'manual_away': False, 'connection_count': 1, 'presence': 'active', 'last_activity': 1610866316, 'online': True}
-    slackPresence = getSlackPresence()
-    if (slackPresence is None or slackPresence["presence"] == "active"):
-        self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_AWAY_LABEL))
-    else:
-        self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_ACTIVE_LABEL))
+    self.keys.append('-----------------------------------')
+
+    self.keys.append('%s%s' % (zeroDepth, "Mode"))
 
     if (isMac()):
         darkMode = isDarkMode()
@@ -126,8 +136,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
             self.keys.append('%s%s' % (firstChildDepth, TURN_OFF_DARK_MODE_LABEL))
         else:
             self.keys.append('%s%s' % (firstChildDepth, TURN_ON_DARK_MODE_LABEL))
-
-        self.keys.append('%s%s' % (firstChildDepth, TOGGLE_DOCK_LABEL))
 
     self.keys.append('-----------------------------------')
 
@@ -152,11 +160,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
     activeCodeTimeAvg = data["averageDailyMinutes"]
     activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
     self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr + " (" + activeCodeTimeAvgStr + ")"))
-
-    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
-    self.keys.append('%s%s' % (firstChildDepth, ENABLE_FLOW_MODE))
-    self.keys.append('%s%s' % (firstChildDepth, EXIT_FLOW_MODE))
-    
 
   def buildTopFilesNode(self, fileChangeInfoMap):
     
@@ -203,7 +206,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
         if (key is not None):
             key = key.strip()
-            if key == SWITCH_ACCOUNT_LABEL:
+            if key == SWITCH_ACCOUNT_LABEL or key == REGISTER_OR_LOGIN_LABEL:
                 switchAccount()
             elif (key == HIDE_STATUS_LABEL or key == SHOW_STATUS_LABEL):
                 toggleStatus()

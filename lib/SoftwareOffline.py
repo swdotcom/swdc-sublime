@@ -30,15 +30,6 @@ def getSummaryInfoFile():
     file = getSoftwareDir(True)
     return os.path.join(file, 'SummaryInfo.txt')
 
-def incrementSessionSummaryData(aggregates):
-    data = getSessionSummaryData()
-    timeBetweenLastPayload = getTimeBetweenLastPayload()
-    sessionMinutes = timeBetweenLastPayload['sessionMinutes']
-
-    data['currentDayMinutes'] += sessionMinutes
-
-    saveSessionSummaryToDisk(data)
-
 def getTimeBetweenLastPayload():
     # default to 1 minute
     sessionMinutes = 1
@@ -156,8 +147,6 @@ def processAndAggregateData(payload):
     # set the hostname and workspace
     payload['hostname'] = getHostname()
     payload['workspace_name'] = getActiveWindowId()
-
-    incrementSessionSummaryData(aggregate)
 
     # push the stats to the file so other editor windows can have it
     saveFileChangeInfoToDisk(fileChangeInfoMap)

@@ -491,13 +491,13 @@ def initializePlugin(initializedAnonUser):
     wallClockMgrInit()
 
     # this check is required before the commits timer is started
-    initializeUserPreferences()
+    initializeUserPreferencesAsync()
 
     initialized = getItem('sublime_CtInit')
     if not initialized:
         setItem('sublime_CtInit', True)
 
-    updateSessionSummaryFromServer()
+    updateSessionSummaryFromServerAsync()
 
 def plugin_unloaded():
     # clean up the background worker

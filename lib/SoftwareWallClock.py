@@ -33,10 +33,6 @@ def dispatchStatusViewUpdate():
 def clearWcTime():
     setWcTime(0)
 
-def getHumanizedWcTime():
-    global _wctime
-    return humanizeMinutes(_wctime / 60).strip()
-
 def getWcTimeInSeconds():
     global _wctime
     return _wctime

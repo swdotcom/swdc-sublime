@@ -298,6 +298,9 @@ def isWindows():
         return True
     return False
 
+def initializeUserPreferencesAsync():
+    setInterval(lambda: initializeUserPreferences(), 1)
+
 def initializeUserPreferences():
     session_threshold_in_sec = getSessionThresholdSeconds()
 
@@ -312,19 +315,21 @@ def humanizeMinutes(minutes):
     minutes = int(minutes)
     humanizedStr = ""
     if (minutes == 60):
-        humanizedStr = "1 hr"
+        humanizedStr = "1h"
     elif (minutes > 60):
+        hours = math.floor(minutes / 60)
+        remaining_minutes = minutes % 60
+        hourStr = '{:1.0f}'.format(math.floor(hours)) + 'h'
+
         floatMin = (minutes / 60)
         if (floatMin % 1 == 0):
-            # don't show zeros after the decimal
-            humanizedStr = '{:4.0f}'.format(floatMin) + " hrs"
+            humanizedStr = hourStr
         else:
-            # at least 4 chars (including the dot) with 2 after the dec point
-            humanizedStr = '{:4.1f}'.format(round(floatMin, 1)) + " hrs"
+            humanizedStr = hourStr + " " + '{:1.0f}'.format(remaining_minutes) + "m"
     elif (minutes == 1):
-        humanizedStr = "1 min"
+        humanizedStr = "1m"
     else:
-        humanizedStr = '{:1.0f}'.format(minutes) + " min"
+        humanizedStr = '{:1.0f}'.format(minutes) + "m"
     return humanizedStr
 
 def getDashboardRow(label, value):
