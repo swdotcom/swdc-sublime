@@ -97,7 +97,8 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         # fetch user's integrations
         updateSlackIntegrationsFromUser(userState["user"])
 
-        updateSessionSummaryFromServer()
+        initSessionSummaryThread = Thread(target=updateSessionSummaryFromServer, args=())
+        initSessionSummaryThread.start()
 
 def launchLoginUrl(loginType = "software", switching_account = True):
     webbrowser.open(getLoginUrl(loginType, switching_account))
