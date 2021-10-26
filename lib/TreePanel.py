@@ -17,7 +17,6 @@ from .SoftwareWallClock import *
 from .SoftwareUserStatus import *
 from .SoftwareModels import *
 from .SoftwareSessionApp import *
-from .SoftwareReportManager import *
 from .KpmManager import *
 from .Constants import *
 from .TrackerManager import *
@@ -34,21 +33,15 @@ HIDE_STATUS_LABEL = 'Hide status bar metrics'
 SHOW_STATUS_LABEL = 'Show status bar metrics'
 SWITCH_ACCOUNT_LABEL = 'Switch account'
 SUBMIT_FEEDBACK_LABEL = 'Submit feedback'
+UPDATE_PREFERENCES_LABEL = 'Settings'
 LEARN_MORE_LABEL = 'Learn more'
+VIEW_DASHBOARD_LABEL = 'View dashboard'
 SEE_ADVANCED_METRICS = 'More data at Software.com'
-TURN_ON_NOTIFICATIONS_LABEL = 'Turn on notifications'
-PAUSE_NOTIFICATIONS_LABEL = 'Pause notifications'
 TODAY_VS_AVG_LABEL = 'Today vs.'
-SET_PRESENCE_TO_AWAY_LABEL = 'Set presence to away'
-SET_PRESENCE_TO_ACTIVE_LABEL = 'Set presence to active'
-UPDATE_PROFILE_STATUS_LABEL = 'Update profile status'
-TURN_OFF_DARK_MODE_LABEL = 'Turn off dark mode'
-TURN_ON_DARK_MODE_LABEL = 'Turn on dark mode'
 SLACK_WORKSPACES_LABEL = 'Slack workspaces'
 ADD_SLACK_WORKSPACE_LABEL = 'Add workspace'
 ENABLE_FLOW_MODE = 'Enter Flow Mode'
 EXIT_FLOW_MODE = 'Exit Flow Mode'
-
 
 class ShowTreeView(sublime_plugin.TextCommand):
   def run(self, edit):
@@ -65,6 +58,30 @@ class ShowTreeView(sublime_plugin.TextCommand):
     firstChildDepth = ' ' * 8
     secondChildDepth = ' ' * 16
 
+    self.keys.append('%s%s' % (zeroDepth, "FLOW"))
+    if getItem('name') is not None:
+        self.keys.append('%s%s' % (firstChildDepth, ENABLE_FLOW_MODE))
+        self.keys.append('%s%s' % (firstChildDepth, EXIT_FLOW_MODE))
+    else:
+        self.keys.append('%s%s' % (firstChildDepth, REGISTER_OR_LOGIN_LABEL))
+
+    self.keys.append('-----------------------------------')
+
+    self.keys.append('%s%s' % (zeroDepth, "STATS"))
+
+    self.keys.append('%s%s' % (firstChildDepth, UPDATE_PREFERENCES_LABEL))
+    self.keys.append('%s%s' % (firstChildDepth, VIEW_DASHBOARD_LABEL))
+    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
+
+    data = getSessionSummaryData()
+
+    # active code time
+    activeCodeTimeStr = humanizeMinutes(data["currentDayMinutes"]).strip()
+    activeCodeTimeAvg = data["averageDailyMinutes"]
+    activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
+    self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr))
+
+    self.keys.append('-----------------------------------')
     self.keys.append('%s%s' % (zeroDepth, "ACCOUNT"))
 
     if not getItem('name'):
@@ -75,7 +92,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
         self.keys.append('%s%s(%s)' % (firstChildDepth, "Logged in as ", getItem('name')))
         self.keys.append('%s%s' % (firstChildDepth, SWITCH_ACCOUNT_LABEL))
 
-    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
     statusBarMessage = HIDE_STATUS_LABEL if getValue("show_code_time_status", True) else SHOW_STATUS_LABEL
     self.keys.append('%s%s' % (firstChildDepth, statusBarMessage))
     self.keys.append('%s%s' % (firstChildDepth, SUBMIT_FEEDBACK_LABEL))
@@ -92,74 +108,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
         self.keys.append('%s%s' % (secondChildDepth, '<No workspaces found>'))
 
     self.keys.append('%s%s' % (secondChildDepth, ADD_SLACK_WORKSPACE_LABEL))
-
-    self.keys.append('-----------------------------------')
-
-    self.keys.append('%s%s' % (zeroDepth, "FLOW"))
-    if getItem('name') is not None:
-        self.keys.append('%s%s' % (firstChildDepth, ENABLE_FLOW_MODE))
-        self.keys.append('%s%s' % (firstChildDepth, EXIT_FLOW_MODE))
-
-        # data = {profile: {avatar_hash, display_name, display_name_normalized, email, first_name, ...,status_text, status_emoji, skype, status_expireation, status_text_canonical, title } }
-        slackStatus = getSlackStatus()
-        statusLabel = UPDATE_PROFILE_STATUS_LABEL
-        if (slackStatus is not None and slackStatus["profile"] is not None
-            and slackStatus["profile"]["status_text"] is not None
-            and slackStatus["profile"]["status_text"] != ''):
-            statusLabel += " (" + slackStatus["profile"]["status_text"] + ")"
-
-        self.keys.append('%s%s' % (firstChildDepth, statusLabel))
-
-        # data = {'next_dnd_end_ts': 1610892000, 'ok': True, 'next_dnd_start_ts': 1610861400, 'dnd_enabled': True, 'snooze_enabled': False}
-        slackDndInfo = getSlackDnDInfo()
-        if (slackDndInfo is None or slackDndInfo["snooze_enabled"] is False):
-            self.keys.append('%s%s' % (firstChildDepth, PAUSE_NOTIFICATIONS_LABEL))
-        else:
-            self.keys.append('%s%s' % (firstChildDepth, TURN_ON_NOTIFICATIONS_LABEL))
-
-        # data = {'auto_away': False, 'ok': True, 'manual_away': False, 'connection_count': 1, 'presence': 'active', 'last_activity': 1610866316, 'online': True}
-        slackPresence = getSlackPresence()
-        if (slackPresence is None or slackPresence["presence"] == "active"):
-            self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_AWAY_LABEL))
-        else:
-            self.keys.append('%s%s' % (firstChildDepth, SET_PRESENCE_TO_ACTIVE_LABEL))
-    else:
-        self.keys.append('%s%s' % (firstChildDepth, REGISTER_OR_LOGIN_LABEL))
-
-    self.keys.append('-----------------------------------')
-
-    self.keys.append('%s%s' % (zeroDepth, "Mode"))
-
-    if (isMac()):
-        darkMode = isDarkMode()
-        if (darkMode is True):
-            self.keys.append('%s%s' % (firstChildDepth, TURN_OFF_DARK_MODE_LABEL))
-        else:
-            self.keys.append('%s%s' % (firstChildDepth, TURN_ON_DARK_MODE_LABEL))
-
-    self.keys.append('-----------------------------------')
-
-    self.keys.append('%s%s' % (zeroDepth, "STATS"))
-
-    data = getSessionSummaryData()
-
-    refClass = getItem("reference-class")
-    if (refClass is None):
-        refClass = "user"
-
-    if (refClass == "user"):
-        self.keys.append('%s%s' % (firstChildDepth, TODAY_VS_AVG_LABEL + " your daily average"))
-    else:
-        self.keys.append('%s%s' % (firstChildDepth, TODAY_VS_AVG_LABEL + " the global daily average"))
-
-    todayString = datetime.today().strftime('%a')
-    
-
-    # active code time
-    activeCodeTimeStr = humanizeMinutes(data["currentDayMinutes"]).strip()
-    activeCodeTimeAvg = data["averageDailyMinutes"]
-    activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
-    self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr + " (" + activeCodeTimeAvgStr + ")"))
 
   def buildTopFilesNode(self, fileChangeInfoMap):
     
@@ -212,6 +160,10 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 toggleStatus()
             elif (key == LEARN_MORE_LABEL):
                 displayReadmeIfNotExists(True)
+            elif (key == VIEW_DASHBOARD_LABEL):
+                launchCodeTimeDashboard()
+            elif (key == UPDATE_PREFERENCES_LABEL):
+                launchUpdatePreferences()
             elif (key == SEE_ADVANCED_METRICS):
                 launchWebDashboardUrl()
             elif (key == ENABLE_FLOW_MODE):
@@ -226,10 +178,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 launchLoginUrl('github', False)
             elif (key == EMAIL_SIGNUP_LABEL):
                 launchLoginUrl('software', False)
-            elif (key == TURN_ON_NOTIFICATIONS_LABEL):
-                enableSlackNotifications()
-            elif (key == PAUSE_NOTIFICATIONS_LABEL):
-                pauseSlackNotifications()
             elif (key.find(TODAY_VS_AVG_LABEL) != -1):
                 # today vs average label click, swap the avg comparison
                 refClass = getItem("reference-class")
@@ -240,17 +188,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 setItem("reference-class", refClass)
                 # show the tree view again to show the changes
                 self.showTree()
-            elif (key.find(UPDATE_PROFILE_STATUS_LABEL) != -1):
-                # update the profile status
-                sublime.active_window().run_command('update_slack_status_msg')
-            elif (key == SET_PRESENCE_TO_AWAY_LABEL):
-                toggleSlackPresence("away")
-            elif (key == SET_PRESENCE_TO_ACTIVE_LABEL):
-                toggleSlackPresence("auto")
-            elif (key == TURN_ON_DARK_MODE_LABEL or key == TURN_OFF_DARK_MODE_LABEL):
-                toggleDarkMode()
-            elif (key == TOGGLE_DOCK_LABEL):
-                toggleDock()
             elif (key == ADD_SLACK_WORKSPACE_LABEL):
                 connectSlackWorkspace()
 

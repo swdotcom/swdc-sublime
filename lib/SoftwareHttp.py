@@ -110,7 +110,7 @@ def fetchReleaseTag():
         response = connection.getresponse()
         return response
     except Exception as ex:
-        print("Code Time: Response Error for " + api + ": %s" % ex)
+        print("Code Time: Response Error fetching release tag: %s" % ex)
         return getValue("plugin_version", "2.4.1")
 
 def getVersion():
@@ -128,7 +128,7 @@ def getVersion():
             releaseInfoObj = json.loads(releaseInfoStr)
             version = releaseInfoObj.get("tag_name", "current")
         except Exception as ex:
-            print("Code Time: Unable to fetch the release tag: %s" % ex)
+            print("Code Time: Unable to fetch the plugin version: %s" % ex)
 
     print("Plugin version: %s" % version)
 
@@ -157,12 +157,16 @@ def createAnonymousUser():
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
-                    logIt("created anonymous user with jwt %s " % jwt)
-                    setItem("jwt", jwt)
-                    setItem("name", None)
-                    setItem("switching_account", False)
-                    setAuthCallbackState(None)
-                    return jwt
+                    print("response obj: %s" % responseObj)
+                    if jwt is not None:
+                        logIt("created anonymous user with jwt %s " % jwt)
+                        setItem("jwt", jwt)
+                        setItem("name", None)
+                        setItem("switching_account", False)
+                        setAuthCallbackState(None)
+                        return jwt
+                    else:
+                        logIt("Code Time: Unable to complete account onboard")
                 except Exception as ex:
                     logIt("Code Time: Unable to retrieve plugin accounts response: %s" % ex)
         except Exception as ex:

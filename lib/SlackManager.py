@@ -68,46 +68,6 @@ def connectSlackWorkspace():
 	t = Timer(10, refetchSlackConnectStatusLazily, [40])
 	t.start()
 
-def pauseSlackNotifications():
-	is_registered = checkRegistration(True)
-	if (is_registered is False):
-		return
-
-	is_connected = checkSlackConnection(True)
-	if (is_connected is False):
-		return
-
-	updated = False
-	workspaces = getSlackWorkspaces()
-	for i in range(len(workspaces)):
-		workspace = workspaces[i]
-		resp = api_call('dnd.setSnooze', {'num_minutes': 120, 'token': workspace["access_token"]})
-		if (resp['ok'] is True):
-			updated = True
-
-	if (updated is True):
-		sublime.message_dialog("Slack notifications are paused for 2 hours")
-
-def enableSlackNotifications():
-	is_registered = checkRegistration(True)
-	if (is_registered is False):
-		return
-
-	is_connected = checkSlackConnection(True)
-	if (is_connected is False):
-		return
-
-	updated = False
-	workspaces = getSlackWorkspaces()
-	for i in range(len(workspaces)):
-		workspace = workspaces[i]
-		resp = api_call('dnd.endSnooze', {'token': workspace["access_token"]})
-		if (resp['ok'] is True):
-			updated = True
-
-	if (updated is True):
-		sublime.message_dialog("Slack notifications enabled")
-
 def getSlackDnDInfo():
 	workspaces = getSlackWorkspaces()
 	for i in range(len(workspaces)):
