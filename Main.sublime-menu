@@ -10,52 +10,32 @@
                 "caption": "Code Time",
                 "children": [
                     {
-                        "command": "connect_slack",
-                        "caption": "Connect Slack"
+                        "command": "toggle_flow_mode_action",
+                        "caption": "Toggle Flow Mode"
                     },
                     {
-                        "command": "disconnect_slack",
-                        "caption": "Disconnect Slack"
+                        "command": "view_dashboard",
+                        "caption": "View Dashboard"
                     },
                     {
-                        "command": "enable_slack_notifications",
-                        "caption": "Enable Slack notifications"
-                    },
-                    {
-                        "command": "enter_flow_mode_action",
-                        "caption": "Enter Flow Mode"
-                    },
-                    {
-                        "command": "exit_flow_mode_action",
-                        "caption": "Exit Flow Mode"
+                        "command": "edit_preferences",
+                        "caption": "Settings"
                     },
                     {
                         "command": "go_to_software",
                         "caption": "More data at Software.com"
                     },
                     {
-                        "command": "pause_slack_notifications",
-                        "caption": "Pause Slack notifications"
-                    },
-                    {
                         "command": "show_tree_view",
-                        "caption": "Show Tree View"
+                        "caption": "More Options"
                     },
                     {
                         "command": "switch_account",
                         "caption": "Switch Account"
                     },
                     {
-                        "command": "toggle_dark_mode",
-                        "caption": "Toggle dark mode"
-                    },
-                    {
                         "command": "toggle_status_bar_metrics",
                         "caption": "Toggle Status Bar Metrics"
-                    },
-                    {
-                        "command": "update_slack_status_msg",
-                        "caption": "Update Slack status message"
                     }
                 ]
             }

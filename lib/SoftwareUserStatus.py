@@ -45,7 +45,7 @@ def getUserRegistrationState(is_integration=False):
 
         if (is_integration is False):
             if (user_jwt is not None):
-                setItem("jwt", user.get("plugin_jwt"))
+                setItem("jwt", user_jwt)
 
             if (registered == 1):
                 setItem("name", user.get("email"))
@@ -156,8 +156,13 @@ def getLoginUrl(loginType = "software", switching_account=True):
     return loginUrl
 
 def launchWebDashboardUrl():
-    webUrl = getWebUrl()
-    webbrowser.open(webUrl)
+    webbrowser.open(getWebUrl())
+
+def launchCodeTimeDashboard():
+    webbrowser.open(getWebUrl() + "/dashboard/code_time?view=summary")
+
+def launchUpdatePreferences():
+    webbrowser.open(getWebUrl() + "/preferences")
 
 def switchAccount():
     keys = ['Google', 'GitHub', 'Email']

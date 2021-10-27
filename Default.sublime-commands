@@ -1,35 +1,23 @@
 [
     {
-        "command": "connect_slack",
-        "caption": "Code Time: Connect Slack"
+        "command": "toggle_flow_mode_action",
+        "caption": "Code Time: Toggle Flow Mode"
     },
     {
-        "command": "disconnect_slack",
-        "caption": "Code Time: Disconnect Slack"
+        "command": "view_dashboard",
+        "caption": "Code Time: View Dashboard"
     },
     {
-        "command": "enable_slack_notifications",
-        "caption": "Code Time: Enable Slack notifications"
-    },
-    {
-        "command": "enter_flow_mode_action",
-        "caption": "Code Time: Enter Flow Mode"
-    },
-    {
-        "command": "exit_flow_mode_action",
-        "caption": "Code Time: Exit Flow Mode"
+        "command": "edit_preferences",
+        "caption": "Code Time: Settings"
     },
     {
         "command": "go_to_software",
         "caption": "Code Time: More data at Software.com"
     },
     {
-        "command": "pause_slack_notifications",
-        "caption": "Code Time: Pause Slack notifications"
-    },
-    {
         "command": "show_tree_view",
-        "caption": "Code Time: Show Tree View"
+        "caption": "Code Time: More Options"
     },
     {
         "command": "switch_account",
@@ -37,22 +25,14 @@
     },
     {
         "command": "enable_kpm_updates",
-        "caption": "Code Time: Telemetry Enable"
+        "caption": "Code Time: Enable Telemetry"
     },
     {
         "command": "pause_kpm_updates",
-        "caption": "Code Time: Telemetry Pause"
-    },
-    {
-        "command": "toggle_dark_mode",
-        "caption": "Code Time: Toggle dark mode"
+        "caption": "Code Time: Pause Telemetry"
     },
     {
         "command": "toggle_status_bar_metrics",
         "caption": "Code Time: Toggle Status Bar Metrics"
-    },
-    {
-        "command": "update_slack_status_msg",
-        "caption": "Code Time: Update Slack status message"
     }
 ]

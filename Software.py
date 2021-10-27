@@ -16,7 +16,6 @@ from .lib.SoftwareWallClock import *
 from .lib.SoftwareUserStatus import *
 from .lib.SoftwareModels import *
 from .lib.SoftwareSessionApp import *
-from .lib.SoftwareReportManager import *
 from .lib.KpmManager import *
 from .lib.Constants import *
 from .lib.TrackerManager import *
@@ -34,10 +33,23 @@ activated = False
 editor_focused = False
 last_focus_event_sent = None
 
+class ViewDashboard(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchCodeTimeDashboard()
+
+    def is_enabled(self):
+        return True
+
+class EditPreferences(sublime_plugin.TextCommand):
+    def run(self, edit):
+        launchUpdatePreferences()
+
+    def is_enabled(self):
+        return True
+
 class GoToSoftware(sublime_plugin.TextCommand):
     def run(self, edit):
         launchWebDashboardUrl()
-        track_ui_event('view-web-dashboard')
 
     def is_enabled(self):
         return True
@@ -62,11 +74,6 @@ class ToggleStatusBarMetrics(sublime_plugin.TextCommand):
         toggleStatus()
         track_ui_event('toggle-status-bar-metrics')
 
-class GenerateContributorSummary(sublime_plugin.WindowCommand):
-    def run(self):
-        projectDir = getProjectDirectory()
-        generateContributorSummary(projectDir)
-
 class PauseKpmUpdatesCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         logIt("software kpm metrics paused")
@@ -89,51 +96,9 @@ class EnableKpmUpdatesCommand(sublime_plugin.TextCommand):
     def is_enabled(self):
         return (getValue("software_telemetry_on", True) is False)
 
-class DisconnectSlackCommand(sublime_plugin.TextCommand):
+class ToggleFlowModeActionCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        disconnectSlackWorkspace()
-
-    def is_enabled(self):
-        return True
-
-class ConnectSlackCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        connectSlackWorkspace()
-
-    def is_enabled(self):
-        return True
-
-class PauseSlackNotificationsCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        pauseSlackNotifications()
-
-    def is_enabled(self):
-        return True
-
-class EnableSlackNotificationsCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        enableSlackNotifications()
-
-    def is_enabled(self):
-        return True
-
-class EnterFlowModeActionCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        enableFlowMode()
- 
-    def is_enabled(self):
-        return True
-
-class ExitFlowModeActionCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        exitFlowMode()
-
-    def is_enabled(self):
-        return True
-
-class ToggleDarkModeCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        toggleDarkMode()
+        toggleFlow()
 
     def is_enabled(self):
         return True
@@ -144,38 +109,6 @@ class ToggleDockCommand(sublime_plugin.TextCommand):
 
     def is_enabled(self):
         return True
-
-class UpdateSlackStatusMsgCommand(sublime_plugin.TextCommand):
-    def run(self, view):
-        is_registered = checkRegistration(True)
-        if (is_registered is False):
-            return
-
-        is_connected = checkSlackConnection(True)
-        if (is_connected is False):
-            return
-
-        # show the selection to clear or update
-        options = ['Clear status', 'Update status']
-        self.view.window().show_quick_panel(options, self.on_select_receiver)
-
-    def on_select_receiver(self, index):
-        if index == -1:
-            return
-        if index == 0:
-            # clear
-            clearSlackStatusText()
-        else:
-            # update
-            self.on_update_request()
-
-    def on_update_request(self):
-        self.view.window().show_input_panel("Slack status message", "", self.on_done, None, None)
-
-    def on_done(self, message):
-        if not message:
-            return
-        updateSlackStatusText(message)
 
 def check_and_send_unfocus_event(view):
     global editor_focused

@@ -164,10 +164,13 @@ def getDeviceFile():
 
 def getSoftwareDir(autoCreate):
     softwareDataDir = os.path.expanduser('~')
-    softwareDataDir = os.path.join(softwareDataDir, '.software')
+    softwareDataDir = os.path.join(softwareDataDir, getSoftwareDirName())
     if (autoCreate is True):
         os.makedirs(softwareDataDir, exist_ok=True)
     return softwareDataDir
+
+def getSoftwareDirName():
+    return getValue("software_dir", ".software")
 
 def sublime_variables(view):
     view.window().extract_variables()

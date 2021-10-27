@@ -20,6 +20,13 @@ def inFlow():
     global in_flow
     return in_flow
 
+def toggleFlow():
+    global in_flow
+    if (in_flow is True):
+        exitFlowMode()
+    else:
+        enableFlowMode()
+
 def enableFlowMode():
     global in_flow
     in_flow = True if len(getFlowSessions()) > 0 else False
