@@ -109,7 +109,7 @@ def fetchReleaseTag():
         return response
     except Exception as ex:
         print("Code Time: Response Error fetching release tag: %s" % ex)
-        return getValue("plugin_version", "2.4.2")
+        return getValue("plugin_version", "2.6.1")
 
 def getVersion():
     global version
