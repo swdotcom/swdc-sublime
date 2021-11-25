@@ -98,7 +98,7 @@ def softwareSessionFileExists():
 def getFileDataAsJson(file):
     data = None
     if os.path.isfile(file):
-        with open(file) as f:
+        with open(file, encoding='utf-8') as f:
             try:
                 data = json.load(f)
             except Exception as ex:
@@ -112,7 +112,7 @@ def getFileDataArray(file):
     if os.path.isfile(file):
         with open(file) as f:
             try:
-                contents = json.load(f)
+                contents = json.loads(f)
                 if (isinstance(contents, list)):
                     payloads = contents
                 else:
@@ -126,12 +126,12 @@ def getFileDataPayloadsAsJson(file):
     payloads = []
     if os.path.isfile(file):
         try:
-            with open(file) as f:
+            with open(file, encoding='utf-8') as f:
                 for line in f:
                     if (line and line.strip()):
                         line = line.rstrip()
                         # convert to object
-                        json_obj = json.loads(line)
+                        json_obj = json.load(line)
                         # convert to json to send
                         payloads.append(json_obj)
         except Exception as ex:
@@ -196,12 +196,9 @@ def getCommandResultLine(cmd, projectDir):
     return resultLine
 
 def getCommandResultList(cmd, projectDir):
-    # print(cmd)
-    # print(projectDir)
     try:
         result = check_output(cmd, cwd=projectDir)
     except CalledProcessError as ex:
-        # print('reusltlisterrorerror: {}'.format(ex.output))
         if ex.output != b'': # Suppress trivial error
             logIt('Error running {}: {}'.format(cmd, ex.output))
         return []
@@ -370,7 +367,7 @@ def getIcons():
         dirname = os.path.dirname(__file__)
         icons_file = os.path.join(dirname, '../icons.json')
         with open(icons_file, 'r') as f:
-            icons_dict = json.load(f)
+            icons_dict = json.loads(f)
             return icons_dict
     except Exception:
         return {}

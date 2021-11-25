@@ -88,8 +88,6 @@ def requestIt(method, api, payload, jwt):
         headers['X-SWDC-Plugin-TZ'] = getTimezone()
         headers['X-SWDC-Plugin-Offset'] = int(float(getUtcOffset() / 60))
 
-        # print("HEADERS: %s" % headers)
-
         # send the request
         connection.request(method, api, payload.encode('utf-8'), headers)
 
@@ -111,7 +109,7 @@ def fetchReleaseTag():
         return response
     except Exception as ex:
         print("Code Time: Response Error fetching release tag: %s" % ex)
-        return getValue("plugin_version", "2.4.1")
+        return getValue("plugin_version", "2.4.2")
 
 def getVersion():
     global version
@@ -157,7 +155,6 @@ def createAnonymousUser():
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
                     jwt = responseObj.get("jwt", None)
-                    print("response obj: %s" % responseObj)
                     if jwt is not None:
                         logIt("created anonymous user with jwt %s " % jwt)
                         setItem("jwt", jwt)

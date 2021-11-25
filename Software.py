@@ -229,7 +229,7 @@ class EventListener(sublime_plugin.EventListener):
         fileInfoData = PluginData.get_file_info_and_initialize_if_none(active_data, full_file_path)
         if fileInfoData is None:
             return
-            
+
         # project data
         fileInfoData['project_name'] = active_data.project['name'] or NO_PROJ_NAME
         fileInfoData['project_directory'] = active_data.project['directory']
@@ -420,8 +420,6 @@ def initializePlugin(initializedAnonUser):
     version = getVersion()
     logIt('Code Time: Loaded v%s of package name: %s' % (version, name))
     showStatus("Code Time")
-
-    setItem("sublime_lastUpdateTime", None)
 
     displayReadmeIfNotExists(False)
 

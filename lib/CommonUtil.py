@@ -31,7 +31,7 @@ def getIsNewDay():
     currentDay = getItem('currentDay')
     if (currentDay != day):
         return True
-    else: 
+    else:
         return False
 
 def getOsUsername():
@@ -54,7 +54,7 @@ def getOs():
     return system
 
 def getTimezone():
-    myTimezone = None 
+    myTimezone = None
     try:
         myTimezone = datetime.now(timezone.utc).astimezone().tzname()
     except Exception:
@@ -140,10 +140,9 @@ def setAuthCallbackState(value):
 
 def getSoftwareSessionAsJson():
     try:
-        with open(getSoftwareSessionFile()) as sessionFile:
-            loadedSessionFile = json.load(sessionFile)
-            return loadedSessionFile
-    except Exception:
+        with open(getSoftwareSessionFile(), encoding='utf-8') as sessionFile:
+            return json.load(sessionFile)
+    except Exception as ex:
         return {}
 
 def getSoftwareSessionFile():
@@ -152,9 +151,8 @@ def getSoftwareSessionFile():
 
 def getDeviceAsJson():
     try:
-        with open(getDeviceFile()) as deviceFile:
-            loadedDeviceFile = json.load(deviceFile)
-            return loadedDeviceFile
+        with open(getDeviceFile(), encoding='utf-8') as deviceFile:
+            return json.load(deviceFile)
     except Exception:
         return {}
 
@@ -181,7 +179,7 @@ def getIntegrationsFile():
 
 def getIntegrations():
     try:
-        with open(getIntegrationsFile()) as integrationsFile:
+        with open(getIntegrationsFile(), encoding='utf-8') as integrationsFile:
             loadedIntegrationsFile = json.load(integrationsFile)
             return loadedIntegrationsFile
     except Exception:

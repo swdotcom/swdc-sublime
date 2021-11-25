@@ -43,17 +43,16 @@ def getUserRegistrationState(is_integration=False):
         registered = user.get("registered", 0)
         user_jwt = user.get("plugin_jwt", None)
 
-        if (is_integration is False):
-            if (user_jwt is not None):
-                setItem("jwt", user_jwt)
+        if (registered == 1 and user_jwt is not None):
+            logIt("Updated user JWT %s " % user_jwt)
+            setItem("jwt", user_jwt)
 
-            if (registered == 1):
-                setItem("name", user.get("email"))
+            setItem("name", user.get("email"))
 
-        setItem("switching_account", False)
-        setAuthCallbackState(None)
-        userState["logged_on"] = True
-        userState["user"] = user
+            setItem("switching_account", False)
+            setAuthCallbackState(None)
+            userState["logged_on"] = True
+            userState["user"] = user
     else:
         userState["logged_on"] = False
         userState["user"] = None
@@ -152,7 +151,7 @@ def getLoginUrl(loginType = "software", switching_account=True):
     loginUrl += "?" + qryStr
     if (switching_account is True):
         loginUrl += "&login=true"
-    
+
     return loginUrl
 
 def launchWebDashboardUrl():

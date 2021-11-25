@@ -8,5 +8,5 @@
     "software_dashboard_url": "https://app.software.com",
     "plugin": "code-time",
     "open_tree_on_startup": true,
-    "plugin_version": "2.4.0"
+    "plugin_version": "2.4.2"
 }

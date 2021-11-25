@@ -1,7 +1,7 @@
 from threading import Lock
 from .SoftwareUtil import *
 from .SoftwareModels import SessionSummary
-import os 
+import os
 import json
 from .Logger import *
 
@@ -24,7 +24,7 @@ def clearSessionSummaryFile():
 def getSessionSummaryFileAsJson():
     sessionSummaryLock.acquire()
     try:
-        with open(getSessionSummaryFile()) as sessionSummaryFile:
+        with open(getSessionSummaryFile(), encoding='utf-8') as sessionSummaryFile:
             sessionSummaryData = json.load(sessionSummaryFile)
     except Exception as ex:
         sessionSummaryData = SessionSummary()
