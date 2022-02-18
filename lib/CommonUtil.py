@@ -173,25 +173,6 @@ def getSoftwareDirName():
 def sublime_variables(view):
     view.window().extract_variables()
 
-def getIntegrationsFile():
-    file = getSoftwareDir(True)
-    return os.path.join(file, 'integrations.json')
-
-def getIntegrations():
-    try:
-        with open(getIntegrationsFile(), encoding='utf-8') as integrationsFile:
-            loadedIntegrationsFile = json.load(integrationsFile)
-            return loadedIntegrationsFile
-    except Exception:
-        return []
-
-def syncIntegrations(integrations_data):
-    content = json.dumps(integrations_data)
-
-    integrationsFile = getIntegrationsFile()
-    with open(integrationsFile, 'w') as f:
-        f.write(content)
-
 def getWebUrl():
     return getValue("software_dashboard_url", "https://app.software.com")
 

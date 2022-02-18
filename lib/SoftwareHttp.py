@@ -9,6 +9,7 @@ USER_AGENT = 'Code Time Sublime Plugin'
 lastMsg = None
 windowView = None
 version = None
+currentUser = None
 
 def toggleStatus():
     global lastMsg
@@ -170,7 +171,12 @@ def createAnonymousUser():
             logIt("Code Time: Unable to complete anonymous user creation: %s" % ex)
     return None
 
-def getUser():
+def getUser(refreshUser=True):
+    global currentUser
+
+    if refreshUser is False and currentUser is not None:
+        return currentUser
+
     jwt = getItem("jwt")
     if (jwt):
         api = "/users/me"
@@ -178,9 +184,11 @@ def getUser():
         if (isResponseOk(response)):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
-                user = responseObj.get("data", None)
-                return user
+                currentUser = responseObj.get("data", None)
+                return currentUser
             except Exception as ex:
                 logIt("Code Time: Unable to retrieve user: %s" % ex)
     return None
+
+
 
