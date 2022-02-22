@@ -27,7 +27,7 @@
                     },
                     {
                         "command": "show_tree_view",
-                        "caption": "More Options"
+                        "caption": "Menu"
                     },
                     {
                         "command": "switch_account",

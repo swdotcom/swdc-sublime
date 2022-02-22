@@ -90,11 +90,7 @@ def refetchUserStatusLazily(tryCountUntilFoundUser):
         # clear the session summary data and time summary data
         clearSessionSummaryData()
 
-        # clear the integrations
-        syncIntegrations([])
-
-        # fetch user's integrations
-        updateSlackIntegrationsFromUser(userState["user"])
+        getUser(True)
 
         initSessionSummaryThread = Thread(target=updateSessionSummaryFromServer, args=())
         initSessionSummaryThread.start()
@@ -115,8 +111,6 @@ def getLoginUrl(loginType = "software", switching_account=True):
     loginUrl = ""
 
     obj = {
-        "plugin": "codetime",
-        "pluginVersion": getVersion(),
         "plugin_id": getPluginId(),
         "auth_callback_state": auth_callback_state
     }
@@ -133,11 +127,9 @@ def getLoginUrl(loginType = "software", switching_account=True):
     apiEndpointUrl = scheme + "://" + api_endpoint
 
     if (loginType == "github"):
-        obj["redirect"] = getWebUrl()
-        loginUrl = apiEndpointUrl + "/auth/github"
+        loginUrl = getWebUrl() + "/auth/github"
     elif (loginType == "google"):
-        obj["redirect"] = getWebUrl()
-        loginUrl = apiEndpointUrl + "/auth/google"
+        loginUrl = getWebUrl() + "/auth/google"
     else:
         obj["token"] = getItem("jwt")
         obj["auth"] = "software"
@@ -176,31 +168,3 @@ def switchAccountHandler(idx):
             launchLoginUrl('github')
         else:
             launchLoginUrl('software')
-
-def updateSlackIntegrationsFromUser(user):
-    foundNewIntegration = False
-
-    if (user is not None and user["integrations"] is not None):
-        integrations = user["integrations"]
-
-        existingIntegrations = getIntegrations()
-        for i in range(len(integrations)):
-            integration = integrations[i]
-
-            if (integration["name"].lower() == 'slack'
-                and integration["status"].lower() == 'active'
-                and integration["access_token"] is not None):
-
-                first = next(filter(lambda x: x["authId"] == integration["authId"], existingIntegrations), None)
-
-                if (first is None):
-                    resp = api_call('users.identity', {'token': integration["access_token"]})
-                    if (resp['ok'] is True):
-                        integration["team_domain"] = resp["team"]["domain"]
-                        integration["team_name"] = resp["team"]["name"]
-                        integration["integration_id"] = resp["user"]["id"]
-                        foundNewIntegration = True
-                        existingIntegrations.append(integration)
-                        syncIntegrations(existingIntegrations)
-                    break
-    return foundNewIntegration

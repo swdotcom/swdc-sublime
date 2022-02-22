@@ -103,7 +103,8 @@ class ShowTreeView(sublime_plugin.TextCommand):
     if (len(workspaces) > 0):
         for i in range(len(workspaces)):
             workspace = workspaces[i]
-            self.keys.append('%s%s' % (secondChildDepth, workspace['team_domain'] + " (" + workspace['team_name'] + ")"))
+            team_info = json.loads(workspace['meta']).get('team', { 'name': 'slack workspace' })
+            self.keys.append('%s%s' % (secondChildDepth, team_info.get('name')))
     else:
         self.keys.append('%s%s' % (secondChildDepth, '<No workspaces found>'))
 
