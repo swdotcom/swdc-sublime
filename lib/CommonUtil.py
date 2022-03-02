@@ -179,6 +179,9 @@ def getWebUrl():
 def getApiEndpoint():
     return getValue("software_api_endpoint", "api.software.com")
 
+def getAppEndpoint():
+    return getValue("software_app_endpoint", "app.software.com")
+
 def getPercentOfReferenceAvg(curr, ref, refDisplay):
     if (curr is None):
         curr = 0

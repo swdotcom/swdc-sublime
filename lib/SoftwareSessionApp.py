@@ -31,19 +31,18 @@ def enableFlowMode():
     global in_flow
     in_flow = True if len(getFlowSessions()) > 0 else False
 
-    jwt = getItem('jwt')
     if in_flow is False:
         params = {
             'automated': False
         }
-        requestIt('POST', '/v1/flow_sessions', json.dumps(params), jwt)
+        appRequestIt('POST', '/plugin/flow_sessions', json.dumps(params))
         in_flow = True
         updateStatusBarWithSummaryData()
 
 def exitFlowMode():
     global in_flow
 
-    requestIt("DELETE", '/v1/flow_sessions', None, getItem('jwt'))
+    appRequestIt("DELETE", '/plugin/flow_sessions', None)
     in_flow = False
     updateStatusBarWithSummaryData()
 
@@ -54,7 +53,7 @@ def updateSessionSummaryFromServer():
     if jwt is None:
         return
     
-    response = requestIt("GET", '/sessions/summary', None, jwt)
+    response = appRequestIt("GET", '/api/v1/user/session_summary', None)
     if response is not None and isResponseOk(response):
         # summary data: {'currentDayMinutes': 86, 'averageDailyMinutes': 230}
         respData = json.loads(response.read().decode('utf-8'))
@@ -66,7 +65,7 @@ def updateSessionSummaryFromServer():
     updateStatusBarWithSummaryData()
 
 def getFlowSessions():
-    response = requestIt('GET', '/v1/flow_sessions', None, getItem('jwt'))
+    response = appRequestIt('GET', '/plugin/flow_sessions', None)
     if response is not None and isResponseOk(response):
         # flow sessions: {'flow_sessions': []}
         respData = json.loads(response.read().decode('utf-8'))
