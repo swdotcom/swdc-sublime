@@ -55,9 +55,15 @@ def isUnauthenticated(response):
     return False
 
 # send the request.
-def requestIt(method, api, payload, jwt):
+def requestIt(method, api, payload, token=None):
+    apiRequest(method, api, payload, getApiEndpoint(), token)
 
-    api_endpoint = getApiEndpoint()
+def appRequestIt(method, api, payload):
+    apiRequest(method, api, payload, getAppEndpoint())
+
+def apiRequest(method, api, payload, api_endpoint, token=None):
+
+    jwt = token
     telemetry = getValue("software_telemetry_on", True)
 
     if (telemetry is False):
@@ -66,6 +72,9 @@ def requestIt(method, api, payload, jwt):
 
     # try to update kpm data.
     try:
+        if jwt is None:
+            jwt = getItem('jwt')
+
         headers = {'Content-Type': 'application/json', 'User-Agent': USER_AGENT}
         connection = None
         # create the connection
@@ -149,13 +158,13 @@ def createAnonymousUser():
         payload["plugin_uuid"] = plugin_uuid
         payload["auth_callback_state"] = auth_callback_state
 
-        api = "/plugins/onboard"
+        api = "/api/v1/user"
         try:
-            response = requestIt('POST', api, json.dumps(payload), None)
+            response = appRequestIt('POST', api, json.dumps(payload))
             if (response is not None and isResponseOk(response)):
                 try:
                     responseObj = json.loads(response.read().decode('utf-8'))
-                    jwt = responseObj.get("jwt", None)
+                    jwt = responseObj.get("plugin_jwt", None)
                     if jwt is not None:
                         logIt("created anonymous user with jwt %s " % jwt)
                         setItem("jwt", jwt)
@@ -180,7 +189,7 @@ def getUser(refreshUser=True):
     jwt = getItem("jwt")
     if (jwt):
         api = "/users/me"
-        response = requestIt("GET", api, None, jwt)
+        response = requestIt("GET", api, None)
         if (isResponseOk(response)):
             try:
                 responseObj = json.loads(response.read().decode('utf-8'))
