@@ -112,13 +112,10 @@ def getLoginUrl(loginType = "software", switching_account=True):
 
     obj = {
         "plugin_id": getPluginId(),
-        "auth_callback_state": auth_callback_state
+        "auth_callback_state": auth_callback_state,
+        "plugin_uuid": getPluginUuid(),
+        "plugin_version": getVersion()
     }
-
-    # send the plugin uuid and token to register
-    if (name is None):
-        obj["plugin_uuid"] = getPluginUuid()
-        obj["plugin_token"] = jwt
 
     api_endpoint = getApiEndpoint()
     scheme = "https"
@@ -131,8 +128,6 @@ def getLoginUrl(loginType = "software", switching_account=True):
     elif (loginType == "google"):
         loginUrl = getWebUrl() + "/auth/google"
     else:
-        obj["token"] = getItem("jwt")
-        obj["auth"] = "software"
         if (switching_account is False):
             loginUrl = getWebUrl() + "/email-signup"
         else:
