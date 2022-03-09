@@ -128,8 +128,6 @@ def getLoginUrl(loginType = "software", switching_account=True):
     elif (loginType == "google"):
         loginUrl = getWebUrl() + "/auth/google"
     else:
-        obj["token"] = getItem("jwt")
-        obj["auth"] = "software"
         if (switching_account is False):
             loginUrl = getWebUrl() + "/email-signup"
         else:
