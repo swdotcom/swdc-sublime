@@ -300,7 +300,7 @@ def initializeUserPreferences():
 
     user = getUser()
     if(user):
-        session_threshold_in_sec =  user.get("preferences", {}).get("sessionThresholdInSec", getSessionThresholdSeconds())
+        session_threshold_in_sec =  user.get("preferences_parsed", {}).get("sessionThresholdInSec", getSessionThresholdSeconds())
 
     # update values config
     setItem("sessionThresholdInSec", session_threshold_in_sec)

@@ -58,8 +58,8 @@ def isUnauthenticated(response):
 def requestIt(method, api, payload, token=None):
     return apiRequest(method, api, payload, getApiEndpoint(), token)
 
-def appRequestIt(method, api, payload):
-    return apiRequest(method, api, payload, getAppEndpoint())
+def appRequestIt(method, api, payload, token=None):
+    return apiRequest(method, api, payload, getAppEndpoint(), token)
 
 def apiRequest(method, api, payload, api_endpoint, token=None):
 
@@ -73,7 +73,7 @@ def apiRequest(method, api, payload, api_endpoint, token=None):
     # try to update kpm data.
     try:
         if jwt is None:
-            jwt = getItem('jwt')
+            jwt = getJwt()
 
         headers = {'Content-Type': 'application/json', 'User-Agent': USER_AGENT}
         connection = None
@@ -188,12 +188,11 @@ def getUser(refreshUser=True):
 
     jwt = getItem("jwt")
     if (jwt):
-        api = "/users/me"
-        response = requestIt("GET", api, None)
+        api = "/api/v1/user"
+        response = appRequestIt("GET", api, None)
         if (isResponseOk(response)):
             try:
-                responseObj = json.loads(response.read().decode('utf-8'))
-                currentUser = responseObj.get("data", None)
+                currentUser = json.loads(response.read().decode('utf-8'))
                 return currentUser
             except Exception as ex:
                 logIt("Code Time: Unable to retrieve user: %s" % ex)

@@ -47,13 +47,6 @@ class EditPreferences(sublime_plugin.TextCommand):
     def is_enabled(self):
         return True
 
-class GoToSoftware(sublime_plugin.TextCommand):
-    def run(self, edit):
-        launchWebDashboardUrl()
-
-    def is_enabled(self):
-        return True
-
 class SwitchAccount(sublime_plugin.TextCommand):
     def run(self, edit):
         switchAccount()

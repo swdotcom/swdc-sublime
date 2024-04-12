@@ -145,10 +145,10 @@ def launchWebDashboardUrl():
     webbrowser.open(getWebUrl())
 
 def launchCodeTimeDashboard():
-    webbrowser.open(getWebUrl() + "/dashboard/code_time?view=summary")
+    webbrowser.open(getWebUrl() + "/dashboard/code_time")
 
 def launchUpdatePreferences():
-    webbrowser.open(getWebUrl() + "/preferences")
+    webbrowser.open(getWebUrl() + "/dashboard/code_time/settings")
 
 def switchAccount():
     keys = ['Google', 'GitHub', 'Email']
