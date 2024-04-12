@@ -56,10 +56,10 @@ def isUnauthenticated(response):
 
 # send the request.
 def requestIt(method, api, payload, token=None):
-    apiRequest(method, api, payload, getApiEndpoint(), token)
+    return apiRequest(method, api, payload, getApiEndpoint(), token)
 
 def appRequestIt(method, api, payload):
-    apiRequest(method, api, payload, getAppEndpoint())
+    return apiRequest(method, api, payload, getAppEndpoint())
 
 def apiRequest(method, api, payload, api_endpoint, token=None):
 
@@ -198,6 +198,3 @@ def getUser(refreshUser=True):
             except Exception as ex:
                 logIt("Code Time: Unable to retrieve user: %s" % ex)
     return None
-
-
-
