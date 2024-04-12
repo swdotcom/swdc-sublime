@@ -22,10 +22,6 @@
                         "caption": "Settings"
                     },
                     {
-                        "command": "go_to_software",
-                        "caption": "More data at Software.com"
-                    },
-                    {
                         "command": "show_tree_view",
                         "caption": "Menu"
                     },

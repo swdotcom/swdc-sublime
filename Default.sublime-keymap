@@ -1,3 +1,3 @@
 [
-  { "keys": ["ctrl+alt+o"], "command": "go_to_software" }
+  { "keys": ["ctrl+alt+o"], "command": "view_dashboard" }
 ]

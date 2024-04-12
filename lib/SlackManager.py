@@ -42,10 +42,7 @@ def connectSlackWorkspace():
 	t.start()
 
 def launchSlackSettings():
-	scheme = "https"
-	if('localhost' in getApiEndpoint()):
-		scheme = "http"
-	url = scheme + "://" + getWebUrl() + "data_sources/integration_types/slack"
+	url = getWebUrl() + "/data_sources/integration_types/slack"
 	webbrowser.open(url)
 
 #######################################################################################
@@ -69,5 +66,3 @@ def getSlackAuth():
 	curentUser = getUser(True)
 
 	return hasSlackWorkspaces()
-
-

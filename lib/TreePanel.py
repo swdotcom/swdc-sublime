@@ -36,7 +36,6 @@ SUBMIT_FEEDBACK_LABEL = 'Submit feedback'
 UPDATE_PREFERENCES_LABEL = 'Settings'
 LEARN_MORE_LABEL = 'Learn more'
 VIEW_DASHBOARD_LABEL = 'View dashboard'
-SEE_ADVANCED_METRICS = 'More data at Software.com'
 TODAY_VS_AVG_LABEL = 'Today vs.'
 SLACK_WORKSPACES_LABEL = 'Slack workspaces'
 ADD_SLACK_WORKSPACE_LABEL = 'Add workspace'
@@ -71,13 +70,12 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
     self.keys.append('%s%s' % (firstChildDepth, UPDATE_PREFERENCES_LABEL))
     self.keys.append('%s%s' % (firstChildDepth, VIEW_DASHBOARD_LABEL))
-    self.keys.append('%s%s' % (firstChildDepth, SEE_ADVANCED_METRICS))
 
     data = getSessionSummaryData()
 
     # active code time
-    activeCodeTimeStr = humanizeMinutes(data["currentDayMinutes"]).strip()
-    activeCodeTimeAvg = data["averageDailyMinutes"]
+    activeCodeTimeStr = humanizeMinutes(data.get("currentDayMinutes", 0)).strip()
+    activeCodeTimeAvg = data.get("averageDailyMinutes", 0)
     activeCodeTimeAvgStr = humanizeMinutes(activeCodeTimeAvg).strip()
     self.keys.append('%s%s' % (firstChildDepth, "Active code time: " + activeCodeTimeStr))
 
@@ -103,7 +101,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
     if (len(workspaces) > 0):
         for i in range(len(workspaces)):
             workspace = workspaces[i]
-            team_info = json.loads(workspace['meta']).get('team', { 'name': 'slack workspace' })
+            team_info = workspace['meta'].get('team', { 'name': 'slack workspace' })
             self.keys.append('%s%s' % (secondChildDepth, team_info.get('name')))
     else:
         self.keys.append('%s%s' % (secondChildDepth, '<No workspaces found>'))
@@ -111,7 +109,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
     self.keys.append('%s%s' % (secondChildDepth, ADD_SLACK_WORKSPACE_LABEL))
 
   def buildTopFilesNode(self, fileChangeInfoMap):
-    
+
     filesChanged = len(fileChangeInfoMap.keys()) if fileChangeInfoMap else 0
 
     if filesChanged > 0:
@@ -121,7 +119,7 @@ class ShowTreeView(sublime_plugin.TextCommand):
 
   def topFilesMetricsNode(self, fileChangeInfos, sortBy, id):
     if not fileChangeInfos or len(fileChangeInfos) == 0:
-        return None 
+        return None
 
     sortedArr = []
     if sortBy == 'duration_seconds' or sortBy == 'kpm' or sortBy == 'keystrokes':
@@ -146,8 +144,8 @@ class ShowTreeView(sublime_plugin.TextCommand):
         label = '{} | {}'.format(fileName, val)
 
         childrenNodes.append(label)
-    
-    return childrenNodes 
+
+    return childrenNodes
 
   def itemSelectionHandler(self, idx):
     if (idx is not None and idx >= 0):
@@ -165,8 +163,6 @@ class ShowTreeView(sublime_plugin.TextCommand):
                 launchCodeTimeDashboard()
             elif (key == UPDATE_PREFERENCES_LABEL):
                 launchUpdatePreferences()
-            elif (key == SEE_ADVANCED_METRICS):
-                launchWebDashboardUrl()
             elif (key == ENABLE_FLOW_MODE):
                 enableFlowMode()
             elif (key == EXIT_FLOW_MODE):

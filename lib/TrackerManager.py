@@ -20,7 +20,7 @@ def swdc_tracker(event_json, context):
 	global cached_tracker
 
 	if cached_tracker is None:
-		response = requestIt('GET', '/plugins/config', None, None)
+		response = appRequestIt('GET', '/api/v1/plugins/config', None)
 		if response is not None and isResponseOk(response):
 			config = json.loads(response.read().decode('utf-8'))
 			e = Emitter(config['tracker_api'])
@@ -216,15 +216,15 @@ def hash_value(value, data_type, jwt):
 
 def fetch_user_hashed_values():
 	try:
-		response = requestIt('GET', '/hashed_values', None, getJwt())
+		response = appRequestIt('GET', '/api/v1/user/hashed_values', None)
 		user_hashed_values = json.loads(response.read().decode('utf-8'))
 
 		global cached_hashed_values
 		cached_hashed_values = user_hashed_values
 		storeHashedValues(user_hashed_values)
 	except Exception as ex:
-		print("ERROR FETCHING HASHED VALUES")
-		print(ex)
+		logIt("ERROR FETCHING HASHED VALUES")
+		logIt(ex)
 
 def encrypt_and_save(value, hashed_value, data_type, jwt):
 	params = {
@@ -233,9 +233,9 @@ def encrypt_and_save(value, hashed_value, data_type, jwt):
 		'data_type': data_type
 	}
 
-	response = requestIt('POST', '/user_encrypted_data', json.dumps(params), jwt)
+	response = appRequestIt('POST', '/api/v1/user/encrypted_data', json.dumps(params))
 	if response and isResponseOk(response):
 		return True
 	else:
-		print("error POSTing to /user_encrypted_data for value: " + hashed_value)
+		logIt("error POSTing to /api/v1/user/encrypted_data for value: " + hashed_value)
 		return False

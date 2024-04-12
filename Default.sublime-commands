@@ -12,10 +12,6 @@
         "caption": "Code Time: Settings"
     },
     {
-        "command": "go_to_software",
-        "caption": "Code Time: More data at Software.com"
-    },
-    {
         "command": "show_tree_view",
         "caption": "Code Time: Menu"
     },
