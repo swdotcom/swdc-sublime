@@ -79,18 +79,18 @@ def codetime_payload(**kwargs):
 		'iglu:com.software/codetime/jsonschema/1-0-2',
 		{
 			'keystrokes': kwargs['keystrokes'],
-      'lines_added': kwargs['lines_added'],
-      'lines_deleted': kwargs['lines_deleted'],
-      'characters_added': kwargs['characters_added'],
-      'characters_deleted': kwargs['characters_deleted'],
-      'single_deletes': kwargs['single_deletes'],
-      'multi_deletes': kwargs['multi_deletes'],
-      'single_adds': kwargs['single_adds'],
-      'multi_adds': kwargs['multi_adds'],
-      'auto_indents': kwargs['auto_indents'],
-      'replacements': kwargs['replacements'],
-      'is_net_change': kwargs['is_net_change'],
-      'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
+			'lines_added': kwargs['lines_added'],
+			'lines_deleted': kwargs['lines_deleted'],
+			'characters_added': kwargs['characters_added'],
+			'characters_deleted': kwargs['characters_deleted'],
+			'single_deletes': kwargs['single_deletes'],
+			'multi_deletes': kwargs['multi_deletes'],
+			'single_adds': kwargs['single_adds'],
+			'multi_adds': kwargs['multi_adds'],
+			'auto_indents': kwargs['auto_indents'],
+			'replacements': kwargs['replacements'],
+			'is_net_change': kwargs['is_net_change'],
+			'start_time': datetime.utcfromtimestamp(int(kwargs['start_time'])).isoformat(),
 			'end_time': datetime.utcfromtimestamp(int(kwargs['end_time'])).isoformat()
 		}
 	)
@@ -117,23 +117,23 @@ def auth_payload(**kwargs):
 		'iglu:com.software/auth/jsonschema/1-0-0',
 		{
 			'jwt': kwargs['jwt']
-    	}
-    )
+		}
+	)
 
 def file_payload(**kwargs):
 	hashed_name = hash_value(kwargs['file_name'].replace("\\", "/"), 'file_name', kwargs['jwt'])
 	hashed_path = hash_value(kwargs['file_path'], 'file_path', kwargs['jwt'])
 
 	return SelfDescribingJson(
-    	'iglu:com.software/file/jsonschema/1-0-1',
-    	{
+		'iglu:com.software/file/jsonschema/1-0-1',
+		{
 			'file_name': hashed_name,
 			'file_path': hashed_path,
 			'syntax': kwargs['syntax'],
 			'line_count': kwargs['line_count'],
 			'character_count': kwargs['character_count']
-      }
-    )
+		}
+	)
 
 def plugin_payload(**kwargs):
 	plugin_id = kwargs["plugin_id"] or getPluginId()
@@ -176,8 +176,8 @@ def repo_payload(**kwargs):
 			'owner_id': hashed_owner_id,
 			'git_branch': hashed_git_branch,
 			'git_tag': hashed_git_tag
-    	}
-    )
+		}
+	)
 
 def ui_element_payload(**kwargs):
 	return SelfDescribingJson(
